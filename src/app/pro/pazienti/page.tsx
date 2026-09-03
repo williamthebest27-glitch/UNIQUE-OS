@@ -23,7 +23,7 @@ export default async function PazientiPage() {
 
   if (!isSupabaseConfigured()) {
     return (
-      <main className="mx-auto max-w-[860px] px-5 py-12 sm:px-8">
+      <div className="mx-auto max-w-[860px]">
         <PageHeading title="Pazienti" />
         <Card className="mt-8">
           <EmptyState>
@@ -31,7 +31,7 @@ export default async function PazientiPage() {
             pazienti.
           </EmptyState>
         </Card>
-      </main>
+      </div>
     );
   }
 
@@ -76,7 +76,7 @@ export default async function PazientiPage() {
   }
 
   return (
-    <main className="mx-auto max-w-[860px] px-5 py-12 sm:px-8">
+    <div className="mx-auto max-w-[860px]">
       <PageHeading
         title="Pazienti"
         subtitle="I pazienti che segui, con il punteggio più recente."
@@ -132,6 +132,6 @@ export default async function PazientiPage() {
           </ul>
         )}
       </Card>
-    </main>
+    </div>
   );
 }

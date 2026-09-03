@@ -107,7 +107,7 @@ export default async function CartellaPazientePage({
 
   if (!isSupabaseConfigured()) {
     return (
-      <main className="mx-auto max-w-[1000px] px-5 py-12 sm:px-8">
+      <div className="mx-auto max-w-[1000px]">
         <PageHeading title="Cartella paziente" />
         <Card className="mt-8">
           <EmptyState>
@@ -115,7 +115,7 @@ export default async function CartellaPazientePage({
             cartelle da aprire.
           </EmptyState>
         </Card>
-      </main>
+      </div>
     );
   }
 
@@ -192,7 +192,7 @@ export default async function CartellaPazientePage({
   const stepProposti = (stepRes.data ?? []) as unknown as StepRow[];
 
   return (
-    <main className="mx-auto max-w-[1000px] px-5 py-10 pb-20 sm:px-8">
+    <div className="mx-auto max-w-[1000px]">
       <Link
         href="/pro/pazienti"
         className="text-sm text-ink-400 transition-colors hover:text-ink-700"
@@ -608,6 +608,6 @@ export default async function CartellaPazientePage({
 
         <Timeline events={timeline} hint="Visite, referti e punteggi, dal più recente." />
       </div>
-    </main>
+    </div>
   );
 }

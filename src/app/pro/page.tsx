@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
-import { esci } from "@/lib/auth-actions";
 import { chiudiTask } from "@/lib/clinical/actions";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getProfessionalDashboard } from "@/lib/data/professional";
@@ -22,47 +21,6 @@ import {
 export const metadata: Metadata = { title: "Area professionale" };
 export const dynamic = "force-dynamic";
 
-function Wordmark() {
-  return (
-    <div>
-      <span className="block font-display text-[22px] leading-none tracking-[0.18em] text-ink-900">
-        UNIQUE
-      </span>
-      <span className="mt-1.5 block text-[9px] font-medium uppercase tracking-[0.28em] text-ink-400">
-        Longevity Clinic
-      </span>
-    </div>
-  );
-}
-
-function Scorciatoia({
-  href,
-  titolo,
-  dettaglio,
-  contatore,
-}: {
-  href: string;
-  titolo: string;
-  dettaglio: string;
-  contatore?: number;
-}) {
-  return (
-    <Link
-      href={href}
-      className="group flex items-center justify-between gap-3 rounded-card bg-white px-5 py-4 shadow-card ring-1 ring-bone-200/70 transition-colors hover:bg-bone-50"
-    >
-      <span className="min-w-0">
-        <span className="flex items-center gap-2">
-          <span className="text-[15px] font-medium text-ink-900">{titolo}</span>
-          {contatore ? <Badge tone="attention">{contatore}</Badge> : null}
-        </span>
-        <span className="mt-0.5 block text-sm text-ink-500">{dettaglio}</span>
-      </span>
-      <ChevronIcon className="h-4 w-4 shrink-0 text-ink-300 transition-transform group-hover:translate-x-0.5" />
-    </Link>
-  );
-}
-
 export default async function ProPage() {
   const profile = await requireProfile();
 
@@ -72,20 +30,8 @@ export default async function ProPage() {
   const dashboard = isSupabaseConfigured() ? await getProfessionalDashboard() : null;
 
   return (
-    <main className="mx-auto max-w-[1000px] px-5 py-10 pb-20 sm:px-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <Wordmark />
-        <form action={esci}>
-          <button
-            type="submit"
-            className="text-sm text-ink-400 transition-colors hover:text-ink-700"
-          >
-            Esci
-          </button>
-        </form>
-      </div>
-
-      <header className="mt-9">
+    <div className="mx-auto max-w-[1000px]">
+      <header>
         <h1 className="font-display text-[30px] leading-tight text-ink-900 sm:text-[34px]">
           Ciao {profile.firstName ?? profile.fullName}.
         </h1>
@@ -107,21 +53,6 @@ export default async function ProPage() {
         </Card>
       ) : (
         <div className="mt-8 space-y-6">
-          {/* ── Scorciatoie ─────────────────────────────────── */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Scorciatoia
-              href="/pro/pazienti"
-              titolo="Pazienti"
-              dettaglio="Cartella unificata, documenti e copilot."
-            />
-            <Scorciatoia
-              href="/pro/revisioni"
-              titolo="Revisioni cliniche"
-              dettaglio="Valori estratti in attesa di approvazione."
-              contatore={dashboard.daRivedere}
-            />
-          </div>
-
           {/* ── Agenda di oggi ──────────────────────────────── */}
           <Card>
             <CardHeader
@@ -308,6 +239,6 @@ export default async function ProPage() {
           ) : null}
         </div>
       )}
-    </main>
+    </div>
   );
 }

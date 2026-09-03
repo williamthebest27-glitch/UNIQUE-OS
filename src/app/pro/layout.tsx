@@ -1,0 +1,122 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { requireProfile } from "@/lib/auth";
+import { esci } from "@/lib/auth-actions";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getProNavCounts } from "@/lib/data/professional";
+import { ProSidebarNav, ProTabBar, type ProCounts } from "@/components/shell/pro-nav";
+
+/**
+ * L'area clinica.
+ *
+ * Stessa lingua visiva della dashboard del paziente — carta, calma, un
+ * solo accento — perché è la stessa applicazione vista da un altro lato,
+ * non un gestionale a parte. Cambia la mappa: qui la colonna di sinistra
+ * elenca il lavoro di una giornata clinica.
+ */
+
+function Wordmark() {
+  return (
+    <Link href="/pro" className="block">
+      <span className="block font-display text-[22px] leading-none tracking-[0.18em] text-ink-900">
+        UNIQUE
+      </span>
+      <span className="mt-1.5 block text-[9px] font-medium uppercase tracking-[0.28em] text-ink-400">
+        Area clinica
+      </span>
+    </Link>
+  );
+}
+
+function Initials({ name }: { name: string }) {
+  const initials =
+    name
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? "")
+      .join("") || "?";
+
+  return (
+    <span
+      aria-hidden="true"
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-700 text-[13px] font-semibold text-bone-50"
+    >
+      {initials}
+    </span>
+  );
+}
+
+function DemoBadge() {
+  return (
+    <p className="rounded-lg bg-gold-100 px-2.5 py-1.5 text-[11px] leading-snug text-gold-600">
+      Modalità dimostrativa — dati di esempio
+    </p>
+  );
+}
+
+function LogoutButton({ className }: { className?: string }) {
+  return (
+    <form action={esci}>
+      <button type="submit" className={className}>
+        Esci
+      </button>
+    </form>
+  );
+}
+
+export default async function ProLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const profile = await requireProfile();
+
+  // Un paziente qui non ci deve arrivare: ha una sua home.
+  if (profile.role === "patient") redirect("/dashboard");
+
+  const demo = !isSupabaseConfigured();
+  // Senza database non c'è nulla da contare, e la query fallirebbe.
+  const counts: ProCounts = demo
+    ? { revisioni: 0, task: 0 }
+    : await getProNavCounts();
+
+  return (
+    <div className="min-h-dvh md:flex">
+      {/* Colonna di navigazione, da tablet in su. */}
+      <aside className="sticky top-0 hidden h-dvh w-[248px] shrink-0 flex-col border-r border-bone-200 bg-bone-50 px-5 py-7 md:flex lg:w-[264px]">
+        <Wordmark />
+
+        <div className="mt-9 flex-1">
+          <ProSidebarNav counts={counts} />
+        </div>
+
+        <div className="space-y-4 border-t border-bone-200 pt-5">
+          {demo ? <DemoBadge /> : null}
+          <div className="flex items-center gap-3">
+            <Initials name={profile.fullName} />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-ink-900">
+                {profile.fullName}
+              </p>
+              <LogoutButton className="text-xs text-ink-400 transition-colors hover:text-ink-700" />
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Barra superiore, solo su telefono. */}
+      <header className="sticky top-0 z-40 flex items-center justify-between gap-3 border-b border-bone-200 bg-bone-50/95 px-5 py-3.5 backdrop-blur md:hidden">
+        <Wordmark />
+        <LogoutButton className="rounded-full px-2.5 py-2 text-xs text-ink-500 transition-colors hover:bg-bone-100" />
+      </header>
+
+      {/* pb-24 lascia spazio alla tab bar su telefono. */}
+      <main className="min-w-0 flex-1 px-5 pt-6 pb-24 sm:px-8 md:pb-12 lg:px-12 lg:pt-10">
+        <div className="mx-auto w-full max-w-[1180px]">{children}</div>
+      </main>
+
+      <ProTabBar counts={counts} />
+    </div>
+  );
+}

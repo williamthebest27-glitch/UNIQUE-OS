@@ -241,4 +241,5 @@ export async function chiudiTask(formData: FormData): Promise<void> {
     .eq("status", "open");
 
   revalidatePath("/pro");
+  revalidatePath("/pro/task");
 }

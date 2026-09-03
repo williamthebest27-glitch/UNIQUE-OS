@@ -254,3 +254,184 @@ export async function getProfessionalDashboard(): Promise<ProfessionalDashboard 
     daRivalutare,
   };
 }
+
+/* ── Sezioni dell'area clinica ──────────────────────────────────────
+ *
+ * Le tre pagine che stanno dietro le voci Agenda, Documenti e Task del
+ * menu. Sono le stesse cose che la home mostra in anteprima: qui senza
+ * il taglio dell'anteprima, perché è dove si va quando l'elenco corto
+ * non basta più.
+ */
+
+/** I numeri che il menu mostra accanto alle voci. Due conteggi, niente righe. */
+export async function getProNavCounts(): Promise<{ revisioni: number; task: number }> {
+  const supabase = await createSupabaseServerClient();
+
+  const [revisioni, task] = await Promise.all([
+    supabase
+      .from("measurement_proposals")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "needs_review"),
+    supabase
+      .from("professional_tasks")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "open"),
+  ]);
+
+  return { revisioni: revisioni.count ?? 0, task: task.count ?? 0 };
+}
+
+export interface GiornoAgenda {
+  /** Data a Roma, `YYYY-MM-DD`: è la chiave con cui si raggruppa. */
+  data: string;
+  visite: AppuntamentoBreve[];
+}
+
+/**
+ * L'agenda dei prossimi giorni, raggruppata per giornata.
+ *
+ * Parte da oggi: ciò che è già passato appartiene alla cartella del
+ * paziente, non all'agenda.
+ */
+export async function getAgenda(giorni = 30): Promise<GiornoAgenda[]> {
+  const supabase = await createSupabaseServerClient();
+
+  const ora = new Date();
+  const daIeri = new Date(ora.getTime() - 24 * 3600 * 1000).toISOString();
+  const fino = new Date(ora.getTime() + giorni * 24 * 3600 * 1000).toISOString();
+
+  const { data } = await supabase
+    .from("appointments")
+    .select(
+      "id, service_name, starts_at, location, status, patient:patients(id, profile:profiles(full_name))",
+    )
+    .in("status", ["scheduled", "confirmed"])
+    .gte("starts_at", daIeri)
+    .lte("starts_at", fino)
+    .order("starts_at", { ascending: true })
+    .limit(200);
+
+  const oggiRoma = dataRomana(ora);
+  const gruppi = new Map<string, AppuntamentoBreve[]>();
+
+  for (const row of (data ?? []) as unknown as AppointmentRow[]) {
+    const giorno = dataRomana(row.starts_at);
+    // Il margine di 24 ore serve al fuso, non a mostrare ieri.
+    if (giorno < oggiRoma) continue;
+
+    const lista = gruppi.get(giorno) ?? [];
+    lista.push({
+      id: row.id,
+      patientId: row.patient?.id ?? "",
+      patientName: row.patient?.profile?.full_name ?? "Paziente",
+      serviceName: row.service_name,
+      startsAt: row.starts_at,
+      location: row.location,
+      status: row.status,
+    });
+    gruppi.set(giorno, lista);
+  }
+
+  return [...gruppi.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([data, visite]) => ({ data, visite }));
+}
+
+export interface DocumentoInArrivo extends DocumentoBreve {
+  kind: string;
+  issuedOn: string | null;
+  /** Stato dell'ultima analisi del motore AI, `null` se non è mai stata fatta. */
+  statoAnalisi: string | null;
+}
+
+/** I documenti dei pazienti seguiti, dal più recente. */
+export async function getDocumentiRecenti(limite = 60): Promise<DocumentoInArrivo[]> {
+  const supabase = await createSupabaseServerClient();
+
+  const { data } = await supabase
+    .from("documents")
+    .select(
+      "id, title, kind, issued_on, created_at, analyses:document_analyses(status, created_at), patient:patients(id, profile:profiles(full_name))",
+    )
+    .order("created_at", { ascending: false })
+    .limit(limite);
+
+  return ((data ?? []) as unknown as {
+    id: string;
+    title: string;
+    kind: string;
+    issued_on: string | null;
+    created_at: string;
+    analyses: { status: string; created_at: string }[] | null;
+    patient: { id: string; profile: { full_name: string } | null } | null;
+  }[]).map((row) => {
+    const ultima = [...(row.analyses ?? [])].sort((a, b) =>
+      b.created_at.localeCompare(a.created_at),
+    )[0];
+
+    return {
+      id: row.id,
+      patientId: row.patient?.id ?? "",
+      patientName: row.patient?.profile?.full_name ?? "Paziente",
+      title: row.title,
+      kind: row.kind,
+      issuedOn: row.issued_on,
+      createdAt: row.created_at,
+      statoAnalisi: ultima?.status ?? null,
+    };
+  });
+}
+
+export interface TaskCompleto extends TaskBreve {
+  status: string;
+  completedAt: string | null;
+}
+
+/** I task: prima quelli aperti per scadenza, poi i chiusi di recente. */
+export async function getTask(): Promise<{ aperti: TaskCompleto[]; chiusi: TaskCompleto[] }> {
+  const supabase = await createSupabaseServerClient();
+
+  const daDueSettimane = new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString();
+
+  const [apertiRes, chiusiRes] = await Promise.all([
+    supabase
+      .from("professional_tasks")
+      .select(
+        "id, title, detail, due_on, status, completed_at, patient:patients(id, profile:profiles(full_name))",
+      )
+      .eq("status", "open")
+      .order("due_on", { ascending: true, nullsFirst: false })
+      .limit(60),
+    supabase
+      .from("professional_tasks")
+      .select(
+        "id, title, detail, due_on, status, completed_at, patient:patients(id, profile:profiles(full_name))",
+      )
+      .neq("status", "open")
+      .gte("completed_at", daDueSettimane)
+      .order("completed_at", { ascending: false })
+      .limit(15),
+  ]);
+
+  const mappa = (rows: unknown): TaskCompleto[] =>
+    ((rows ?? []) as {
+      id: string;
+      title: string;
+      detail: string | null;
+      due_on: string | null;
+      status: string;
+      completed_at: string | null;
+      patient: { id: string; profile: { full_name: string } | null } | null;
+    }[]).map((row) => ({
+      id: row.id,
+      title: row.title,
+      detail: row.detail,
+      dueOn: row.due_on,
+      patientId: row.patient?.id ?? null,
+      patientName: row.patient?.profile?.full_name ?? null,
+      status: row.status,
+      completedAt: row.completed_at,
+    }));
+
+  return { aperti: mappa(apertiRes.data), chiusi: mappa(chiusiRes.data) };
+}

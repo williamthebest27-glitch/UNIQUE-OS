@@ -225,3 +225,38 @@ export function HomeIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+export function UsersIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <circle cx="9" cy="8" r="3.5" stroke="currentColor" strokeWidth="1.6" />
+      <path
+        d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+      <path
+        d="M16 5.2a3.5 3.5 0 0 1 0 6.6M17.5 14.9c2.1.7 3.5 2.5 3.5 5.1"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+export function TaskIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <rect x="4" y="4" width="16" height="16" rx="3.5" stroke="currentColor" strokeWidth="1.6" />
+      <path
+        d="m8.5 12.2 2.4 2.4 4.6-5"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}

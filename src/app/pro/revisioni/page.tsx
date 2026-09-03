@@ -174,7 +174,7 @@ export default async function RevisioniPage() {
 
   if (!isSupabaseConfigured()) {
     return (
-      <main className="mx-auto max-w-[860px] px-5 py-12 sm:px-8">
+      <div className="mx-auto max-w-[860px]">
         <PageHeading
           title="Revisioni cliniche"
           subtitle="I valori che il motore AI propone di scrivere nella cartella del paziente."
@@ -185,7 +185,7 @@ export default async function RevisioniPage() {
             proposte da rivedere.
           </EmptyState>
         </Card>
-      </main>
+      </div>
     );
   }
 
@@ -212,7 +212,7 @@ export default async function RevisioniPage() {
   }
 
   return (
-    <main className="mx-auto max-w-[860px] px-5 py-12 sm:px-8">
+    <div className="mx-auto max-w-[860px]">
       <PageHeading
         title="Revisioni cliniche"
         subtitle="I valori che il motore AI ha estratto dai documenti e propone di scrivere in cartella. Finché non li approvi, non toccano il punteggio del paziente."
@@ -279,6 +279,6 @@ export default async function RevisioniPage() {
           })}
         </div>
       )}
-    </main>
+    </div>
   );
 }
