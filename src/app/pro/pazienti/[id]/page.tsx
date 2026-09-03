@@ -168,7 +168,12 @@ export default async function CartellaPazientePage({
 
     supabase
       .from("care_plan_proposals")
-      .select("id, title, description, status, created_at, proposer:profiles(full_name)")
+      // `care_plan_proposals` ha due chiavi verso `profiles` — chi propone e
+      // chi decide. Senza nominare il vincolo, PostgREST non può indovinare
+      // quale intendiamo e rifiuta la query.
+      .select(
+        "id, title, description, status, created_at, proposer:profiles!care_plan_proposals_proposed_by_fkey(full_name)",
+      )
       .eq("patient_id", id)
       .eq("status", "proposed")
       .order("created_at", { ascending: false })
