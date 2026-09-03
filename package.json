@@ -9,7 +9,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "node --test \"src/**/*.test.ts\"",
-    "db:verifica": "node scripts/verifica-migrazioni.mjs"
+    "db:verifica": "node scripts/verifica-migrazioni.mjs",
+    "env:collega": "node scripts/imposta-env.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.123.0",

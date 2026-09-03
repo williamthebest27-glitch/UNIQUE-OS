@@ -84,7 +84,24 @@ Senza il secondo, il link ricevuto via email non riporta all’applicazione.
 
 ## 4. Copiare le chiavi
 
-In **Project Settings → API** trovi i due valori. Mettili in `.env.local`:
+Il modo più rapido, che chiede i valori e poi prova davvero il collegamento:
+
+```bash
+npm run env:collega
+```
+
+Interroga il database con la chiave appena inserita e scrive `.env.local` solo
+se ha funzionato. Se la chiave è sbagliata, o è quella segreta, lo dice invece
+di lasciarti davanti a una pagina vuota.
+
+> **Come si chiama la chiave.** I progetti Supabase recenti mostrano una
+> **Publishable key** che comincia per `sb_publishable_`; quelli più vecchi la
+> **anon public**, un JWT che comincia per `eyJ`. Vanno bene entrambe. Quella da
+> non usare mai qui è la **secret** (`sb_secret_…`) o `service_role`: scavalca la
+> Row Level Security e non deve arrivare al browser.
+
+A mano, gli stessi valori si trovano in **Project Settings → API** e si scrivono
+in `.env.local`:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxxxxxxxxx.supabase.co
@@ -169,8 +186,18 @@ il numero di invii. Per l’uso reale va configurato un SMTP proprio in
 **Vedo "Ci siamo quasi"** — l’account esiste ma non ha una scheda paziente: manca il
 passo 6.
 
-**Vedo ancora "modalità dimostrativa"** — `.env.local` non è compilato, oppure il
-server non è stato riavviato dopo averlo compilato.
+**Vedo ancora "modalità dimostrativa"** o **"Supabase non ancora collegato"** — sono
+lo stesso stato: `.env.local` non ha URL e chiave, oppure il server non è stato
+riavviato dopo averli inseriti. Le variabili vengono lette solo all’avvio, quindi
+serve fermare `npm run dev` e rilanciarlo. Per capire quale dei due casi è:
+
+```bash
+npm run env:collega
+```
+
+Mostra cosa c’è già, riprova il collegamento e scrive solo se funziona. Attenzione
+al file giusto: `.env.example` è il modello e non viene letto da nessuno, quello
+che conta è `.env.local` nella radice del progetto.
 
 **La home resta vuota con i dati caricati** — quasi certamente la Row Level Security
 sta facendo il suo mestiere: stai guardando con un account diverso da quello a cui
