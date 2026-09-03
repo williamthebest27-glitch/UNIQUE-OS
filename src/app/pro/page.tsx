@@ -9,9 +9,6 @@ export const metadata: Metadata = { title: "Area professionale" };
 export const dynamic = "force-dynamic";
 
 const IN_ARRIVO = [
-  ["Elenco pazienti", "I pazienti assegnati al tuo care team, con il loro Score."],
-  ["Scheda clinica", "Storico, misure, referti e note in un’unica vista."],
-  ["Caricamento referti", "Esami e piani di cura, direttamente nel percorso del paziente."],
   ["Azioni consigliate", "Le indicazioni che il paziente vede nella sua home."],
   ["Agenda", "Le tue visite, con conferme e disponibilità."],
 ];
@@ -48,7 +45,18 @@ export default async function ProPage() {
         </p>
 
         <Link
-          href="/pro/revisioni"
+          href='/pro/pazienti'
+          className='mt-6 flex items-center justify-between gap-4 rounded-xl bg-jade-50 px-4 py-3.5 ring-1 ring-jade-100 transition-colors hover:bg-jade-100'
+        >
+          <span>
+            <span className='block text-[15px] font-medium text-jade-900'>Pazienti</span>
+            <span className='mt-0.5 block text-sm text-jade-700'>Cartella unificata, documenti e sintesi pre-visita.</span>
+          </span>
+          <ChevronIcon className='h-4 w-4 shrink-0 text-jade-600' />
+        </Link>
+
+        <Link
+          href='/pro/revisioni'
           className="mt-6 flex items-center justify-between gap-4 rounded-xl bg-jade-50 px-4 py-3.5 ring-1 ring-jade-100 transition-colors hover:bg-jade-100"
         >
           <span>

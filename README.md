@@ -18,7 +18,7 @@ Il principio che regge ogni scelta tecnica di questo repository:
 | Livello | Chi lo usa | Stato |
 | --- | --- | --- |
 | **Patient App** | Il paziente | 🟢 Home completa, collegata al database |
-| **Professional App** | Medici e professionisti | 🟡 Revisioni cliniche operative, resto da costruire |
+| **Professional App** | Medici e professionisti | 🟢 Elenco pazienti, cartella unificata, revisioni cliniche |
 | **Unique Control Center** | Amministrazione e management | ⚪ Da avviare |
 | **Unique Brain** | Layer AI trasversale | 🟡 Motore di ingestione documenti attivo |
 
@@ -40,6 +40,13 @@ distinti.
 - **Longevity Score calcolato, non inserito** — sette pilastri, una trentina di
   parametri da undici fonti, curve di normalizzazione, copertura dei dati
   dichiarata e algoritmo versionato. Motore in funzioni pure, con 37 test.
+- **Health Timeline** — punteggi, visite, documenti e percorsi in ordine cronologico,
+  ricostruiti da una vista sulle tabelle di dominio.
+- **Caricamento documenti** — dal paziente e dal professionista, con classificazione,
+  estrazione dei parametri e segnalazione automatica al care team.
+- **Cartella paziente unificata** — anagrafica, Score e sottoscore, visite, documenti,
+  percorso, azioni, note e timeline in una schermata sola, con la sintesi pre-visita
+  fondata solo sui dati che chi la chiede ha diritto di vedere.
 - **Motore clinico AI** — un documento viene letto da Claude, i parametri estratti
   vengono validati da regole deterministiche, quelli clinicamente rilevanti
   finiscono in coda di revisione e lo Score si ricalcola su ciò che è approvato.
@@ -83,7 +90,8 @@ src/
   lib/
     domain/types.ts       Modello di dominio condiviso dai quattro livelli
     score/                Pilastri, catalogo metriche, motore di calcolo, test
-    brain/                Estrazione AI, regole di validazione, approvazione
+    brain/                Estrazione AI, validazione, approvazione, briefing
+    documents/            Caricamento e classificazione dei referti
     supabase/             Client browser, client server, configurazione
     auth.ts               Profilo collegato e percorso per ruolo
     data/                 Unico punto di accesso ai dati
@@ -130,6 +138,8 @@ Postgres non restituirebbe comunque righe che l’utente non ha diritto di veder
   database reale, passo per passo.
 - [Il modello dell’Unique Longevity Score](docs/longevity-score.md) — come è composto
   il punteggio e quali assunzioni vanno validate clinicamente.
+- [Documenti, timeline e cartella](docs/documenti-e-cartella.md) — caricamento,
+  Health Timeline, cartella unificata e sintesi pre-visita.
 - [Il motore clinico AI](docs/motore-clinico-ai.md) — come un documento diventa
   misure, quali regole decidono cosa passa da un medico.
 - [Sicurezza e dati sanitari](docs/sicurezza-e-gdpr.md) — modello dei permessi,
@@ -139,8 +149,8 @@ Postgres non restituirebbe comunque righe che l’utente non ha diritto di veder
 
 1. **Validazione clinica dello Score** — pesi e curve di normalizzazione vanno
    confermati dal team medico. Le decisioni aperte sono in docs/longevity-score.md.
-2. **Professional App** — elenco pazienti, scheda clinica, caricamento referti,
-   scrittura delle azioni consigliate.
+2. **Anamnesi strutturata** — un questionario le cui risposte alimentino
+   direttamente le metriche di anamnesi e stile di vita.
 3. **Control Center** — agenda, membership, crediti, incassi, KPI.
 4. **Unique Brain** — interrogazione in linguaggio naturale su dati, documenti e
    procedure, con gli stessi confini di accesso della Row Level Security.

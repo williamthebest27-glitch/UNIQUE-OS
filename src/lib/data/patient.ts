@@ -1,5 +1,6 @@
 import type {
   ActionSource,
+  Profile,
   ActionStatus,
   AppNotification,
   Appointment,
@@ -321,24 +322,56 @@ function toNotification(row: NotificationRow): AppNotification {
  * staff, oppure un account non ancora associato a una scheda clinica.
  * In modalità dimostrativa restituisce i dati di esempio.
  */
-export async function getPatientDashboard(): Promise<PatientDashboardData | null> {
+export async function getPatientDashboard(
+  targetPatientId?: string,
+): Promise<PatientDashboardData | null> {
   if (!isSupabaseConfigured()) {
     return mockPatientDashboard;
   }
 
-  const profile = await getCurrentProfile();
-  if (!profile) return null;
+  const viewer = await getCurrentProfile();
+  if (!viewer) return null;
 
   const supabase = await createSupabaseServerClient();
 
-  const { data: patientData } = await supabase
-    .from("patients")
-    .select("id")
-    .eq("profile_id", profile.id)
-    .maybeSingle();
+  const columns =
+    "id, profile:profiles(id, role, full_name, first_name, email, avatar_url)";
 
-  const patientId = (patientData as { id: string } | null)?.id;
-  if (!patientId) return null;
+  // Senza `targetPatientId` si guarda la propria scheda; con, quella di un
+  // altro paziente — e se la Row Level Security non restituisce la riga,
+  // chi guarda non ne ha titolo. Il filtro non lo scriviamo noi.
+  const { data: patientData } = await (targetPatientId
+    ? supabase.from("patients").select(columns).eq("id", targetPatientId)
+    : supabase.from("patients").select(columns).eq("profile_id", viewer.id)
+  ).maybeSingle();
+
+  const patientRow = patientData as {
+    id: string;
+    profile: {
+      id: string;
+      role: Profile["role"];
+      full_name: string;
+      first_name: string | null;
+      email: string | null;
+      avatar_url: string | null;
+    } | null;
+  } | null;
+
+  if (!patientRow) return null;
+
+  const patientId = patientRow.id;
+  const isOwnRecord = !targetPatientId;
+
+  const profile: Profile = patientRow.profile
+    ? {
+        id: patientRow.profile.id,
+        role: patientRow.profile.role,
+        fullName: patientRow.profile.full_name,
+        firstName: patientRow.profile.first_name,
+        email: patientRow.profile.email,
+        avatarUrl: patientRow.profile.avatar_url,
+      }
+    : viewer;
 
   const nowIso = new Date().toISOString();
 
@@ -419,7 +452,7 @@ export async function getPatientDashboard(): Promise<PatientDashboardData | null
     supabase
       .from("notifications")
       .select("id, title, body, link_url, read_at, created_at")
-      .eq("profile_id", profile.id)
+      .eq("profile_id", viewer.id)
       .order("created_at", { ascending: false })
       .limit(5),
 
@@ -462,7 +495,11 @@ export async function getPatientDashboard(): Promise<PatientDashboardData | null
     credits,
     actions: ((actions.data ?? []) as ActionRow[]).map(toAction),
     newDocuments: ((documents.data ?? []) as DocumentRow[]).map(toDocument),
-    notifications: ((notifications.data ?? []) as NotificationRow[]).map(toNotification),
+    // Le notifiche sono di chi guarda, non del paziente guardato: in una
+    // cartella altrui non hanno senso.
+    notifications: isOwnRecord
+      ? ((notifications.data ?? []) as NotificationRow[]).map(toNotification)
+      : [],
     highlights: buildHighlights((measurements.data ?? []) as MeasurementRow[]),
   };
 }

@@ -29,6 +29,8 @@ Dal progetto, apri **SQL Editor** ed esegui i file di `supabase/migrations/`
 4. `20260903110100_seed_catalog.sql` — percorsi e livelli di membership
 5. `20260903120000_measurements_and_clinical_ai.sql` — misure, analisi AI,
    proposte in revisione
+6. `20260903130000_timeline_uploads_briefings.sql` — Health Timeline, caricamento
+   dal paziente, briefing pre-visita
 
 In alternativa, con la Supabase CLI installata e il progetto collegato:
 

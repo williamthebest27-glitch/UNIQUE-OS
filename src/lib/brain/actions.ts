@@ -6,6 +6,7 @@ import { requireProfile } from "@/lib/auth";
 import { getMetric } from "@/lib/score/metrics";
 import { recomputeAndStoreScore } from "@/lib/score/service";
 import { analyzeDocument } from "@/lib/brain/analyze";
+import { generateBriefing } from "@/lib/brain/briefing";
 
 /**
  * Le azioni con cui un professionista chiude il ciclo: chiedere l'analisi
@@ -30,7 +31,20 @@ export async function analizzaDocumento(formData: FormData): Promise<void> {
   if (!documentId) throw new Error("Documento non indicato.");
 
   await analyzeDocument(documentId);
+
+  const patientId = String(formData.get("patientId") ?? "");
+  if (patientId) revalidatePath(`/pro/pazienti/${patientId}`);
   revalidatePath("/pro/revisioni");
+}
+
+/** "Riassumimi questo paziente prima della visita." */
+export async function generaBriefing(formData: FormData): Promise<void> {
+  await requireClinicalStaff();
+  const patientId = String(formData.get("patientId") ?? "");
+  if (!patientId) throw new Error("Paziente non indicato.");
+
+  await generateBriefing(patientId);
+  revalidatePath(`/pro/pazienti/${patientId}`);
 }
 
 export async function approvaProposta(formData: FormData): Promise<void> {

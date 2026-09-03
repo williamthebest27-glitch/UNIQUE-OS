@@ -5,6 +5,12 @@ const nextConfig: NextConfig = {
   // Il badge di sviluppo copre l angolo in basso a sinistra, dove vive
   // il profilo nella barra laterale.
   devIndicators: false,
+  experimental: {
+    serverActions: {
+      // I referti in PDF superano di slancio il limite predefinito di 1 MB.
+      bodySizeLimit: "12mb",
+    },
+  },
   // Unique OS tratta dati sanitari: nessuna informazione di build
   // deve finire negli header di risposta.
   poweredByHeader: false,

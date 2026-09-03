@@ -7,6 +7,8 @@
  * "paziente" significhi la stessa cosa ovunque.
  */
 
+import type { PillarKey } from "@/lib/score/pillars";
+
 export type AppRole = "patient" | "professional" | "admin" | "owner";
 
 export type AppointmentStatus =
@@ -52,14 +54,13 @@ export type CreditEntryType =
   | "adjustment";
 
 /**
- * I pilastri dell’Unique Longevity Score.
+ * I sette pilastri dell’Unique Longevity Score.
  *
- * Sono deliberatamente pochi e stabili: il paziente deve poterli
- * riconoscere e ricordare. La composizione dei biomarcatori dentro
- * ciascun pilastro può evolvere senza cambiare questa lista.
+ * Sono definiti in `@/lib/score/pillars`, che non importa nulla: serve a
+ * far girare il motore di calcolo anche fuori da Next, sotto `node --test`.
+ * Qui li ri-esportiamo perché il resto dell’applicazione li trovi insieme
+ * agli altri tipi di dominio.
  */
-import type { PillarKey } from "@/lib/score/pillars";
-
 export { PILLAR_KEYS, PILLAR_LABELS, PILLAR_WEIGHTS } from "@/lib/score/pillars";
 export type { PillarKey };
 
@@ -171,6 +172,22 @@ export interface AppNotification {
   linkUrl: string | null;
   readAt: string | null;
   createdAt: string;
+}
+
+export type TimelineKind =
+  | "score"
+  | "appointment"
+  | "document"
+  | "program_start"
+  | "program_end";
+
+/** Un evento della storia clinica, per la Health Timeline. */
+export interface TimelineEvent {
+  id: string;
+  occurredAt: string;
+  kind: TimelineKind;
+  title: string;
+  detail: string | null;
 }
 
 /** Un risultato concreto ottenuto nel percorso, da celebrare in home. */

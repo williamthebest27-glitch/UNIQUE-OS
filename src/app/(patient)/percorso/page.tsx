@@ -5,6 +5,8 @@ import { PageHeading } from "@/components/shell/page-heading";
 import { ScoreHero } from "@/components/patient/score-hero";
 import { ProgramCard } from "@/components/patient/cards";
 import { ActionsCard, HighlightsCard } from "@/components/patient/lists";
+import { Timeline } from "@/components/patient/timeline";
+import { getPatientTimeline } from "@/lib/data/timeline";
 
 export const metadata: Metadata = { title: "Percorso" };
 export const dynamic = "force-dynamic";
@@ -30,6 +32,8 @@ export default async function PercorsoPage() {
       </div>
 
       <HighlightsCard highlights={data.highlights} />
+
+      <Timeline events={await getPatientTimeline()} />
     </div>
   );
 }

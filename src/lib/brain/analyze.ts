@@ -9,6 +9,7 @@ import {
   isBrainConfigured,
 } from "@/lib/brain/extraction";
 import { validateExtraction, type ValidatedProposal } from "@/lib/brain/validation";
+import { createSupabaseServiceClient, isServiceRoleConfigured } from "@/lib/supabase/service";
 
 /**
  * Il ciclo completo descritto nella visione, per un singolo documento:
@@ -34,15 +35,29 @@ export interface AnalysisOutcome {
 
 const BUCKET = "patient-documents";
 
+/**
+ * L’analisi di un documento caricato dal paziente richiede la chiave
+ * privilegiata. Senza, il referto resta comunque salvato e il care team
+ * viene avvisato: lo analizzerà un professionista.
+ */
+export class ServiceRoleRequiredError extends Error {
+  constructor() {
+    super(
+      "SUPABASE_SERVICE_ROLE_KEY non è impostata: i documenti caricati dai pazienti non vengono analizzati in automatico.",
+    );
+    this.name = "ServiceRoleRequiredError";
+  }
+}
+
 export async function analyzeDocument(documentId: string): Promise<AnalysisOutcome> {
   if (!isBrainConfigured()) throw new BrainNotConfiguredError();
 
   const profile = await requireProfile();
-  const supabase = await createSupabaseServerClient();
+  const session = await createSupabaseServerClient();
 
-  const { data: docData, error: docError } = await supabase
+  const { data: docData, error: docError } = await session
     .from("documents")
-    .select("id, patient_id, title, storage_path, mime_type, issued_on")
+    .select("id, patient_id, title, storage_path, mime_type, issued_on, kind")
     .eq("id", documentId)
     .maybeSingle();
 
@@ -54,11 +69,22 @@ export async function analyzeDocument(documentId: string): Promise<AnalysisOutco
     storage_path: string;
     mime_type: string | null;
     issued_on: string | null;
+    kind: string;
   } | null;
 
   // Se la Row Level Security non restituisce la riga, l'utente non ha
   // titolo per vedere quel documento: non c'è altro da dire.
   if (!document) throw new Error("Documento non trovato o non accessibile.");
+
+  // Il controllo di accesso è appena avvenuto con i permessi dell’utente.
+  // Un paziente però non può scrivere analisi e proposte — vedrebbe valori
+  // non ancora validati — quindi da qui in poi la scrittura passa dalla
+  // chiave privilegiata, su un documento già verificato come suo.
+  const needsPrivilege = profile.role === "patient";
+  if (needsPrivilege && !isServiceRoleConfigured()) {
+    throw new ServiceRoleRequiredError();
+  }
+  const supabase = needsPrivilege ? createSupabaseServiceClient() : session;
 
   const { data: analysisRow, error: analysisError } = await supabase
     .from("document_analyses")
@@ -108,6 +134,18 @@ export async function analyzeDocument(documentId: string): Promise<AnalysisOutco
         completed_at: new Date().toISOString(),
       })
       .eq("id", analysisId);
+
+    // Classificazione automatica: un documento caricato dal paziente arriva
+    // senza categoria, e la data la conosce solo il referto. Non sovrascriviamo
+    // mai una classificazione già decisa da una persona.
+    const documentPatch: Record<string, unknown> = {};
+    if (document.kind === "other") documentPatch.kind = extraction.document_kind;
+    if (!document.issued_on && extraction.document_date) {
+      documentPatch.issued_on = extraction.document_date;
+    }
+    if (Object.keys(documentPatch).length > 0) {
+      await supabase.from("documents").update(documentPatch).eq("id", document.id);
+    }
 
     // Le misure che passano ogni regola entrano subito; le altre restano
     // in coda e nel frattempo non toccano il punteggio del paziente.
