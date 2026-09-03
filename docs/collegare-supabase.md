@@ -72,9 +72,11 @@ ANTHROPIC_API_KEY=sk-ant-...
 La **anon key** è pubblica per definizione: finisce nel bundle del browser ed è
 giusto così. Ciò che protegge i dati non è la chiave, è la Row Level Security.
 
-La **service-role key** scavalca la RLS. Serve solo ai job di back-office, va tenuta
-fuori dal codice client e **non va mai prefissata con `NEXT_PUBLIC_`**. Finché non
-c’è un job che la richieda, puoi lasciarla vuota.
+La **service-role key** scavalca la RLS. Va tenuta fuori dal codice client e **non
+va mai prefissata con `NEXT_PUBLIC_`**. Serve a un caso solo: analizzare un
+referto caricato dal paziente, che non può scrivere lui stesso analisi e
+proposte. Puoi lasciarla vuota — il documento verrà salvato lo stesso e lo
+analizzerà un professionista dalla cartella.
 
 Riavvia `npm run dev`: le variabili d’ambiente vengono lette all’avvio.
 
