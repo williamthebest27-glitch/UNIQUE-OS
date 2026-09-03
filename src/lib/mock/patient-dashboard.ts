@@ -26,14 +26,16 @@ export const mockPatientDashboard: PatientDashboardData = {
     trend: "up",
     biologicalAge: 39.4,
     summary:
-      "Metabolismo e infiammazione sono in fascia ottimale. Il margine di crescita più ampio resta sull’assetto ormonale.",
+      "Metabolismo e movimento sono in fascia ottimale. Il margine di crescita più ampio resta sullo stile di vita, con il sonno come primo fattore.",
+    coverage: 0.86,
     pillars: [
-      { key: "metabolic", label: "Metabolismo", value: 82, delta: 5 },
-      { key: "cardiovascular", label: "Cardiovascolare", value: 76, delta: 3 },
-      { key: "body_composition", label: "Composizione corporea", value: 71, delta: 6 },
-      { key: "inflammation", label: "Infiammazione", value: 84, delta: 2 },
-      { key: "hormonal", label: "Assetto ormonale", value: 69, delta: -1 },
-      { key: "cognitive_sleep", label: "Cognitivo e sonno", value: 74, delta: 7 },
+      { key: "metabolic_health", label: "Metabolic Health", value: 82, coverage: 1, delta: 5 },
+      { key: "cardiovascular", label: "Cardiovascular", value: 74, coverage: 0.92, delta: 3 },
+      { key: "body_composition", label: "Body Composition", value: 71, coverage: 0.85, delta: 6 },
+      { key: "movement", label: "Movement", value: 86, coverage: 0.8, delta: 7 },
+      { key: "nutrition", label: "Nutrition", value: 76, coverage: 0.85, delta: 2 },
+      { key: "mental_wellbeing", label: "Mental Wellbeing", value: 80, coverage: 0.65, delta: 4 },
+      { key: "lifestyle", label: "Lifestyle", value: 69, coverage: 0.9, delta: -1 },
     ],
   },
 
@@ -87,10 +89,10 @@ export const mockPatientDashboard: PatientDashboardData = {
   actions: [
     {
       id: "act-1",
-      title: "Ripetere il pannello ormonale",
+      title: "Riportare il colesterolo LDL sotto 100",
       description:
-        "L’unico pilastro in leggero calo. Prelievo a digiuno, idealmente entro due settimane.",
-      pillarKey: "hormonal",
+        "Sei a 118 mg/dL. È la leva più pesante rimasta sul pilastro cardiovascolare.",
+      pillarKey: "cardiovascular",
       source: "professional",
       status: "suggested",
       dueOn: "2026-09-15",
@@ -101,7 +103,7 @@ export const mockPatientDashboard: PatientDashboardData = {
       title: "Portare il cardio a 150 minuti a settimana",
       description:
         "Sei a 110 minuti di media. Bastano due sessioni in più in zona 2 per chiudere il divario.",
-      pillarKey: "cardiovascular",
+      pillarKey: "movement",
       source: "protocol",
       status: "in_progress",
       dueOn: null,
@@ -112,7 +114,7 @@ export const mockPatientDashboard: PatientDashboardData = {
       title: "Anticipare la cena di 60 minuti",
       description:
         "La finestra di digiuno notturno è il fattore che sposta di più il tuo punteggio metabolico.",
-      pillarKey: "metabolic",
+      pillarKey: "metabolic_health",
       source: "brain",
       status: "suggested",
       dueOn: null,
@@ -190,7 +192,7 @@ export const mockPatientDashboard: PatientDashboardData = {
     },
     {
       id: "hl-2",
-      label: "VO₂ max stimato",
+      label: "VO₂ max",
       value: "44,1",
       change: "+3,6",
       direction: "up",
@@ -206,10 +208,10 @@ export const mockPatientDashboard: PatientDashboardData = {
     },
     {
       id: "hl-4",
-      label: "Sonno profondo",
-      value: "1h 22m",
-      change: "+18m",
-      direction: "up",
+      label: "Pressione sistolica",
+      value: "118",
+      change: "−9",
+      direction: "down",
       isImprovement: true,
     },
   ],

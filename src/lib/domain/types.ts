@@ -58,25 +58,10 @@ export type CreditEntryType =
  * riconoscere e ricordare. La composizione dei biomarcatori dentro
  * ciascun pilastro può evolvere senza cambiare questa lista.
  */
-export const PILLAR_KEYS = [
-  "metabolic",
-  "cardiovascular",
-  "body_composition",
-  "inflammation",
-  "hormonal",
-  "cognitive_sleep",
-] as const;
+import type { PillarKey } from "@/lib/score/pillars";
 
-export type PillarKey = (typeof PILLAR_KEYS)[number];
-
-export const PILLAR_LABELS: Record<PillarKey, string> = {
-  metabolic: "Metabolismo",
-  cardiovascular: "Cardiovascolare",
-  body_composition: "Composizione corporea",
-  inflammation: "Infiammazione",
-  hormonal: "Assetto ormonale",
-  cognitive_sleep: "Cognitivo e sonno",
-};
+export { PILLAR_KEYS, PILLAR_LABELS, PILLAR_WEIGHTS } from "@/lib/score/pillars";
+export type { PillarKey };
 
 export interface Profile {
   id: string;
@@ -98,7 +83,10 @@ export interface Professional {
 export interface ScorePillar {
   key: PillarKey;
   label: string;
-  value: number;
+  /** Null quando i dati disponibili non bastano a esprimere un giudizio. */
+  value: number | null;
+  /** Quota dei parametri previsti effettivamente disponibili, 0–1. */
+  coverage: number | null;
   /** Variazione rispetto alla rilevazione precedente, in punti. */
   delta: number | null;
 }
@@ -111,6 +99,8 @@ export interface LongevityScore {
   trend: ScoreTrend | null;
   biologicalAge: number | null;
   summary: string | null;
+  /** Quanta parte dei dati previsti alimenta questo punteggio, 0–1. */
+  coverage: number | null;
   pillars: ScorePillar[];
 }
 

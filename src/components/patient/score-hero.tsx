@@ -129,34 +129,57 @@ function ScoreSparkline({ history }: { history: ScorePoint[] }) {
 function PillarBar({
   label,
   value,
+  coverage,
   delta,
 }: {
   label: string;
-  value: number;
+  value: number | null;
+  coverage: number | null;
   delta: number | null;
 }) {
+  // Un pilastro senza dati sufficienti non vale zero: vale "non lo sappiamo
+  // ancora". Mostrare uno zero sarebbe una bugia con l’aria di un dato.
+  if (value === null) {
+    return (
+      <div>
+        <div className="flex items-baseline justify-between gap-2">
+          <span className="text-[13px] text-ink-700">{label}</span>
+          <span className="text-[13px] font-semibold text-ink-300">—</span>
+        </div>
+        <div className="mt-1.5 h-1.5 rounded-full bg-bone-200" />
+        <span className="mt-1.5 inline-block text-[11px] text-ink-400">
+          Servono più dati per calcolarlo
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="flex items-baseline justify-between gap-2">
         <span className="text-[13px] text-ink-700">{label}</span>
-        <span className="text-[13px] font-semibold text-ink-900 tnum">{value}</span>
+        <span className="text-[13px] font-semibold text-ink-900 tnum">
+          {Math.round(value)}
+        </span>
       </div>
       <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-bone-200">
-        <div
-          className="h-full rounded-full bg-jade-500"
-          style={{ width: `${value}%` }}
-        />
+        <div className="h-full rounded-full bg-jade-500" style={{ width: `${value}%` }} />
       </div>
-      {delta !== null ? (
-        <span
-          className={cx(
-            "mt-1.5 inline-block text-[11px] font-medium tnum",
-            delta > 0 ? "text-jade-600" : delta < 0 ? "text-signal-alert" : "text-ink-300",
-          )}
-        >
-          {formatDelta(delta)} dal controllo precedente
-        </span>
-      ) : null}
+      <div className="mt-1.5 flex flex-wrap items-baseline gap-x-2 text-[11px]">
+        {delta !== null ? (
+          <span
+            className={cx(
+              "font-medium tnum",
+              delta > 0 ? "text-jade-600" : delta < 0 ? "text-signal-alert" : "text-ink-300",
+            )}
+          >
+            {formatDelta(delta)} dal controllo precedente
+          </span>
+        ) : null}
+        {coverage !== null && coverage < 0.999 ? (
+          <span className="text-ink-300 tnum">dati al {Math.round(coverage * 100)}%</span>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -236,15 +259,23 @@ export function ScoreHero({
       </div>
 
       <div className="border-t border-bone-200 bg-bone-50/60 px-6 py-6 sm:px-8">
-        <h3 className="text-[13px] font-semibold uppercase tracking-[0.09em] text-ink-500">
-          I sei pilastri
-        </h3>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h3 className="text-[13px] font-semibold uppercase tracking-[0.09em] text-ink-500">
+            I sette pilastri
+          </h3>
+          {score.coverage !== null ? (
+            <span className="text-xs text-ink-400 tnum">
+              calcolato sul {Math.round(score.coverage * 100)}% dei parametri previsti
+            </span>
+          ) : null}
+        </div>
         <div className="mt-5 grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
           {score.pillars.map((pillar) => (
             <PillarBar
               key={pillar.key}
               label={pillar.label}
               value={pillar.value}
+              coverage={pillar.coverage}
               delta={pillar.delta}
             />
           ))}

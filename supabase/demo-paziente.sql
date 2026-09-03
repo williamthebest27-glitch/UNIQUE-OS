@@ -8,7 +8,12 @@
 --   1. Authentication → Users → Add user: crea un utente con la tua email.
 --   2. Sostituisci le email qui sotto.
 --   3. Esegui questo script nella SQL Console del progetto.
---   4. Accedi dall’applicazione con quella email.
+--   4. Accedi dall'applicazione con quella email.
+--
+-- I punteggi seminati qui sono quelli che il motore calcola davvero da
+-- queste misure (algoritmo uls-v2): da /pro/revisioni il pulsante
+-- "Ricalcola punteggio" li riproduce identici. Se un giorno divergono,
+-- è cambiata la formula.
 --
 -- Rieseguirlo azzera e ricrea i dati di prova di quel paziente.
 -- NON eseguirlo su dati di pazienti reali.
@@ -23,22 +28,25 @@ declare
   v_pro_email  text := '';
   -- ──────────────────────────────────────────────────────────────
 
-  v_profile    uuid;
-  v_patient    uuid;
+  v_profile     uuid;
+  v_patient     uuid;
   v_pro_profile uuid;
-  v_pro        uuid;
-  v_score      uuid;
-  v_program    uuid;
-  v_tier       uuid;
-  v_membership uuid;
-  v_appt       uuid;
-  v_today      date := current_date;
+  v_pro         uuid;
+  v_score_base  uuid;
+  v_score_now   uuid;
+  v_program     uuid;
+  v_tier        uuid;
+  v_membership  uuid;
+  v_today       date := current_date;
+  -- Due rilevazioni: l'ingresso nel percorso e il controllo più recente.
+  v_base_on     date := current_date - 448;
+  v_now_on      date := current_date - 6;
 begin
   select id into v_profile from public.profiles where lower(email) = lower(v_email);
 
   if v_profile is null then
     raise exception
-      'Nessun profilo con email %. Crea prima l’utente in Authentication → Users.', v_email;
+      'Nessun profilo con email %. Crea prima l''utente in Authentication → Users.', v_email;
   end if;
 
   update public.profiles
@@ -54,15 +62,17 @@ begin
   returning id into v_patient;
 
   -- Ripartiamo puliti: lo script è pensato per essere rieseguibile.
-  delete from public.longevity_scores    where patient_id = v_patient;
-  delete from public.biomarkers          where patient_id = v_patient;
-  delete from public.recommended_actions where patient_id = v_patient;
-  delete from public.appointments        where patient_id = v_patient;
-  delete from public.documents           where patient_id = v_patient;
-  delete from public.credit_entries      where patient_id = v_patient;
-  delete from public.program_enrollments where patient_id = v_patient;
-  delete from public.memberships         where patient_id = v_patient;
-  delete from public.notifications       where profile_id = v_profile;
+  delete from public.measurement_proposals where patient_id = v_patient;
+  delete from public.document_analyses    where patient_id = v_patient;
+  delete from public.measurements         where patient_id = v_patient;
+  delete from public.longevity_scores     where patient_id = v_patient;
+  delete from public.recommended_actions  where patient_id = v_patient;
+  delete from public.appointments         where patient_id = v_patient;
+  delete from public.documents            where patient_id = v_patient;
+  delete from public.credit_entries       where patient_id = v_patient;
+  delete from public.program_enrollments  where patient_id = v_patient;
+  delete from public.memberships          where patient_id = v_patient;
+  delete from public.notifications        where profile_id = v_profile;
 
   -- ── Medico di riferimento (facoltativo) ───────────────────────
   if v_pro_email <> '' then
@@ -87,42 +97,133 @@ begin
     end if;
   end if;
 
-  -- ── Storico dello Score ───────────────────────────────────────
-  insert into public.longevity_scores (patient_id, measured_on, score, previous_score, trend, computed_by)
+  -- ── Misure ────────────────────────────────────────────────────
+  -- La materia prima dello Score. Due colonne di valori: prima e dopo il
+  -- percorso. I codici sono quelli del catalogo in src/lib/score/metrics.ts.
+  insert into public.measurements
+    (patient_id, metric_code, label, value, category, unit, measured_on, source)
   values
-    (v_patient, v_today - 448, 64, null, null,     'uls-v1'),
-    (v_patient, v_today - 350, 68, 64,   'up',     'uls-v1'),
-    (v_patient, v_today - 273, 71, 68,   'up',     'uls-v1'),
-    (v_patient, v_today - 195, 70, 71,   'down',   'uls-v1'),
-    (v_patient, v_today - 111, 74, 70,   'up',     'uls-v1');
+    -- Metabolic Health
+    (v_patient, 'glucose_fasting', 'Glicemia a digiuno', 101,  null, 'mg/dL', v_base_on, 'lab'),
+    (v_patient, 'glucose_fasting', 'Glicemia a digiuno',  92,  null, 'mg/dL', v_now_on,  'lab'),
+    (v_patient, 'hba1c',           'Emoglobina glicata',  5.6, null, '%',     v_base_on, 'lab'),
+    (v_patient, 'hba1c',           'Emoglobina glicata',  5.2, null, '%',     v_now_on,  'lab'),
+    (v_patient, 'insulin_fasting', 'Insulina a digiuno',   11, null, 'µU/mL', v_base_on, 'lab'),
+    (v_patient, 'insulin_fasting', 'Insulina a digiuno',  6.5, null, 'µU/mL', v_now_on,  'lab'),
+    (v_patient, 'triglycerides',   'Trigliceridi',        160, null, 'mg/dL', v_base_on, 'lab'),
+    (v_patient, 'triglycerides',   'Trigliceridi',        110, null, 'mg/dL', v_now_on,  'lab'),
+    (v_patient, 'hdl',             'Colesterolo HDL',      48, null, 'mg/dL', v_base_on, 'lab'),
+    (v_patient, 'hdl',             'Colesterolo HDL',      56, null, 'mg/dL', v_now_on,  'lab'),
+    (v_patient, 'alt',             'ALT (GPT)',            34, null, 'U/L',   v_base_on, 'lab'),
+    (v_patient, 'alt',             'ALT (GPT)',            24, null, 'U/L',   v_now_on,  'lab'),
+
+    -- Cardiovascular
+    (v_patient, 'sbp',        'Pressione sistolica',           127, null, 'mmHg',      v_base_on, 'vitals'),
+    (v_patient, 'sbp',        'Pressione sistolica',           118, null, 'mmHg',      v_now_on,  'vitals'),
+    (v_patient, 'dbp',        'Pressione diastolica',           84, null, 'mmHg',      v_base_on, 'vitals'),
+    (v_patient, 'dbp',        'Pressione diastolica',           78, null, 'mmHg',      v_now_on,  'vitals'),
+    (v_patient, 'resting_hr', 'Frequenza cardiaca a riposo',    68, null, 'bpm',       v_base_on, 'vitals'),
+    (v_patient, 'resting_hr', 'Frequenza cardiaca a riposo',    58, null, 'bpm',       v_now_on,  'vitals'),
+    (v_patient, 'vo2max',     'VO₂ max',                      40.5, null, 'ml/kg/min', v_base_on, 'stress_test'),
+    (v_patient, 'vo2max',     'VO₂ max',                      44.1, null, 'ml/kg/min', v_now_on,  'stress_test'),
+    (v_patient, 'apob',       'ApoB',                          105, null, 'mg/dL',     v_base_on, 'lab'),
+    (v_patient, 'apob',       'ApoB',                           92, null, 'mg/dL',     v_now_on,  'lab'),
+    (v_patient, 'ldl',        'Colesterolo LDL',               142, null, 'mg/dL',     v_base_on, 'lab'),
+    (v_patient, 'ldl',        'Colesterolo LDL',               118, null, 'mg/dL',     v_now_on,  'lab'),
+    (v_patient, 'ecg_status', 'ECG',                          null, 'normal', null,    v_base_on, 'ecg'),
+    (v_patient, 'ecg_status', 'ECG',                          null, 'normal', null,    v_now_on,  'ecg'),
+
+    -- Body Composition
+    (v_patient, 'body_fat_pct',    'Massa grassa',              21.3, null, '%',       v_base_on, 'body_scan'),
+    (v_patient, 'body_fat_pct',    'Massa grassa',              18.4, null, '%',       v_now_on,  'body_scan'),
+    (v_patient, 'smi',             'Indice di massa muscolare',  7.8, null, 'kg/m²',   v_base_on, 'body_scan'),
+    (v_patient, 'smi',             'Indice di massa muscolare',  8.2, null, 'kg/m²',   v_now_on,  'body_scan'),
+    (v_patient, 'visceral_fat',    'Grasso viscerale',             9, null, 'livello', v_base_on, 'body_scan'),
+    (v_patient, 'visceral_fat',    'Grasso viscerale',             6, null, 'livello', v_now_on,  'body_scan'),
+    (v_patient, 'waist_hip_ratio', 'Rapporto vita-fianchi',     0.94, null, null,      v_base_on, 'body_scan'),
+    (v_patient, 'waist_hip_ratio', 'Rapporto vita-fianchi',     0.89, null, null,      v_now_on,  'body_scan'),
+
+    -- Movement
+    (v_patient, 'activity_minutes_week',  'Attività fisica settimanale',   90, null, 'min/sett.',    v_base_on, 'activity'),
+    (v_patient, 'activity_minutes_week',  'Attività fisica settimanale',  165, null, 'min/sett.',    v_now_on,  'activity'),
+    (v_patient, 'steps_daily_avg',        'Passi giornalieri',           6200, null, 'passi',        v_base_on, 'wearable'),
+    (v_patient, 'steps_daily_avg',        'Passi giornalieri',           8800, null, 'passi',        v_now_on,  'wearable'),
+    (v_patient, 'strength_sessions_week', 'Sedute di forza',                1, null, 'sedute/sett.', v_base_on, 'activity'),
+    (v_patient, 'strength_sessions_week', 'Sedute di forza',                2, null, 'sedute/sett.', v_now_on,  'activity'),
+
+    -- Nutrition
+    (v_patient, 'diet_quality_score',        'Qualità della dieta',    58, null, 'punti',       v_base_on, 'questionnaire'),
+    (v_patient, 'diet_quality_score',        'Qualità della dieta',    74, null, 'punti',       v_now_on,  'questionnaire'),
+    (v_patient, 'protein_g_per_kg',          'Proteine per kg',       0.9, null, 'g/kg',        v_base_on, 'questionnaire'),
+    (v_patient, 'protein_g_per_kg',          'Proteine per kg',       1.3, null, 'g/kg',        v_now_on,  'questionnaire'),
+    (v_patient, 'veg_servings_day',          'Porzioni di verdura',     2, null, 'porzioni/g',  v_base_on, 'questionnaire'),
+    (v_patient, 'veg_servings_day',          'Porzioni di verdura',     4, null, 'porzioni/g',  v_now_on,  'questionnaire'),
+    (v_patient, 'ultraprocessed_meals_week', 'Pasti ultraprocessati',   9, null, 'pasti/sett.', v_base_on, 'questionnaire'),
+    (v_patient, 'ultraprocessed_meals_week', 'Pasti ultraprocessati',   4, null, 'pasti/sett.', v_now_on,  'questionnaire'),
+    (v_patient, 'vitamin_d',                 'Vitamina D (25-OH)',     24, null, 'ng/mL',       v_base_on, 'lab'),
+    (v_patient, 'vitamin_d',                 'Vitamina D (25-OH)',     38, null, 'ng/mL',       v_now_on,  'lab'),
+
+    -- Mental Wellbeing
+    (v_patient, 'who5_wellbeing',   'Benessere percepito (WHO-5)', 60, null, 'punti', v_base_on, 'questionnaire'),
+    (v_patient, 'who5_wellbeing',   'Benessere percepito (WHO-5)', 76, null, 'punti', v_now_on,  'questionnaire'),
+    (v_patient, 'perceived_stress', 'Stress percepito (PSS-10)',   19, null, 'punti', v_base_on, 'questionnaire'),
+    (v_patient, 'perceived_stress', 'Stress percepito (PSS-10)',   13, null, 'punti', v_now_on,  'questionnaire'),
+
+    -- Lifestyle
+    (v_patient, 'sleep_hours_avg',    'Ore di sonno',         6.3, null,     'ore',         v_base_on, 'wearable'),
+    (v_patient, 'sleep_hours_avg',    'Ore di sonno',         7.1, null,     'ore',         v_now_on,  'wearable'),
+    (v_patient, 'sleep_efficiency',   'Efficienza del sonno',  82, null,     '%',           v_base_on, 'wearable'),
+    (v_patient, 'sleep_efficiency',   'Efficienza del sonno',  89, null,     '%',           v_now_on,  'wearable'),
+    (v_patient, 'smoking_status',     'Fumo',                null, 'former', null,          v_base_on, 'anamnesis'),
+    (v_patient, 'smoking_status',     'Fumo',                null, 'former', null,          v_now_on,  'anamnesis'),
+    (v_patient, 'alcohol_units_week', 'Alcol settimanale',      9, null,     'unità/sett.', v_base_on, 'anamnesis'),
+    (v_patient, 'alcohol_units_week', 'Alcol settimanale',      5, null,     'unità/sett.', v_now_on,  'anamnesis');
+
+  -- Restano fuori, di proposito: spirometria, forza di presa, valutazione
+  -- cognitiva e ore sedentarie. Servono a mostrare la copertura parziale —
+  -- il sistema dice quali dati mancano invece di far finta di averli.
+
+  -- ── Punteggi ──────────────────────────────────────────────────
+  insert into public.longevity_scores
+    (patient_id, measured_on, score, previous_score, trend, coverage, computed_by)
+  values (v_patient, v_base_on, 63.7, null, null, 0.90, 'uls-v2')
+  returning id into v_score_base;
+
+  insert into public.score_pillars (score_id, key, label, value, coverage) values
+    (v_score_base, 'metabolic_health', 'Metabolic Health', 66.4, 1.00),
+    (v_score_base, 'cardiovascular',   'Cardiovascular',   71.5, 0.92),
+    (v_score_base, 'body_composition', 'Body Composition', 73.5, 1.00),
+    (v_score_base, 'movement',         'Movement',         51.8, 0.80),
+    (v_score_base, 'nutrition',        'Nutrition',        53.6, 1.00),
+    (v_score_base, 'mental_wellbeing', 'Mental Wellbeing', 59.3, 0.65),
+    (v_score_base, 'lifestyle',        'Lifestyle',        70.0, 0.90);
+
+  -- Rilevazioni intermedie: ricostruiscono l'andamento senza il dettaglio
+  -- dei pilastri, come accade importando uno storico preesistente.
+  insert into public.longevity_scores
+    (patient_id, measured_on, score, previous_score, trend, computed_by)
+  values
+    (v_patient, current_date - 350, 68, 63.7, 'up',   'uls-v2'),
+    (v_patient, current_date - 273, 71, 68,   'up',   'uls-v2'),
+    (v_patient, current_date - 195, 70, 71,   'down', 'uls-v2'),
+    (v_patient, current_date - 111, 74, 70,   'up',   'uls-v2');
 
   insert into public.longevity_scores
-    (patient_id, measured_on, score, previous_score, trend, biological_age, computed_by, summary)
-  values
-    (v_patient, v_today - 6, 78, 74, 'up', 39.4, 'uls-v1',
-     'Metabolismo e infiammazione sono in fascia ottimale. Il margine di crescita più ampio resta sull’assetto ormonale.')
-  returning id into v_score;
+    (patient_id, measured_on, score, previous_score, trend, biological_age, coverage, computed_by, summary)
+  values (
+    v_patient, v_now_on, 85.0, 74, 'up', 39.4, 0.90, 'uls-v2',
+    'Metabolismo e movimento sono i pilastri cresciuti di più. Restano da raccogliere spirometria, forza di presa e valutazione cognitiva.'
+  )
+  returning id into v_score_now;
 
-  insert into public.score_pillars (score_id, key, label, value, weight, delta)
-  values
-    (v_score, 'metabolic',        'Metabolismo',           82, 0.20,  5),
-    (v_score, 'cardiovascular',   'Cardiovascolare',       76, 0.20,  3),
-    (v_score, 'body_composition', 'Composizione corporea', 71, 0.15,  6),
-    (v_score, 'inflammation',     'Infiammazione',         84, 0.15,  2),
-    (v_score, 'hormonal',         'Assetto ormonale',      69, 0.15, -1),
-    (v_score, 'cognitive_sleep',  'Cognitivo e sonno',     74, 0.15,  7);
-
-  -- ── Biomarcatori: alimentano i "progressi ottenuti" ───────────
-  insert into public.biomarkers (patient_id, code, label, value, unit, ref_low, ref_high, measured_on)
-  values
-    (v_patient, 'hba1c',        'Emoglobina glicata',        5.6, '%',    4.0, 5.6, v_today - 448),
-    (v_patient, 'hba1c',        'Emoglobina glicata',        5.2, '%',    4.0, 5.6, v_today - 6),
-    (v_patient, 'vo2max',       'VO2 max stimato',          40.5, 'ml/kg/min', 35, 60, v_today - 448),
-    (v_patient, 'vo2max',       'VO2 max stimato',          44.1, 'ml/kg/min', 35, 60, v_today - 6),
-    (v_patient, 'body_fat_pct', 'Massa grassa',             21.3, '%',    10, 20, v_today - 448),
-    (v_patient, 'body_fat_pct', 'Massa grassa',             18.4, '%',    10, 20, v_today - 6),
-    (v_patient, 'hs_crp',       'PCR ad alta sensibilità',  1.90, 'mg/L', 0, 1.0, v_today - 448),
-    (v_patient, 'hs_crp',       'PCR ad alta sensibilità',  0.80, 'mg/L', 0, 1.0, v_today - 6);
+  insert into public.score_pillars (score_id, key, label, value, coverage, delta) values
+    (v_score_now, 'metabolic_health', 'Metabolic Health', 89.4, 1.00, 23.0),
+    (v_score_now, 'cardiovascular',   'Cardiovascular',   84.5, 0.92, 13.0),
+    (v_score_now, 'body_composition', 'Body Composition', 85.8, 1.00, 12.3),
+    (v_score_now, 'movement',         'Movement',         83.5, 0.80, 31.7),
+    (v_score_now, 'nutrition',        'Nutrition',        82.5, 1.00, 28.9),
+    (v_score_now, 'mental_wellbeing', 'Mental Wellbeing', 81.7, 0.65, 22.4),
+    (v_score_now, 'lifestyle',        'Lifestyle',        86.3, 0.90, 16.3);
 
   -- ── Percorso attivo ───────────────────────────────────────────
   select id into v_program from public.programs where slug = 'metabolic-reset-90';
@@ -145,6 +246,11 @@ begin
     values (v_patient, 'purchase', 24, 'Crediti inclusi nella membership Signature', v_membership);
   end if;
 
+  insert into public.credit_entries (patient_id, entry_type, amount, description)
+  values
+    (v_patient, 'consumption', -7, 'Visite e trattamenti del percorso in corso'),
+    (v_patient, 'consumption', -5, 'Pannello ematochimico completo');
+
   -- ── Prossima visita ───────────────────────────────────────────
   insert into public.appointments
     (patient_id, professional_id, service_name, status, starts_at, ends_at, location, credits_cost)
@@ -153,13 +259,7 @@ begin
     ((v_today + 14)::timestamp + time '09:30') at time zone 'Europe/Rome',
     ((v_today + 14)::timestamp + time '10:30') at time zone 'Europe/Rome',
     'Unique Clinic — Studio 2', 1
-  )
-  returning id into v_appt;
-
-  insert into public.credit_entries (patient_id, entry_type, amount, description, appointment_id)
-  values
-    (v_patient, 'consumption', -7, 'Visite e trattamenti del percorso in corso', null),
-    (v_patient, 'consumption', -5, 'Pannello ematochimico completo',            null);
+  );
 
   -- ── Documenti ─────────────────────────────────────────────────
   -- storage_path punta al bucket privato patient-documents. Il file va
@@ -168,9 +268,9 @@ begin
     (patient_id, kind, title, storage_path, mime_type, size_bytes, issued_on, is_new_for_patient)
   values
     (v_patient, 'lab_report', 'Pannello metabolico completo',
-     v_patient::text || '/pannello-metabolico.pdf', 'application/pdf', 412000, v_today - 6,  true),
+     v_patient::text || '/pannello-metabolico.pdf', 'application/pdf', 412000, v_now_on, true),
     (v_patient, 'care_plan',  'Aggiornamento piano nutrizionale',
-     v_patient::text || '/piano-nutrizionale.pdf',  'application/pdf', 188000, v_today - 4,  true),
+     v_patient::text || '/piano-nutrizionale.pdf',  'application/pdf', 188000, v_today - 4, true),
     (v_patient, 'imaging',    'Ecocardiogramma con color doppler',
      v_patient::text || '/ecocardiogramma.pdf',     'application/pdf', 2140000, v_today - 22, false);
 
@@ -178,24 +278,24 @@ begin
   insert into public.recommended_actions
     (patient_id, title, description, pillar_key, source, status, due_on, priority)
   values
-    (v_patient, 'Ripetere il pannello ormonale',
-     'L’unico pilastro in leggero calo. Prelievo a digiuno, idealmente entro due settimane.',
-     'hormonal', 'professional', 'suggested', v_today + 12, 1),
+    (v_patient, 'Completare la spirometria',
+     'Manca per calcolare per intero il pilastro cardiovascolare.',
+     'cardiovascular', 'professional', 'suggested', v_today + 12, 1),
     (v_patient, 'Portare il cardio a 150 minuti a settimana',
      'Sei a 110 minuti di media. Bastano due sessioni in più in zona 2 per chiudere il divario.',
-     'cardiovascular', 'protocol', 'in_progress', null, 2),
+     'movement', 'protocol', 'in_progress', null, 2),
     (v_patient, 'Anticipare la cena di 60 minuti',
      'La finestra di digiuno notturno è il fattore che sposta di più il tuo punteggio metabolico.',
-     'metabolic', 'brain', 'suggested', null, 2),
-    (v_patient, 'Caricare il referto della densitometria',
-     'Manca per completare la valutazione della composizione corporea.',
-     'body_composition', 'professional', 'suggested', v_today + 17, 3);
+     'metabolic_health', 'brain', 'suggested', null, 2),
+    (v_patient, 'Prenotare la valutazione cognitiva',
+     'È l''unico parametro mancante del pilastro Mental Wellbeing.',
+     'mental_wellbeing', 'professional', 'suggested', v_today + 17, 3);
 
   -- ── Notifiche ─────────────────────────────────────────────────
   insert into public.notifications (profile_id, title, body, link_url, created_at)
   values
     (v_profile, 'Il tuo nuovo Longevity Score è disponibile',
-     '78/100, quattro punti in più rispetto al controllo precedente.',
+     '85/100, undici punti in più rispetto al controllo precedente.',
      '/percorso', now() - interval '5 days'),
     (v_profile, 'Nuovo piano nutrizionale',
      'Il piano è stato aggiornato in vista del prossimo controllo.',

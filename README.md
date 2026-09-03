@@ -18,9 +18,9 @@ Il principio che regge ogni scelta tecnica di questo repository:
 | Livello | Chi lo usa | Stato |
 | --- | --- | --- |
 | **Patient App** | Il paziente | 🟢 Home completa, collegata al database |
-| **Professional App** | Medici e professionisti | 🟡 Accesso e ruolo riconosciuti, interfaccia da costruire |
+| **Professional App** | Medici e professionisti | 🟡 Revisioni cliniche operative, resto da costruire |
 | **Unique Control Center** | Amministrazione e management | ⚪ Da avviare |
-| **Unique Brain** | Layer AI trasversale | ⚪ Da avviare |
+| **Unique Brain** | Layer AI trasversale | 🟡 Motore di ingestione documenti attivo |
 
 I quattro livelli non sono quattro prodotti: sono quattro interfacce sullo stesso
 database, con gli stessi tipi di dominio e lo stesso linguaggio visivo. Per questo
@@ -37,6 +37,12 @@ distinti.
   a ogni richiesta, rotte protette, smistamento per ruolo dalla radice.
 - **Dati reali da Supabase** — tutte le query della home passano dal database e sono
   filtrate dalla Row Level Security.
+- **Longevity Score calcolato, non inserito** — sette pilastri, una trentina di
+  parametri da undici fonti, curve di normalizzazione, copertura dei dati
+  dichiarata e algoritmo versionato. Motore in funzioni pure, con 37 test.
+- **Motore clinico AI** — un documento viene letto da Claude, i parametri estratti
+  vengono validati da regole deterministiche, quelli clinicamente rilevanti
+  finiscono in coda di revisione e lo Score si ricalcola su ciò che è approvato.
 - **Schema completo** — identità, care team, Score e pilastri, biomarcatori,
   percorsi, appuntamenti, documenti, membership, registro crediti append-only,
   notifiche, audit log.
@@ -76,6 +82,8 @@ src/
     shell/                Navigazione e intestazioni di pagina
   lib/
     domain/types.ts       Modello di dominio condiviso dai quattro livelli
+    score/                Pilastri, catalogo metriche, motore di calcolo, test
+    brain/                Estrazione AI, regole di validazione, approvazione
     supabase/             Client browser, client server, configurazione
     auth.ts               Profilo collegato e percorso per ruolo
     data/                 Unico punto di accesso ai dati
@@ -98,10 +106,11 @@ npm run dev
 L’applicazione risponde su <http://localhost:3000>. Senza variabili d’ambiente parte
 in modalità dimostrativa e non serve altro.
 
-Verifica dei tipi:
+Verifica dei tipi e test del motore di calcolo:
 
 ```bash
 npm run typecheck
+npm test
 ```
 
 ## Collegare il database
@@ -121,15 +130,17 @@ Postgres non restituirebbe comunque righe che l’utente non ha diritto di veder
   database reale, passo per passo.
 - [Il modello dell’Unique Longevity Score](docs/longevity-score.md) — come è composto
   il punteggio e quali assunzioni vanno validate clinicamente.
+- [Il motore clinico AI](docs/motore-clinico-ai.md) — come un documento diventa
+  misure, quali regole decidono cosa passa da un medico.
 - [Sicurezza e dati sanitari](docs/sicurezza-e-gdpr.md) — modello dei permessi,
   tracciamento degli accessi e adempimenti aperti.
 
 ## Prossimi passi
 
-1. **Professional App** — elenco pazienti, scheda clinica, caricamento referti,
+1. **Validazione clinica dello Score** — pesi e curve di normalizzazione vanno
+   confermati dal team medico. Le decisioni aperte sono in docs/longevity-score.md.
+2. **Professional App** — elenco pazienti, scheda clinica, caricamento referti,
    scrittura delle azioni consigliate.
-2. **Control Center** — agenda, membership, crediti, incassi, KPI.
-3. **Calcolo dello Score** — dai biomarcatori al punteggio, con i pesi definiti dal
-   team medico.
+3. **Control Center** — agenda, membership, crediti, incassi, KPI.
 4. **Unique Brain** — interrogazione in linguaggio naturale su dati, documenti e
    procedure, con gli stessi confini di accesso della Row Level Security.

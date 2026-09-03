@@ -2,14 +2,15 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { esci } from "@/lib/auth-actions";
-import { Badge, Card } from "@/components/ui/primitives";
+import Link from "next/link";
+import { Badge, Card, ChevronIcon } from "@/components/ui/primitives";
 
 export const metadata: Metadata = { title: "Area professionale" };
 export const dynamic = "force-dynamic";
 
 const IN_ARRIVO = [
   ["Elenco pazienti", "I pazienti assegnati al tuo care team, con il loro Score."],
-  ["Scheda clinica", "Storico, biomarcatori, referti e note in un’unica vista."],
+  ["Scheda clinica", "Storico, misure, referti e note in un’unica vista."],
   ["Caricamento referti", "Esami e piani di cura, direttamente nel percorso del paziente."],
   ["Azioni consigliate", "Le indicazioni che il paziente vede nella sua home."],
   ["Agenda", "Le tue visite, con conferme e disponibilità."],
@@ -42,14 +43,33 @@ export default async function ProPage() {
 
         <p className="mt-3 text-[15px] leading-relaxed text-ink-500">
           Ciao {profile.firstName ?? profile.fullName}. Il tuo accesso funziona e il
-          ruolo è riconosciuto, ma questo livello di Unique OS non è ancora stato
-          costruito. Ecco cosa ci arriverà.
+          ruolo è riconosciuto. Il primo pezzo operativo è già attivo; il resto
+          del livello professionale arriva dopo.
         </p>
 
-        <ul className="mt-7 divide-y divide-bone-200/80">
+        <Link
+          href="/pro/revisioni"
+          className="mt-6 flex items-center justify-between gap-4 rounded-xl bg-jade-50 px-4 py-3.5 ring-1 ring-jade-100 transition-colors hover:bg-jade-100"
+        >
+          <span>
+            <span className="block text-[15px] font-medium text-jade-900">
+              Revisioni cliniche
+            </span>
+            <span className="mt-0.5 block text-sm text-jade-700">
+              I valori che il motore AI propone di scrivere in cartella.
+            </span>
+          </span>
+          <ChevronIcon className="h-4 w-4 shrink-0 text-jade-600" />
+        </Link>
+
+        <h2 className="mt-8 text-[13px] font-semibold uppercase tracking-[0.09em] text-ink-500">
+          In arrivo
+        </h2>
+
+        <ul className="mt-3 divide-y divide-bone-200/80">
           {IN_ARRIVO.map(([titolo, dettaglio]) => (
             <li key={titolo} className="py-3.5">
-              <h2 className="text-[15px] font-medium text-ink-900">{titolo}</h2>
+              <h3 className="text-[15px] font-medium text-ink-900">{titolo}</h3>
               <p className="mt-0.5 text-sm text-ink-500">{dettaglio}</p>
             </li>
           ))}

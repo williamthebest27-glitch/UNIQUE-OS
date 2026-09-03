@@ -20,6 +20,8 @@ import type {
 } from "@/lib/domain/types";
 import { redirect } from "next/navigation";
 import { PILLAR_KEYS } from "@/lib/domain/types";
+import { getMetric } from "@/lib/score/metrics";
+import { normalize } from "@/lib/score/engine";
 import { getCurrentProfile, homePathForRole, requireProfile } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -47,10 +49,12 @@ interface ScoreRow {
   trend: ScoreTrend | null;
   biological_age: number | null;
   summary: string | null;
+  coverage: number | null;
   score_pillars: {
     key: string;
     label: string;
-    value: number;
+    value: number | null;
+    coverage: number | null;
     delta: number | null;
   }[];
 }
@@ -123,27 +127,16 @@ interface BalanceRow {
   total_used: number;
 }
 
-interface BiomarkerRow {
-  code: string;
+interface MeasurementRow {
+  metric_code: string;
   value: number | null;
   measured_on: string;
 }
 
-/* ── Biomarcatori mostrati come "progressi ottenuti" ──────────────── */
+/* ── "Progressi ottenuti" ─────────────────────────────────────────── */
 
-/**
- * Quali valori raccontano il progresso in home, e in che direzione va
- * letto un miglioramento. La glicata che scende è una notizia buona: la
- * direzione del numero e il suo significato clinico sono cose diverse.
- */
-const TRACKED_BIOMARKERS = [
-  { code: "hba1c", label: "Emoglobina glicata", unit: " %", decimals: 1, lowerIsBetter: true },
-  { code: "vo2max", label: "VO₂ max stimato", unit: "", decimals: 1, lowerIsBetter: false },
-  { code: "body_fat_pct", label: "Massa grassa", unit: " %", decimals: 1, lowerIsBetter: true },
-  { code: "hs_crp", label: "PCR ad alta sensibilità", unit: " mg/L", decimals: 2, lowerIsBetter: true },
-] as const;
-
-const TRACKED_CODES = TRACKED_BIOMARKERS.map((b) => b.code);
+/** Quanti risultati mostrare in home. Oltre, diventa un tabulato. */
+const MAX_HIGHLIGHTS = 4;
 
 function formatNumber(value: number, decimals: number): string {
   return value.toLocaleString("it-IT", {
@@ -152,35 +145,62 @@ function formatNumber(value: number, decimals: number): string {
   });
 }
 
-function buildHighlights(rows: BiomarkerRow[]): ProgressHighlight[] {
-  const highlights: ProgressHighlight[] = [];
+/**
+ * I parametri che si sono mossi di più dall'inizio del percorso.
+ *
+ * Che una variazione sia un miglioramento lo decide la curva della
+ * metrica, non il segno del numero: la glicata che scende migliora il
+ * punteggio, la massa muscolare che scende lo peggiora, e una glicemia
+ * può peggiorare scendendo troppo. Confrontiamo i valori normalizzati,
+ * così la regola vale per tutte e trentacinque le metriche senza
+ * elenchi di eccezioni.
+ */
+function buildHighlights(rows: MeasurementRow[]): ProgressHighlight[] {
+  const byCode = new Map<string, MeasurementRow[]>();
+  for (const row of rows) {
+    if (row.value === null) continue;
+    const list = byCode.get(row.metric_code) ?? [];
+    list.push(row);
+    byCode.set(row.metric_code, list);
+  }
 
-  for (const marker of TRACKED_BIOMARKERS) {
-    const series = rows
-      .filter((r) => r.code === marker.code && r.value !== null)
-      .sort((a, b) => a.measured_on.localeCompare(b.measured_on));
+  const candidates: (ProgressHighlight & { magnitude: number })[] = [];
+
+  for (const [code, series] of byCode) {
+    const metric = getMetric(code);
+    // Le metriche categoriali non hanno una variazione da raccontare.
+    if (!metric || !metric.anchors) continue;
 
     // Serve almeno un prima e un dopo: un valore singolo non è un progresso.
     if (series.length < 2) continue;
+    series.sort((a, b) => a.measured_on.localeCompare(b.measured_on));
 
-    const first = series[0].value as number;
-    const last = series[series.length - 1].value as number;
+    const first = Number(series[0].value);
+    const last = Number(series[series.length - 1].value);
     const change = last - first;
+    if (change === 0) continue;
 
-    highlights.push({
-      id: marker.code,
-      label: marker.label,
-      value: `${formatNumber(last, marker.decimals)}${marker.unit}`,
-      change:
-        change === 0
-          ? null
-          : `${change > 0 ? "+" : "−"}${formatNumber(Math.abs(change), marker.decimals)}`,
-      direction: change > 0 ? "up" : change < 0 ? "down" : "flat",
-      isImprovement: marker.lowerIsBetter ? change < 0 : change > 0,
+    const normalizedChange = normalize(metric, last) - normalize(metric, first);
+    if (normalizedChange === 0) continue;
+
+    const decimals = Math.abs(last) < 10 ? 1 : 0;
+    const unitSuffix = metric.unit === "%" ? " %" : "";
+
+    candidates.push({
+      id: code,
+      label: metric.label,
+      value: `${formatNumber(last, decimals)}${unitSuffix}`,
+      change: `${change > 0 ? "+" : "−"}${formatNumber(Math.abs(change), decimals)}`,
+      direction: change > 0 ? "up" : "down",
+      isImprovement: normalizedChange > 0,
+      magnitude: Math.abs(normalizedChange),
     });
   }
 
-  return highlights;
+  return candidates
+    .sort((a, b) => b.magnitude - a.magnitude)
+    .slice(0, MAX_HIGHLIGHTS)
+    .map(({ magnitude: _magnitude, ...highlight }) => highlight);
 }
 
 /* ── Conversione righe → modello di dominio ───────────────────────── */
@@ -197,7 +217,8 @@ function toScore(row: ScoreRow): LongevityScore {
       {
         key: key as PillarKey,
         label: found.label,
-        value: Number(found.value),
+        value: found.value === null ? null : Number(found.value),
+        coverage: found.coverage === null ? null : Number(found.coverage),
         delta: found.delta === null ? null : Number(found.delta),
       },
     ];
@@ -211,6 +232,7 @@ function toScore(row: ScoreRow): LongevityScore {
     trend: row.trend,
     biologicalAge: row.biological_age === null ? null : Number(row.biological_age),
     summary: row.summary,
+    coverage: row.coverage === null ? null : Number(row.coverage),
     pillars,
   };
 }
@@ -329,12 +351,12 @@ export async function getPatientDashboard(): Promise<PatientDashboardData | null
     actions,
     documents,
     notifications,
-    biomarkers,
+    measurements,
   ] = await Promise.all([
     supabase
       .from("longevity_scores")
       .select(
-        "id, measured_on, score, previous_score, trend, biological_age, summary, score_pillars(key, label, value, delta)",
+        "id, measured_on, score, previous_score, trend, biological_age, summary, coverage, score_pillars(key, label, value, coverage, delta)",
       )
       .eq("patient_id", patientId)
       .order("measured_on", { ascending: false })
@@ -402,10 +424,10 @@ export async function getPatientDashboard(): Promise<PatientDashboardData | null
       .limit(5),
 
     supabase
-      .from("biomarkers")
-      .select("code, value, measured_on")
+      .from("measurements")
+      .select("metric_code, value, measured_on")
       .eq("patient_id", patientId)
-      .in("code", TRACKED_CODES)
+      .not("value", "is", null)
       .order("measured_on", { ascending: true }),
   ]);
 
@@ -441,7 +463,7 @@ export async function getPatientDashboard(): Promise<PatientDashboardData | null
     actions: ((actions.data ?? []) as ActionRow[]).map(toAction),
     newDocuments: ((documents.data ?? []) as DocumentRow[]).map(toDocument),
     notifications: ((notifications.data ?? []) as NotificationRow[]).map(toNotification),
-    highlights: buildHighlights((biomarkers.data ?? []) as BiomarkerRow[]),
+    highlights: buildHighlights((measurements.data ?? []) as MeasurementRow[]),
   };
 }
 

@@ -27,6 +27,8 @@ Dal progetto, apri **SQL Editor** ed esegui i file di `supabase/migrations/`
 2. `20260903100100_rls_policies.sql` — Row Level Security e bucket dei documenti
 3. `20260903110000_view_security_and_enrollment_steps.sql`
 4. `20260903110100_seed_catalog.sql` — percorsi e livelli di membership
+5. `20260903120000_measurements_and_clinical_ai.sql` — misure, analisi AI,
+   proposte in revisione
 
 In alternativa, con la Supabase CLI installata e il progetto collegato:
 
@@ -60,6 +62,9 @@ In **Project Settings → API** trovi i due valori. Mettili in `.env.local`:
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxxxxxxxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# Motore clinico AI. Senza, l’applicazione funziona ma non analizza documenti.
+ANTHROPIC_API_KEY=sk-ant-...
 ```
 
 La **anon key** è pubblica per definizione: finisce nel bundle del browser ed è
@@ -86,9 +91,14 @@ L’utente appena creato ha un profilo ma nessuna scheda clinica: accedendo vedr
 "Ci siamo quasi". Per avere una home completa, apri `supabase/demo-paziente.sql`,
 sostituisci l’email in cima ed eseguilo nella SQL Editor.
 
-Lo script crea scheda paziente, storico dello Score con sei pilastri, biomarcatori,
-percorso attivo, membership, crediti, appuntamento, documenti, azioni e notifiche.
+Lo script crea scheda paziente, una trentina di misure su due rilevazioni, lo
+storico dello Score con i sette pilastri, percorso attivo, membership, crediti,
+appuntamento, documenti, azioni e notifiche.
 Si può rieseguire: azzera e ricrea i dati di prova di quel paziente.
+
+I punteggi seminati sono quelli che il motore calcola davvero da quelle misure.
+Per verificarlo, apri `/pro/revisioni` con un account professionale e premi
+**Ricalcola punteggio**: devono restare identici.
 
 Se vuoi vedere anche il medico di riferimento nella card della prossima visita, crea
 un secondo utente e indica la sua email nella variabile `v_pro_email` dello script.
