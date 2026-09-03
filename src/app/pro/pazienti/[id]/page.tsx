@@ -329,7 +329,7 @@ export default async function CartellaPazientePage({
         </Card>
 
         {/* ── Score e sottoscore ──────────────────────────────── */}
-        <ScoreHero score={data.score} history={data.scoreHistory} />
+        <ScoreHero score={data.score} history={data.scoreHistory} seed={id} />
 
         {/* ── Percorso, visite, crediti ───────────────────────── */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

@@ -74,7 +74,11 @@ distinti.
 - **Schema completo** — identità, care team, Score e pilastri, biomarcatori,
   percorsi, appuntamenti, documenti, membership, registro crediti append-only,
   notifiche, audit log.
-- **Design system** condiviso dai quattro livelli.
+- **La Signature** — il Longevity Score come organismo generativo in WebGL, unico
+  per ogni paziente, la cui forma è derivata dai sette pilastri. Cambia mentre la
+  salute cambia. Con l’anello come ripiego dove WebGL manca o il movimento è ridotto.
+- **Design system** condiviso dai quattro livelli: Fraunces e Inter, scroll con
+  peso, reveal misurati. Una sola mossa audace, tutto il resto quieto.
 
 **Modalità dimostrativa.** Finché `.env.local` è vuoto l’applicazione gira su dati
 di esempio, senza autenticazione, e lo dichiara con un avviso nella barra laterale.
@@ -86,6 +90,7 @@ Supabase ci sono, passa da sola ai dati reali.
 - **Next.js 16** (App Router, React Server Components) e **React 19**
 - **TypeScript** in modalità strict
 - **Tailwind CSS v4** — i token di design vivono in `src/app/globals.css`
+- **Fraunces e Inter** via `next/font`, e un motore di movimento senza dipendenze
 - **Supabase** — Postgres, autenticazione e storage, in regione UE
 - Nessuna libreria di grafici: anello dello Score e sparkline sono SVG scritti a
   mano, così restano leggeri, accessibili e coerenti col resto del design
@@ -108,6 +113,8 @@ src/
     ui/primitives.tsx     Card, Badge, DeltaPill, icone
     patient/              Score hero, card di sintesi, liste
     shell/                Navigazione e intestazioni di pagina
+    motion/               Reveal, testo mascherato, provider del motore
+    patient/signature.tsx La Signature: shader WebGL con ripiego
   lib/
     domain/types.ts       Modello di dominio condiviso dai quattro livelli
     score/                Pilastri, catalogo metriche, motore di calcolo, test
@@ -167,6 +174,8 @@ Postgres non restituirebbe comunque righe che l’utente non ha diritto di veder
   database reale, passo per passo.
 - [Il modello dell’Unique Longevity Score](docs/longevity-score.md) — come è composto
   il punteggio e quali assunzioni vanno validate clinicamente.
+- [Il design](docs/design.md) — la Signature, la tipografia, il movimento e
+  dove il movimento non va.
 - [Control Center, CRM e capacità](docs/control-center.md) — journey, Next Best
   Action, unit economics, compensi e proiezioni di crescita.
 - [Crediti, pagamenti e prenotazioni](docs/crediti-pagamenti-prenotazioni.md) —

@@ -22,7 +22,7 @@ export default async function PercorsoPage() {
         subtitle="Lo Score nel tempo, il protocollo in corso e le azioni che lo fanno avanzare."
       />
 
-      <ScoreHero score={data.score} history={data.scoreHistory} />
+      <ScoreHero score={data.score} history={data.scoreHistory} seed={data.profile.id} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <ProgramCard enrollment={data.enrollment} />
