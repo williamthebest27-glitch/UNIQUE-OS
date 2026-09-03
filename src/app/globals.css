@@ -1,0 +1,123 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════════════════
+   UNIQUE OS — Design tokens
+   Una sola palette per i quattro livelli. Le interfacce cambiano,
+   il linguaggio visivo no.
+   ═══════════════════════════════════════════════════════════════════ */
+
+@theme {
+  /* Fondo caldo, non bianco clinico: la percezione deve essere
+     "premium e curato", non "ospedaliero". */
+  --color-bone-50: #faf8f5;
+  --color-bone-100: #f4f1eb;
+  --color-bone-200: #e9e4da;
+  --color-bone-300: #d8d1c3;
+
+  /* Inchiostro verde-nero: più morbido del nero puro, coerente col jade. */
+  --color-ink-900: #10201a;
+  --color-ink-800: #1b2f27;
+  --color-ink-700: #2c443a;
+  --color-ink-500: #5b6e65;
+  --color-ink-400: #7d8d85;
+  --color-ink-300: #a3afa8;
+
+  /* Jade: il colore della longevità nel marchio. */
+  --color-jade-900: #06382c;
+  --color-jade-700: #0f5c4a;
+  --color-jade-600: #14705a;
+  --color-jade-500: #1a8a6e;
+  --color-jade-300: #6fbfa7;
+  --color-jade-100: #d7ece4;
+  --color-jade-50: #eef7f3;
+
+  /* Oro: usato con parsimonia, solo per i momenti di valore. */
+  --color-gold-600: #9a763c;
+  --color-gold-500: #b58e4e;
+  --color-gold-300: #dcc191;
+  --color-gold-100: #f3e9d6;
+
+  /* Semantici */
+  --color-signal-positive: #1a8a6e;
+  --color-signal-attention: #b8862c;
+  --color-signal-alert: #b0463a;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-display: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino,
+    Georgia, "Times New Roman", serif;
+
+  --radius-card: 1.25rem;
+
+  /* Ombre appena percettibili: la profondità viene dal contrasto,
+     non dal drop shadow. */
+  --shadow-card: 0 1px 2px rgb(16 32 26 / 0.04), 0 8px 24px -12px rgb(16 32 26 / 0.10);
+  --shadow-lift: 0 2px 4px rgb(16 32 26 / 0.05), 0 16px 40px -16px rgb(16 32 26 / 0.16);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-bone-100);
+    color: var(--color-ink-900);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* I numeri in colonna devono restare allineati fra loro. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-jade-500);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* Il tratto dell anello dello Score si disegna al caricamento. */
+  @keyframes score-draw {
+    from {
+      stroke-dashoffset: var(--ring-circumference);
+    }
+    to {
+      stroke-dashoffset: var(--ring-offset);
+    }
+  }
+
+  .animate-score-draw {
+    animation: score-draw 1.1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .animate-rise-in {
+    animation: rise-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}

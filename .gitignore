@@ -1,0 +1,47 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# next.js
+.next/
+out/
+build/
+next-env.d.ts
+
+# production
+dist/
+
+# environment — MAI committare credenziali o dati sanitari
+.env
+.env.local
+.env*.local
+!.env.example
+
+# supabase
+.supabase/
+supabase/.branches
+supabase/.temp
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# os / editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# typescript
+*.tsbuildinfo
+
+# test / coverage
+coverage/
+
+# dati clinici locali di prova
+/private/
+*.csv.local
