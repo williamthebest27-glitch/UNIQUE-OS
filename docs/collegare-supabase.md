@@ -246,6 +246,26 @@ dati si possono vedere: quello lo fa la Row Level Security, dove non è aggirabi
 **"Il link non è più valido"** — il collegamento è già stato usato o è scaduto, oppure
 manca `/auth/callback` fra le Redirect URLs del punto 3.
 
+**«Il servizio email non ha accettato il messaggio», codice `smtp`** — Supabase ha
+provato a spedire e il fornitore ha rifiutato. Quasi sempre è un SMTP proprio
+configurato prima che fosse pronto:
+
+- **Resend senza dominio verificato.** Finché il dominio non è *Verified*, l’unico
+  mittente ammesso è `onboarding@resend.dev`, e può scrivere **solo** all’indirizzo
+  con cui ti sei registrato su Resend. A chiunque altro il messaggio viene
+  rifiutato, e l’accesso non funziona per nessuno.
+- **Mittente fuori dal dominio verificato.** Il campo *Sender email* deve stare sul
+  dominio verificato: `accessi@tuodominio.it`, non un indirizzo Gmail.
+- **Credenziali sbagliate.** Username è la parola `resend`, non la tua email; la
+  password è la API key.
+
+Il rimedio immediato è **spegnere il custom SMTP** in *Authentication → Emails*: si
+torna al servizio incluso, due email all’ora, e l’accesso riprende a funzionare
+subito. Riaccendilo quando il dominio è verificato.
+
+Per vedere l’errore vero, quello che il fornitore ha risposto: *Logs → Auth Logs*
+nel cruscotto Supabase, e la sezione *Emails* su Resend.
+
 **Non arriva l’email** — con il servizio predefinito Supabase manda due email
 all’ora e poi tace. Configura Resend come SMTP proprio: la ricetta è nel punto 3.
 Se Resend è già configurato ma l’email non parte, guarda i log in *Emails* sul suo
