@@ -45,3 +45,8 @@ coverage/
 # dati clinici locali di prova
 /private/
 *.csv.local
+
+# Copie personali degli script SQL: contengono email vere di persone.
+# Il modello resta in supabase/, la copia compilata vive qui e non esce.
+supabase/locale/*
+!supabase/locale/LEGGIMI.md

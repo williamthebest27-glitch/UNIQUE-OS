@@ -6,8 +6,10 @@
 --
 -- COME SI USA
 --   1. Authentication → Users → Add user: crea un utente con la tua email.
---   2. Sostituisci le email qui sotto.
---   3. Esegui questo script nella SQL Console del progetto.
+--   2. Copia questo file in supabase/locale/ e sostituisci le email LÌ.
+--      Il repository è pubblico e un commit è per sempre: quella cartella
+--      è ignorata apposta — vedi il suo LEGGIMI.
+--   3. Esegui la tua copia nella SQL Console del progetto.
 --   4. Accedi dall'applicazione con quella email.
 --
 -- I punteggi seminati qui sono quelli che il motore calcola davvero da

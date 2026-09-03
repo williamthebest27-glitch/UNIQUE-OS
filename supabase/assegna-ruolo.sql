@@ -12,8 +12,12 @@
 --
 -- COME SI USA
 --   1. Authentication → Users → Add user: crea l'utente con la sua email.
---   2. Compila le due variabili qui sotto.
---   3. Esegui nella SQL Editor.
+--   2. Copia questo file in supabase/locale/ e compila LÌ le variabili.
+--      Il repository è pubblico e un commit è per sempre: un'email vera
+--      scritta qui finirebbe online e resterebbe nella cronologia di Git
+--      anche dopo averla tolta. La cartella supabase/locale/ è ignorata
+--      apposta — vedi il suo LEGGIMI.
+--   3. Esegui la tua copia nella SQL Editor.
 --   4. Accedi con quella email: si atterra nell'area del proprio ruolo.
 --
 -- Si può rieseguire quante volte si vuole.
