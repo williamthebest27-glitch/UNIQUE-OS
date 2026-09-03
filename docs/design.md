@@ -61,6 +61,34 @@ dal mestiere:
 Quando WebGL non c’è, o il movimento è ridotto, al suo posto compare l’anello
 su fondo scuro. Lo stesso numero, la stessa informazione.
 
+Due dettagli che non si vedono ma contano. Le uniform sono impacchettate in
+sette `vec4`: WebGL garantisce solo sedici vettori nel fragment shader e ogni
+scalare ne occupa uno intero, quindi ventiquattro scalari sparsi non
+compilerebbero su una GPU mobile. E un contesto WebGL perso non torna: il
+componente non lo butta via allo smontaggio — React in sviluppo monta ogni
+effetto due volte — e se la scheda era in background al primo tentativo
+riprova quando torna visibile.
+
+### La morfosi
+
+Quando esiste una rilevazione precedente, la figura non appare com’è: appare
+com’era, resta ferma sette decimi di secondo, poi si trasforma in poco più di
+due secondi mentre il numero conta da un punteggio all’altro. Figura e
+contatore leggono lo stesso orologio (`MorphProvider`), così arrivano
+insieme. La morfosi è nello shader — ogni parametro è un `mix` fra lo stato
+precedente e quello attuale — quindi la forma *cambia*, non si dissolve.
+«Rivedi la trasformazione» la fa ripartire. Con reduced motion non c’è:
+numero e figura sono subito quelli attuali.
+
+### L’immagine esportabile
+
+«Salva la tua Signature» genera un PNG 1080×1350 — il formato del feed — al
+momento del clic, con lo stesso shader della pagina su un canvas fuori
+schermo, e sopra il marchio, il punteggio e la data. Niente nome del
+paziente: l’immagine è fatta per essere mostrata, e chi la mostra decide cosa
+dire. Dove `navigator.share` accetta file (iOS, Android) si apre il foglio di
+condivisione; altrove si scarica.
+
 ## Tipografia
 
 **Fraunces** per il display: variabile, con l’asse ottico che cambia il disegno
@@ -109,13 +137,14 @@ diversi, e l’interfaccia lo rispetta.
 
 ## Da fare
 
-1. **Condivisione della Signature.** Un’immagine statica esportabile — la
-   figura del paziente, con il punteggio — è ciò che finisce su un telefono e
-   viene mostrata a un amico. È la mossa commerciale che questa scelta rende
-   possibile.
-2. **Transizione fra rilevazioni.** Oggi la figura mostra lo stato attuale.
-   Vedere la forma *cambiare* dal punteggio precedente a quello nuovo — una
-   morfosi di due secondi — è il passo successivo.
-3. **Tuning con figure reali.** I parametri dello shader sono tarati su dati
+1. **Tuning con figure reali.** I parametri dello shader sono tarati su dati
    dimostrativi. Con i primi pazienti veri andranno rivisti: la figura di un
    punteggio 45 deve restare bella, anche se cupa.
+2. **Morfosi su più rilevazioni.** Oggi la trasformazione va dalla
+   rilevazione precedente a quella attuale. Con una storia lunga, il paziente
+   potrebbe scorrere l’intera sequenza — la figura di un anno fa che diventa
+   quella di oggi.
+3. **Verifica su dispositivi reali.** La Signature è stata provata su
+   desktop. Va guardata su un iPhone di tre anni e su un Android economico:
+   il tetto al DPR e il numero di ottave sono i due parametri da abbassare
+   se scalda.

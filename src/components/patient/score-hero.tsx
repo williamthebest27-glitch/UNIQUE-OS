@@ -3,6 +3,8 @@ import type { LongevityScore, ScorePoint } from "@/lib/domain/types";
 import { formatDelta, formatMonthYear, formatShortDate } from "@/lib/format";
 import { Card, cx } from "@/components/ui/primitives";
 import { Signature } from "@/components/patient/signature";
+import { MorphProvider, ReplayButton, ScoreCounter } from "@/components/patient/morph";
+import { ExportButton } from "@/components/patient/export-button";
 
 /* ── Ripiego: l'anello, su fondo scuro ────────────────────────────── */
 
@@ -203,38 +205,61 @@ export function ScoreHero({
   const delta = score.previousScore !== null ? score.score - score.previousScore : null;
   const pillars = score.pillars.map((p) => p.value);
 
+  // Lo stato precedente si ricava dalle variazioni: valore meno delta.
+  // Non serve una seconda query, e la morfosi parte da dati che il
+  // paziente ha già davanti.
+  const hasPrevious = score.previousScore !== null;
+  const previousPillars = hasPrevious
+    ? score.pillars.map((p) => (p.value !== null && p.delta !== null ? p.value - p.delta : p.value))
+    : null;
+
+  const signatureState = {
+    pillars,
+    previousPillars,
+    score: score.score,
+    previousScore: score.previousScore,
+    seed,
+  };
+
   return (
     <Card className="overflow-hidden ring-0 shadow-lift">
       {/* ── La Signature ─────────────────────────────────────────── */}
+      <MorphProvider hasPrevious={hasPrevious}>
       <div className="hero-dark min-h-[460px] sm:min-h-[520px]">
         <div className="hero-glow" />
 
         <div className="absolute inset-0">
-          <Signature
-            pillars={pillars}
-            score={score.score}
-            seed={seed}
-            fallback={<RingFallback score={score.score} />}
-          />
+          <Signature {...signatureState} fallback={<RingFallback score={score.score} />} />
         </div>
 
         <div className="hero-veil" />
 
         <div className="relative z-10 flex h-full min-h-[460px] flex-col justify-between p-7 sm:min-h-[520px] sm:p-10">
-          <div className="flex items-center gap-3 text-[11px] font-medium uppercase tracking-[0.2em] text-bone-50/50">
-            <span className="h-px w-8 bg-lume-500/70" />
-            Unique Longevity Score
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3 text-[11px] font-medium uppercase tracking-[0.2em] text-bone-50/50">
+              <span className="h-px w-8 bg-lume-500/70" />
+              Unique Longevity Score
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <ReplayButton className="hero-action" />
+              <ExportButton
+                state={signatureState}
+                scoreLabel={String(Math.round(score.score))}
+                dateLabel={formatShortDate(score.measuredOn)}
+                fileName={`unique-signature-${score.measuredOn}.png`}
+                className="hero-action"
+              />
+            </div>
           </div>
 
           <div className="grid gap-8 lg:grid-cols-[auto_1fr] lg:items-end lg:gap-14">
             <div>
               <div className="flex items-baseline gap-2">
-                <span
+                <ScoreCounter
+                  from={score.previousScore ?? score.score}
+                  to={score.score}
                   className="score-figure text-[116px] text-bone-50 tnum sm:text-[144px]"
-                  data-reveal=""
-                >
-                  {Math.round(score.score)}
-                </span>
+                />
                 <span className="font-display text-[26px] text-bone-50/35">/100</span>
               </div>
 
@@ -285,6 +310,7 @@ export function ScoreHero({
           </div>
         </div>
       </div>
+      </MorphProvider>
 
       {/* ── I sette pilastri ─────────────────────────────────────── */}
       <div className="border-t border-bone-200 bg-bone-50/70 px-7 py-7 sm:px-10">
