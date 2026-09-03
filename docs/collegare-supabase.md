@@ -82,6 +82,50 @@ In **Authentication → URL Configuration**:
 
 Senza il secondo, il link ricevuto via email non riporta all’applicazione.
 
+### Le email di accesso: da Supabase a Resend
+
+Il servizio di posta incluso in Supabase serve solo a provare: **due email
+all’ora**, senza garanzie di consegna. Con l’accesso senza password l’email *è*
+il login, quindi in produzione va sostituito. Resend è una scelta ragionevole.
+
+**Su Resend**
+
+1. *Domains → Add Domain*: aggiungi il dominio della clinica e scegli la regione
+   **Ireland (eu-west-1)**. Poi inserisci nel DNS i record che ti mostra — DKIM,
+   SPF e, se lo propone, DMARC. Finché il dominio non risulta *Verified* puoi
+   scrivere solo a te stesso.
+2. *API Keys → Create API Key*: permesso di sola spedizione. La chiave si vede
+   una volta sola, e vale come una password: non finisce nel repository e non si
+   incolla in chat.
+
+**Su Supabase**, in *Authentication → Emails → SMTP Settings*, attiva il custom
+SMTP e compila:
+
+| Campo | Valore |
+|---|---|
+| Host | `smtp.resend.com` |
+| Port | `465` (TLS implicito) oppure `587` (STARTTLS) |
+| Username | `resend` |
+| Password | la API key di Resend |
+| Sender email | un indirizzo del dominio verificato, es. `accessi@tuodominio.it` |
+| Sender name | Unique Longevity Clinic |
+
+Poi vai in *Authentication → Rate Limits*: attivando un SMTP proprio Supabase
+impone comunque **30 email all’ora**, che per una clinica in attività è poco.
+Alzalo a un valore sensato.
+
+Infine, in *Authentication → Email Templates*, il modello che conta è **Magic
+Link**. Riscrivilo in italiano, con il tono di Unique. Deve contenere
+`{{ .ConfirmationURL }}`: è quel collegamento che riporta a `/auth/callback`.
+
+> **Una nota che in clinica pesa.** La regione di Resend governa da dove le email
+> partono, non dove restano i dati dell’account: quelli stanno negli Stati Uniti.
+> L’indirizzo di un paziente è un dato personale, e il solo fatto di riceverne
+> una da una clinica della longevità dice qualcosa di lui. Prima di usarlo con
+> pazienti veri: firma il DPA di Resend, tienilo nel registro dei trattamenti fra
+> i responsabili esterni, e non mettere **mai** informazioni cliniche nel testo
+> dell’email. Il messaggio deve dire soltanto «ecco il tuo collegamento».
+
 ## 4. Copiare le chiavi
 
 Il modo più rapido, che chiede i valori e poi prova davvero il collegamento:
@@ -202,9 +246,11 @@ dati si possono vedere: quello lo fa la Row Level Security, dove non è aggirabi
 **"Il link non è più valido"** — il collegamento è già stato usato o è scaduto, oppure
 manca `/auth/callback` fra le Redirect URLs del punto 3.
 
-**Non arriva l’email** — con il servizio SMTP predefinito Supabase limita fortemente
-il numero di invii. Per l’uso reale va configurato un SMTP proprio in
-*Authentication → Emails*.
+**Non arriva l’email** — con il servizio predefinito Supabase manda due email
+all’ora e poi tace. Configura Resend come SMTP proprio: la ricetta è nel punto 3.
+Se Resend è già configurato ma l’email non parte, guarda i log in *Emails* sul suo
+cruscotto: se il dominio non è ancora *Verified*, il messaggio viene rifiutato lì e
+Supabase non lo sa.
 
 **Vedo "Ci siamo quasi"** — l’account esiste ma non ha una scheda paziente: manca il
 passo 6.

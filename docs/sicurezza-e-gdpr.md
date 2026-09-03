@@ -65,7 +65,12 @@ Il bucket non è pubblico: l’accesso ai file passa da URL firmati a scadenza b
 1. **Regione UE.** Creare il progetto Supabase a Francoforte o in Irlanda. La scelta
    della regione non è modificabile dopo la creazione del progetto.
 2. **Accordo sul trattamento dei dati** con Supabase e con ogni altro fornitore che
-   tocchi dati di pazienti (hosting, email, pagamenti, provider AI).
+   tocchi dati di pazienti (hosting, email, pagamenti, provider AI). Per la posta,
+   se si usa **Resend**: la regione irlandese governa da dove le email partono, non
+   dove restano i dati dell’account, che sono negli Stati Uniti. Serve il DPA, e il
+   testo delle email non deve contenere nulla di clinico — il solo fatto che una
+   persona riceva posta da una clinica della longevità è già un’informazione su di
+   lei.
 3. **Registro dei trattamenti** e valutazione d’impatto (DPIA): con dati sanitari su
    larga scala è verosimilmente obbligatoria.
 4. **Popolare `audit_log` davvero.** La tabella esiste; vanno scritte le chiamate a
