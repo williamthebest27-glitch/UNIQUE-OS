@@ -73,6 +73,8 @@ begin
   delete from public.program_enrollments  where patient_id = v_patient;
   delete from public.memberships          where patient_id = v_patient;
   delete from public.service_purchases    where patient_id = v_patient;
+  delete from public.payments             where patient_id = v_patient;
+  delete from public.payment_methods      where patient_id = v_patient;
   delete from public.notifications        where profile_id = v_profile;
 
   -- ── Medico di riferimento (facoltativo) ───────────────────────
@@ -315,6 +317,36 @@ begin
     (v_profile, 'Nuovo piano nutrizionale',
      'Il piano è stato aggiornato in vista del prossimo controllo.',
      '/documenti', now() - interval '4 days');
+
+  -- ── Metodo di pagamento e incassi ─────────────────────────────
+  -- Solo circuito, ultime quattro cifre e scadenza: il resto sta dal
+  -- gestore dei pagamenti.
+  insert into public.payment_methods
+    (patient_id, brand, last4, exp_month, exp_year, is_default)
+  values (v_patient, 'Visa', '4242', 11, 2028, true);
+
+  insert into public.payments
+    (patient_id, kind, status, amount_cents, description, paid_at, membership_id)
+  values
+    (v_patient, 'membership', 'paid', 420000, 'Unique Signature — annuale',
+     now() - interval '155 days', v_membership),
+    (v_patient, 'extra', 'paid', 45000, 'IV Therapy — ciclo di 3 sedute',
+     now() - interval '77 days', null);
+
+  -- ── Disponibilità in agenda ───────────────────────────────────
+  if v_pro is not null then
+    insert into public.availability_slots
+      (professional_id, service_id, starts_at, ends_at)
+    select
+      v_pro,
+      s.id,
+      ((v_today + g.d)::timestamp + time '10:00') at time zone 'Europe/Rome',
+      ((v_today + g.d)::timestamp + time '11:00') at time zone 'Europe/Rome'
+    from generate_series(21, 35, 7) as g(d)
+    cross join lateral (
+      select id from public.services where slug = 'consulenza-longevity'
+    ) s;
+  end if;
 
   raise notice 'Paziente % attivato (patient_id=%).', v_email, v_patient;
 end $$;

@@ -54,6 +54,13 @@ distinti.
   e vede solo ciò che vede chi lo interroga.
 - **Membership completa** — piano, stato, rinnovo, metodo di pagamento e i crediti
   in quattro numeri distinti: assegnati, utilizzati, prenotati, disponibili.
+- **Credit engine** — macchina a stati nel database: prenotazione, visita svolta,
+  disdetta e mancata presentazione muovono il credito da soli, da qualunque
+  strada arrivi la modifica. Ogni passaggio lascia una riga nel registro.
+- **Pagamenti e avvisi** — incassi, tentativi, fallimenti e recuperi, con avvisi
+  automatici all’amministrazione. Il numero della carta non entra mai nel database.
+- **Prenotazioni** — il paziente vede, prenota e disdice; il gestionale esistente
+  sincronizza agende e disponibilità da un endpoint dedicato.
 - **Motore clinico AI** — un documento viene letto da Claude, i parametri estratti
   vengono validati da regole deterministiche, quelli clinicamente rilevanti
   finiscono in coda di revisione e lo Score si ricalcola su ciò che è approvato.
@@ -101,6 +108,8 @@ src/
     documents/            Caricamento e classificazione dei referti
     clinical/             Note, valutazioni, proposte di percorso, task
     professionals/        Discipline e ambiti di competenza
+    credits/              Regole di disdetta e movimenti
+    appointments/         Prenotazione, disdetta, esito della visita
     supabase/             Client browser, client server, configurazione
     auth.ts               Profilo collegato e percorso per ruolo
     data/                 Unico punto di accesso ai dati
@@ -147,6 +156,9 @@ Postgres non restituirebbe comunque righe che l’utente non ha diritto di veder
   database reale, passo per passo.
 - [Il modello dell’Unique Longevity Score](docs/longevity-score.md) — come è composto
   il punteggio e quali assunzioni vanno validate clinicamente.
+- [Crediti, pagamenti e prenotazioni](docs/crediti-pagamenti-prenotazioni.md) —
+  la macchina a stati del credito, gli avvisi di incasso, l’integrazione col
+  gestionale.
 - [Professionisti, copilot e membership](docs/professionisti-e-membership.md) —
   permessi per disciplina, assistente contestuale, crediti e piani.
 - [Documenti, timeline e cartella](docs/documenti-e-cartella.md) — caricamento,
@@ -163,7 +175,7 @@ Postgres non restituirebbe comunque righe che l’utente non ha diritto di veder
 2. **Anamnesi strutturata** — un questionario le cui risposte alimentino
    direttamente le metriche di anamnesi e stile di vita.
 3. **Control Center** — vista di direzione su agenda, incassi e KPI.
-4. **Pagamenti** — collegare un gestore esterno: oggi stato e rinnovo della
-   membership si compilano a mano.
+4. **Pagamenti** — collegare un gestore esterno: stato, rinnovo e incassi oggi
+   si compilano a mano, ma lo schema e gli avvisi sono già pronti.
 5. **Unique Brain** — interrogazione in linguaggio naturale su dati, documenti e
    procedure, con gli stessi confini di accesso della Row Level Security.

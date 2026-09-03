@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { proponiStep, salvaNota } from "@/lib/clinical/actions";
+import { correggiCrediti, proponiStep, salvaNota } from "@/lib/clinical/actions";
 import { statoTestoIniziale, type StatoTesto } from "@/lib/clinical/state";
 import { cx } from "@/components/ui/primitives";
 
@@ -75,6 +75,49 @@ export function NoteForm({ patientId }: { patientId: string }) {
           {inCorso ? "Salvataggio…" : "Salva"}
         </button>
       </div>
+
+      <Esito stato={stato} />
+    </form>
+  );
+}
+
+/**
+ * Correzione manuale dei crediti.
+ *
+ * Il motivo è obbligatorio: una correzione senza spiegazione è un buco
+ * nel registro, e il registro è l'unica storia che resta.
+ */
+export function CreditAdjustmentForm({ patientId }: { patientId: string }) {
+  const [stato, azione, inCorso] = useActionState(correggiCrediti, statoTestoIniziale);
+
+  return (
+    <form action={azione} className="space-y-3">
+      <input type="hidden" name="patientId" value={patientId} />
+
+      <div className="grid gap-3 sm:grid-cols-[120px_1fr]">
+        <input
+          name="amount"
+          inputMode="decimal"
+          required
+          placeholder="+2 o −1"
+          className={cx(CAMPO, "tnum")}
+        />
+        <input
+          name="reason"
+          required
+          minLength={3}
+          placeholder="Motivo della correzione"
+          className={CAMPO}
+        />
+      </div>
+
+      <button
+        type="submit"
+        disabled={inCorso}
+        className="rounded-xl px-4 py-2.5 text-sm font-medium text-ink-700 ring-1 ring-bone-200 transition-colors hover:text-jade-700 disabled:opacity-60"
+      >
+        {inCorso ? "Registro…" : "Registra la correzione"}
+      </button>
 
       <Esito stato={stato} />
     </form>

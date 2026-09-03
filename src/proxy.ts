@@ -16,7 +16,9 @@ import {
  */
 
 /** Percorsi raggiungibili senza sessione. */
-const PUBLIC_PREFIXES = ["/accedi", "/auth"];
+// /api/integrazioni parla con il gestionale, non con una persona: si
+// autentica con un token proprio, non con un cookie di sessione.
+const PUBLIC_PREFIXES = ["/accedi", "/auth", "/api/integrazioni"];
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PREFIXES.some(

@@ -33,6 +33,8 @@ Dal progetto, apri **SQL Editor** ed esegui i file di `supabase/migrations/`
    dal paziente, briefing pre-visita
 7. `20260903140000_professionals_membership_copilot.sql` — discipline e permessi,
    note, task, membership completa, copilot
+8. `20260903150000_credit_engine_payments_booking.sql` — credit engine, pagamenti,
+   servizi, disponibilità, integrazione col gestionale
 
 In alternativa, con la Supabase CLI installata e il progetto collegato:
 

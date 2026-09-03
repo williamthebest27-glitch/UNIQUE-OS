@@ -4,7 +4,16 @@ import { SchedaInAttesa } from "@/components/patient/scheda-in-attesa";
 import { PageHeading } from "@/components/shell/page-heading";
 import { CreditsCard, MEMBERSHIP_STATUS_LABELS } from "@/components/patient/cards";
 import { formatShortDate } from "@/lib/format";
-import { Badge, Card, CardHeader, EmptyState } from "@/components/ui/primitives";
+import { Badge, Card, CardHeader, EmptyState, cx } from "@/components/ui/primitives";
+import { getCreditLedger } from "@/lib/data/appointments";
+import {
+  PAYMENT_KIND_LABELS,
+  PAYMENT_STATUS_LABELS,
+  billingPortalUrl,
+  getPaymentMethods,
+  getPayments,
+} from "@/lib/data/billing";
+import { CREDIT_ENTRY_LABELS, type CreditEntryKind } from "@/lib/credits/rules";
 
 export const metadata: Metadata = { title: "Membership" };
 export const dynamic = "force-dynamic";
@@ -36,6 +45,13 @@ export default async function CreditiPage() {
   const data = await requirePatientDashboard();
   if (!data) return <SchedaInAttesa />;
 
+  const [metodi, pagamenti, movimenti] = await Promise.all([
+    getPaymentMethods(),
+    getPayments(),
+    getCreditLedger(),
+  ]);
+
+  const portale = billingPortalUrl();
   const m = data.membership;
   const { granted, used, reserved, available } = m.credits;
 
@@ -134,6 +150,142 @@ export default async function CreditiPage() {
                 )}
               </Voce>
             </dl>
+          )}
+        </Card>
+
+        {/* ── Metodo di pagamento ──────────────────────────────── */}
+        <Card>
+          <CardHeader
+            title="Metodo di pagamento"
+            hint="I dati della carta sono custoditi dal gestore dei pagamenti, non da Unique."
+          />
+          {metodi.length === 0 ? (
+            <EmptyState>Nessun metodo di pagamento registrato.</EmptyState>
+          ) : (
+            <ul className="mt-2 divide-y divide-bone-200/80">
+              {metodi.map((metodo) => (
+                <li
+                  key={metodo.id}
+                  className="flex flex-wrap items-center justify-between gap-2 px-6 py-3.5"
+                >
+                  <span className="text-[15px] text-ink-900 tnum">
+                    {metodo.brand ?? "Carta"}
+                    {metodo.last4 ? ` ···· ${metodo.last4}` : ""}
+                    {metodo.expMonth && metodo.expYear ? (
+                      <span className="ml-2 text-sm text-ink-400">
+                        {String(metodo.expMonth).padStart(2, "0")}/{metodo.expYear}
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className="flex items-center gap-2">
+                    {metodo.isDefault ? <Badge tone="jade">Predefinito</Badge> : null}
+                    {metodo.inScadenza ? <Badge tone="attention">In scadenza</Badge> : null}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div className="px-6 py-5">
+            {portale ? (
+              <a
+                href={portale}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="inline-block rounded-xl bg-ink-900 px-4 py-2.5 text-sm font-medium text-bone-50 transition-colors hover:bg-ink-800"
+              >
+                Aggiorna il metodo di pagamento
+              </a>
+            ) : (
+              <p className="text-sm text-ink-500">
+                Per cambiare la carta, scrivi alla segreteria: il portale dei
+                pagamenti non è ancora collegato.
+              </p>
+            )}
+            <p className="mt-2 text-xs text-ink-400">
+              L’aggiornamento avviene sulle pagine del gestore dei pagamenti. Il
+              numero della carta non passa mai da Unique OS.
+            </p>
+          </div>
+        </Card>
+
+        {/* ── Pagamenti ────────────────────────────────────────── */}
+        <Card>
+          <CardHeader title="Pagamenti" />
+          {pagamenti.length === 0 ? (
+            <EmptyState>Nessun pagamento registrato.</EmptyState>
+          ) : (
+            <ul className="mt-2 divide-y divide-bone-200/80 pb-2">
+              {pagamenti.map((p) => (
+                <li
+                  key={p.id}
+                  className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-6 py-3.5"
+                >
+                  <div className="min-w-0">
+                    <p className="text-[15px] text-ink-900">
+                      {p.description ?? PAYMENT_KIND_LABELS[p.kind] ?? p.kind}
+                    </p>
+                    <p className="mt-0.5 text-xs text-ink-400 tnum">
+                      {p.paidAt
+                        ? formatShortDate(p.paidAt)
+                        : p.dueOn
+                          ? `scadenza ${formatShortDate(p.dueOn)}`
+                          : ""}
+                      {p.failureReason ? ` · ${p.failureReason}` : ""}
+                    </p>
+                  </div>
+                  <span className="flex items-center gap-2">
+                    <span className="text-[15px] text-ink-700 tnum">
+                      {euro(p.amountCents, p.currency)}
+                    </span>
+                    <Badge tone={p.status === "paid" ? "jade" : p.status === "failed" ? "attention" : "neutral"}>
+                      {PAYMENT_STATUS_LABELS[p.status] ?? p.status}
+                    </Badge>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        {/* ── Movimenti dei crediti ────────────────────────────── */}
+        <Card>
+          <CardHeader
+            title="Movimenti dei crediti"
+            hint="Ogni passaggio lascia una riga: nulla viene riscritto."
+          />
+          {movimenti.length === 0 ? (
+            <EmptyState>Nessun movimento.</EmptyState>
+          ) : (
+            <ul className="mt-2 divide-y divide-bone-200/80 pb-2">
+              {movimenti.map((m) => (
+                <li
+                  key={m.id}
+                  className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-6 py-3"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm text-ink-900">
+                      {m.description ?? CREDIT_ENTRY_LABELS[m.kind as CreditEntryKind] ?? m.kind}
+                    </p>
+                    <p className="mt-0.5 text-xs text-ink-400">
+                      {CREDIT_ENTRY_LABELS[m.kind as CreditEntryKind] ?? m.kind} ·{" "}
+                      <span className="tnum">{formatShortDate(m.createdAt)}</span>
+                    </p>
+                  </div>
+                  <span
+                    className={cx(
+                      "text-[15px] font-medium tnum",
+                      m.amount > 0 ? "text-jade-600" : "text-ink-700",
+                    )}
+                  >
+                    {m.amount > 0 ? "+" : "−"}
+                    {Math.abs(m.amount).toLocaleString("it-IT", {
+                      maximumFractionDigits: 1,
+                    })}
+                  </span>
+                </li>
+              ))}
+            </ul>
           )}
         </Card>
 

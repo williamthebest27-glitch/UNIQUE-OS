@@ -170,6 +170,62 @@ export async function decidiStep(formData: FormData): Promise<void> {
   if (patientId) revalidatePath(`/pro/pazienti/${patientId}`);
 }
 
+/* ── Correzioni manuali dei crediti ───────────────────────────────── */
+
+/**
+ * Correzione manuale del saldo crediti.
+ *
+ * Non modifica nulla: aggiunge una riga al registro. Il saldo è la somma
+ * dei movimenti, quindi correggere significa scrivere la correzione — e
+ * lo storico resta leggibile per intero, con chi l'ha fatta e perché.
+ *
+ * Il motivo è obbligatorio, e non solo qui: un vincolo sul database
+ * rifiuta le correzioni senza descrizione.
+ */
+export async function correggiCrediti(
+  _prev: StatoTesto,
+  formData: FormData,
+): Promise<StatoTesto> {
+  const patientId = String(formData.get("patientId") ?? "");
+  const amount = Number(String(formData.get("amount") ?? "").replace(",", "."));
+  const reason = String(formData.get("reason") ?? "").trim();
+
+  if (!patientId) return { esito: "errore", messaggio: "Paziente non indicato." };
+  if (!Number.isFinite(amount) || amount === 0) {
+    return { esito: "errore", messaggio: "Indica di quanti crediti correggere." };
+  }
+  if (reason.length < 3) {
+    return { esito: "errore", messaggio: "Scrivi il motivo della correzione." };
+  }
+
+  try {
+    const profile = await requireStaff();
+    const supabase = await createSupabaseServerClient();
+
+    const { error } = await supabase.from("credit_entries").insert({
+      patient_id: patientId,
+      entry_type: "adjustment",
+      amount,
+      description: reason,
+      created_by: profile.id,
+    });
+
+    if (error) throw new Error(error.message);
+
+    revalidatePath(`/pro/pazienti/${patientId}`);
+    revalidatePath("/crediti");
+    return {
+      esito: "ok",
+      messaggio: `Correzione di ${amount > 0 ? "+" : "−"}${Math.abs(amount)} registrata.`,
+    };
+  } catch (error) {
+    return {
+      esito: "errore",
+      messaggio: error instanceof Error ? error.message : "Correzione non registrata.",
+    };
+  }
+}
+
 /* ── Task ─────────────────────────────────────────────────────────── */
 
 export async function chiudiTask(formData: FormData): Promise<void> {

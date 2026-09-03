@@ -16,7 +16,15 @@ import { ActionsCard } from "@/components/patient/lists";
 import { Timeline } from "@/components/patient/timeline";
 import { UploadForm } from "@/components/documents/upload-form";
 import { CopilotPanel } from "@/components/clinical/copilot-panel";
-import { NoteForm, StepProposalForm } from "@/components/clinical/clinical-forms";
+import {
+  CreditAdjustmentForm,
+  NoteForm,
+  StepProposalForm,
+} from "@/components/clinical/clinical-forms";
+import { registraEsito } from "@/lib/appointments/actions";
+import { getCreditLedger, getPatientAppointments } from "@/lib/data/appointments";
+import { CREDIT_ENTRY_LABELS, type CreditEntryKind } from "@/lib/credits/rules";
+import { formatCredits, formatTime, formatWeekdayDayMonth } from "@/lib/format";
 import { decidiStep } from "@/lib/clinical/actions";
 import { PageHeading } from "@/components/shell/page-heading";
 import { Badge, Card, CardHeader, EmptyState, SparkIcon, cx } from "@/components/ui/primitives";
@@ -120,6 +128,8 @@ export default async function CartellaPazientePage({
     proposteRes,
     timeline,
     briefing,
+    movimenti,
+    agenda,
     noteRes,
     stepRes,
   ] = await Promise.all([
@@ -146,6 +156,8 @@ export default async function CartellaPazientePage({
 
     getPatientTimeline(id),
     getLatestBriefing(id),
+    getCreditLedger(id, 12),
+    getPatientAppointments(id),
 
     supabase
       .from("clinical_notes")
@@ -316,6 +328,115 @@ export default async function CartellaPazientePage({
           <ProgramCard enrollment={data.enrollment} />
           <CreditsCard membership={data.membership} />
         </div>
+
+        {/* ── Agenda ed esiti ─────────────────────────────────── */}
+        <Card>
+          <CardHeader
+            title="Agenda"
+            hint="Registrare l’esito è ciò che sposta il credito da prenotato a utilizzato."
+          />
+          {agenda.prossimi.length === 0 ? (
+            <EmptyState>Nessun appuntamento in programma.</EmptyState>
+          ) : (
+            <ul className="mt-2 divide-y divide-bone-200/80 pb-2">
+              {agenda.prossimi.map((appt) => {
+                const passato = Date.parse(appt.startsAt) < Date.now();
+                return (
+                  <li
+                    key={appt.id}
+                    className="flex flex-wrap items-center justify-between gap-3 px-6 py-3.5"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-[15px] text-ink-900">{appt.serviceName}</p>
+                      <p className="mt-0.5 text-sm text-ink-500 first-letter:uppercase">
+                        {formatWeekdayDayMonth(appt.startsAt)} · ore{" "}
+                        <span className="tnum">{formatTime(appt.startsAt)}</span>
+                        {appt.creditsCost > 0
+                          ? ` · ${formatCredits(appt.creditsCost)}`
+                          : ""}
+                      </p>
+                    </div>
+
+                    {passato ? (
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          ["true", "Presente"],
+                          ["false", "Non presentato"],
+                        ].map(([value, label]) => (
+                          <form key={value} action={registraEsito}>
+                            <input type="hidden" name="appointmentId" value={appt.id} />
+                            <input type="hidden" name="patientId" value={id} />
+                            <input type="hidden" name="attended" value={value} />
+                            <button
+                              type="submit"
+                              className={cx(
+                                "rounded-lg px-3 py-1.5 text-sm transition-colors",
+                                value === "true"
+                                  ? "bg-jade-700 font-medium text-bone-50 hover:bg-jade-900"
+                                  : "text-ink-500 ring-1 ring-bone-200 hover:text-signal-alert",
+                              )}
+                            >
+                              {label}
+                            </button>
+                          </form>
+                        ))}
+                      </div>
+                    ) : (
+                      <Badge>{appt.status === "confirmed" ? "Confermata" : "In agenda"}</Badge>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Card>
+
+        {/* ── Crediti ─────────────────────────────────────────── */}
+        <Card>
+          <CardHeader
+            title="Crediti"
+            hint="Le correzioni non modificano il saldo: aggiungono una riga al registro."
+          />
+          <div className="px-6 pt-3">
+            <CreditAdjustmentForm patientId={id} />
+          </div>
+
+          {movimenti.length > 0 ? (
+            <ul className="mt-5 divide-y divide-bone-200/80 border-t border-bone-200">
+              {movimenti.map((m) => (
+                <li
+                  key={m.id}
+                  className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-6 py-3"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm text-ink-900">
+                      {m.description ??
+                        CREDIT_ENTRY_LABELS[m.kind as CreditEntryKind] ??
+                        m.kind}
+                    </p>
+                    <p className="mt-0.5 text-xs text-ink-400">
+                      {CREDIT_ENTRY_LABELS[m.kind as CreditEntryKind] ?? m.kind} ·{" "}
+                      <span className="tnum">{formatShortDate(m.createdAt)}</span>
+                    </p>
+                  </div>
+                  <span
+                    className={cx(
+                      "text-[15px] font-medium tnum",
+                      m.amount > 0 ? "text-jade-600" : "text-ink-700",
+                    )}
+                  >
+                    {m.amount > 0 ? "+" : "−"}
+                    {Math.abs(m.amount).toLocaleString("it-IT", {
+                      maximumFractionDigits: 1,
+                    })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="pb-4" />
+          )}
+        </Card>
 
         {/* ── Documenti ───────────────────────────────────────── */}
         <Card>
