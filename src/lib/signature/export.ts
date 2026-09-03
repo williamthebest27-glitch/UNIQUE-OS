@@ -74,12 +74,12 @@ function componi(figura: HTMLCanvasElement, options: ExportOptions): HTMLCanvasE
 
   // Il velo dal basso: il testo si legge, la figura resta protagonista.
   const velo = ctx.createLinearGradient(0, H * 0.45, 0, H);
-  velo.addColorStop(0, "rgba(16,32,26,0)");
-  velo.addColorStop(1, "rgba(16,32,26,0.88)");
+  velo.addColorStop(0, "rgba(20,20,20,0)");
+  velo.addColorStop(1, "rgba(20,20,20,0.88)");
   ctx.fillStyle = velo;
   ctx.fillRect(0, 0, W, H);
 
-  const bone = "#faf8f5";
+  const bone = "#ffffff";
   const margine = 84;
 
   // ── Marchio, in alto ────────────────────────────────────────────
@@ -91,13 +91,13 @@ function componi(figura: HTMLCanvasElement, options: ExportOptions): HTMLCanvasE
 
   ctx.font = "500 18px Inter, system-ui, sans-serif";
   ctx.letterSpacing = "0.3em";
-  ctx.fillStyle = "rgba(250,248,245,0.5)";
+  ctx.fillStyle = "rgba(255,255,255,0.5)";
   ctx.fillText("LONGEVITY CLINIC", margine, margine + 56);
 
   // ── Etichetta e punteggio, in basso ─────────────────────────────
   ctx.letterSpacing = "0.22em";
   ctx.font = "500 22px Inter, system-ui, sans-serif";
-  ctx.fillStyle = "rgba(250,248,245,0.55)";
+  ctx.fillStyle = "rgba(255,255,255,0.55)";
   ctx.textBaseline = "alphabetic";
   ctx.fillText("UNIQUE LONGEVITY SCORE", margine, H - margine - 250);
 
@@ -109,11 +109,11 @@ function componi(figura: HTMLCanvasElement, options: ExportOptions): HTMLCanvasE
   const larghezza = ctx.measureText(options.scoreLabel).width;
   ctx.letterSpacing = "0";
   ctx.font = "400 56px Fraunces, Georgia, serif";
-  ctx.fillStyle = "rgba(250,248,245,0.35)";
+  ctx.fillStyle = "rgba(255,255,255,0.35)";
   ctx.fillText("/100", margine + larghezza + 6, H - margine - 8);
 
   ctx.font = "500 24px Inter, system-ui, sans-serif";
-  ctx.fillStyle = "rgba(250,248,245,0.5)";
+  ctx.fillStyle = "rgba(255,255,255,0.5)";
   ctx.textAlign = "right";
   ctx.fillText(options.dateLabel, W - margine, H - margine - 8);
   ctx.textAlign = "left";

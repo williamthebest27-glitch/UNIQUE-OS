@@ -273,7 +273,7 @@ export default async function CartellaPazientePage({
                         className={cx(
                           "relative pl-4 text-sm leading-relaxed text-ink-700",
                           "before:absolute before:left-0 before:top-2 before:h-1 before:w-1",
-                          "before:rounded-full before:bg-jade-500",
+                          "before:rounded-full before:bg-brand-500",
                         )}
                       >
                         {item}
@@ -381,7 +381,7 @@ export default async function CartellaPazientePage({
                               className={cx(
                                 "rounded-lg px-3 py-1.5 text-sm transition-colors",
                                 value === "true"
-                                  ? "bg-jade-700 font-medium text-bone-50 hover:bg-jade-900"
+                                  ? "bg-brand-700 font-medium text-bone-50 hover:bg-brand-900"
                                   : "text-ink-500 ring-1 ring-bone-200 hover:text-signal-alert",
                               )}
                             >
@@ -431,7 +431,7 @@ export default async function CartellaPazientePage({
                   <span
                     className={cx(
                       "text-[15px] font-medium tnum",
-                      m.amount > 0 ? "text-jade-600" : "text-ink-700",
+                      m.amount > 0 ? "text-signal-positive" : "text-ink-700",
                     )}
                   >
                     {m.amount > 0 ? "+" : "−"}
@@ -476,14 +476,14 @@ export default async function CartellaPazientePage({
                     </div>
 
                     {analizzato ? (
-                      <Badge tone="jade">Analizzato</Badge>
+                      <Badge tone="positive">Analizzato</Badge>
                     ) : isBrainConfigured() ? (
                       <form action={analizzaDocumento}>
                         <input type="hidden" name="documentId" value={doc.id} />
                         <input type="hidden" name="patientId" value={id} />
                         <button
                           type="submit"
-                          className="rounded-lg px-3 py-1.5 text-sm text-ink-500 ring-1 ring-bone-200 transition-colors hover:text-jade-700"
+                          className="rounded-lg px-3 py-1.5 text-sm text-ink-500 ring-1 ring-bone-200 transition-colors hover:text-brand-700"
                         >
                           Analizza
                         </button>
@@ -539,7 +539,7 @@ export default async function CartellaPazientePage({
                     <span className="text-xs text-ink-400">
                       {n.author?.full_name ?? "—"} · {formatShortDate(n.created_at)}
                     </span>
-                    {n.visible_to_patient ? <Badge tone="jade">Condivisa</Badge> : null}
+                    {n.visible_to_patient ? <Badge tone="brand">Condivisa</Badge> : null}
                   </div>
                   {n.title ? (
                     <h3 className="mt-1 text-[15px] font-medium text-ink-900">{n.title}</h3>
@@ -587,7 +587,7 @@ export default async function CartellaPazientePage({
                           className={cx(
                             "rounded-lg px-3 py-1.5 text-sm transition-colors",
                             decision === "accepted"
-                              ? "bg-jade-700 font-medium text-bone-50 hover:bg-jade-900"
+                              ? "bg-brand-700 font-medium text-bone-50 hover:bg-brand-900"
                               : "text-ink-500 ring-1 ring-bone-200 hover:text-signal-alert",
                           )}
                         >

@@ -232,7 +232,7 @@ export default async function ProPage() {
                         <input type="hidden" name="taskId" value={task.id} />
                         <button
                           type="submit"
-                          className="rounded-lg px-2.5 py-1.5 text-xs text-ink-500 ring-1 ring-bone-200 transition-colors hover:text-jade-700"
+                          className="rounded-lg px-2.5 py-1.5 text-xs text-ink-500 ring-1 ring-bone-200 transition-colors hover:text-brand-700"
                         >
                           Fatto
                         </button>
@@ -289,7 +289,7 @@ export default async function ProPage() {
                       aria-hidden="true"
                       className={cx(
                         "mt-2 h-1.5 w-1.5 shrink-0 rounded-full",
-                        n.readAt === null ? "bg-jade-500" : "bg-bone-300",
+                        n.readAt === null ? "bg-brand-500" : "bg-bone-300",
                       )}
                     />
                     <div className="min-w-0">

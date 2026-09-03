@@ -69,8 +69,8 @@ export function DeltaPill({
     direction === "flat"
       ? "bg-bone-100 text-ink-500"
       : isImprovement
-        ? "bg-jade-50 text-jade-700"
-        : "bg-[#fbf1ee] text-signal-alert";
+        ? "bg-brand-50 text-brand-700"
+        : "bg-brand-50 text-signal-alert";
 
   return (
     <span
@@ -99,11 +99,12 @@ export function Badge({
   tone = "neutral",
 }: {
   children: ReactNode;
-  tone?: "neutral" | "jade" | "gold" | "attention";
+  tone?: "neutral" | "brand" | "positive" | "gold" | "attention";
 }) {
   const tones = {
     neutral: "bg-bone-100 text-ink-500 ring-bone-200",
-    jade: "bg-jade-50 text-jade-700 ring-jade-100",
+    brand: "bg-brand-50 text-brand-700 ring-brand-100",
+    positive: "bg-[#e9f6ee] text-signal-positive ring-[#cdebd8]",
     gold: "bg-gold-100 text-gold-600 ring-gold-300/60",
     attention: "bg-[#fdf6e8] text-signal-attention ring-[#f0e0bd]",
   } as const;

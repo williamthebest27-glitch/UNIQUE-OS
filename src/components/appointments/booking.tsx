@@ -29,7 +29,7 @@ export function CancelButton({
   );
 
   if (stato.esito === "ok") {
-    return <p className="text-sm text-jade-700">{stato.messaggio}</p>;
+    return <p className="text-sm text-brand-700">{stato.messaggio}</p>;
   }
 
   return (
@@ -42,7 +42,7 @@ export function CancelButton({
         <input
           name="reason"
           placeholder="Motivo (facoltativo)"
-          className="w-44 rounded-lg bg-bone-50 px-3 py-1.5 text-sm ring-1 ring-bone-200 placeholder:text-ink-300 focus:ring-2 focus:ring-jade-500"
+          className="w-44 rounded-lg bg-bone-50 px-3 py-1.5 text-sm ring-1 ring-bone-200 placeholder:text-ink-300 focus:ring-2 focus:ring-brand-500"
         />
         <button
           type="submit"
@@ -75,7 +75,7 @@ export function BookButton({
   const [stato, azione, inCorso] = useActionState(prenotaSlot, statoPrenotazioneIniziale);
 
   if (stato.esito === "ok") {
-    return <span className="text-sm text-jade-700">{stato.messaggio}</span>;
+    return <span className="text-sm text-brand-700">{stato.messaggio}</span>;
   }
 
   return (
@@ -85,8 +85,8 @@ export function BookButton({
         type="submit"
         disabled={inCorso || disabled}
         className={cx(
-          "rounded-lg bg-jade-700 px-3.5 py-2 text-sm font-medium text-bone-50",
-          "transition-colors hover:bg-jade-900 disabled:opacity-50",
+          "rounded-lg bg-brand-700 px-3.5 py-2 text-sm font-medium text-bone-50",
+          "transition-colors hover:bg-brand-900 disabled:opacity-50",
         )}
       >
         {inCorso ? "Prenoto…" : `Prenota · ${formatCredits(credits)}`}

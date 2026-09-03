@@ -29,7 +29,7 @@ const SOURCE_LABEL: Record<ActionSource, string> = {
 
 const PRIORITY_TONE: Record<1 | 2 | 3, string> = {
   1: "bg-signal-attention",
-  2: "bg-jade-500",
+  2: "bg-brand-500",
   3: "bg-bone-300",
 };
 
@@ -65,10 +65,10 @@ function ActionRow({ action }: { action: RecommendedAction }) {
         ) : null}
 
         <div className="mt-2.5 flex flex-wrap items-center gap-2">
-          <Badge tone={action.source === "brain" ? "jade" : "neutral"}>
+          <Badge tone={action.source === "brain" ? "brand" : "neutral"}>
             {SOURCE_LABEL[action.source]}
           </Badge>
-          {action.status === "in_progress" ? <Badge tone="jade">In corso</Badge> : null}
+          {action.status === "in_progress" ? <Badge tone="brand">In corso</Badge> : null}
           {action.dueOn ? (
             <span className="text-xs text-ink-400">
               entro il {formatShortDate(action.dueOn)} · {formatRelativeDays(action.dueOn)}
@@ -121,7 +121,7 @@ export function DocumentsCard({ documents }: { documents: PatientDocument[] }) {
     <Card>
       <CardHeader
         title="Documenti e risultati"
-        action={unreadCount > 0 ? <Badge tone="jade">{unreadCount} nuovi</Badge> : undefined}
+        action={unreadCount > 0 ? <Badge tone="brand">{unreadCount} nuovi</Badge> : undefined}
       />
       {documents.length === 0 ? (
         <EmptyState>
@@ -145,7 +145,7 @@ export function DocumentsCard({ documents }: { documents: PatientDocument[] }) {
                   </h3>
                   {doc.isNewForPatient ? (
                     <span
-                      className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-jade-500"
+                      className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-500"
                       aria-label="Non ancora aperto"
                     />
                   ) : null}
@@ -179,7 +179,7 @@ export function NotificationsCard({
     <Card>
       <CardHeader
         title="Messaggi"
-        action={unread > 0 ? <Badge tone="jade">{unread} da leggere</Badge> : undefined}
+        action={unread > 0 ? <Badge tone="brand">{unread} da leggere</Badge> : undefined}
       />
       {notifications.length === 0 ? (
         <EmptyState>Nessun messaggio. Ti scriveremo qui.</EmptyState>
@@ -193,7 +193,7 @@ export function NotificationsCard({
               <span
                 className={cx(
                   "mt-2 h-1.5 w-1.5 shrink-0 rounded-full",
-                  note.readAt === null ? "bg-jade-500" : "bg-bone-300",
+                  note.readAt === null ? "bg-brand-500" : "bg-bone-300",
                 )}
                 aria-hidden="true"
               />

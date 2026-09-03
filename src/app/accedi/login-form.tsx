@@ -13,8 +13,8 @@ export function LoginForm({ next }: { next?: string }) {
   if (stato.esito === "inviato") {
     return (
       <div className="text-center">
-        <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-jade-50">
-          <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6 text-jade-600">
+        <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-50">
+          <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6 text-brand-600">
             <path
               d="m4.5 12.5 5 5 10-11"
               stroke="currentColor"
@@ -56,7 +56,7 @@ export function LoginForm({ next }: { next?: string }) {
           defaultValue={stato.email}
           aria-invalid={stato.esito === "errore" || undefined}
           aria-describedby={stato.esito === "errore" ? "errore-accesso" : undefined}
-          className="mt-1.5 w-full rounded-xl bg-bone-50 px-3.5 py-2.5 text-[15px] text-ink-900 ring-1 ring-bone-200 transition-shadow placeholder:text-ink-300 focus:ring-2 focus:ring-jade-500"
+          className="mt-1.5 w-full rounded-xl bg-bone-50 px-3.5 py-2.5 text-[15px] text-ink-900 ring-1 ring-bone-200 transition-shadow placeholder:text-ink-300 focus:ring-2 focus:ring-brand-500"
           placeholder="nome@esempio.it"
         />
       </div>
@@ -70,7 +70,7 @@ export function LoginForm({ next }: { next?: string }) {
       <button
         type="submit"
         disabled={inCorso}
-        className="w-full rounded-xl bg-jade-700 px-4 py-2.5 text-[15px] font-medium text-bone-50 transition-colors hover:bg-jade-900 disabled:opacity-60"
+        className="w-full rounded-xl bg-brand-700 px-4 py-2.5 text-[15px] font-medium text-bone-50 transition-colors hover:bg-brand-900 disabled:opacity-60"
       >
         {inCorso ? "Invio in corso…" : "Invia il link di accesso"}
       </button>

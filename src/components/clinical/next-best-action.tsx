@@ -31,7 +31,7 @@ function Colonna({
         <span
           className={cx(
             "h-1.5 w-1.5 rounded-full",
-            tono === "clinical" ? "bg-jade-500" : "bg-gold-500",
+            tono === "clinical" ? "bg-brand-500" : "bg-gold-500",
           )}
         />
       </div>
@@ -47,7 +47,7 @@ function Colonna({
               className={cx(
                 "rounded-xl px-3.5 py-3 ring-1",
                 tono === "clinical"
-                  ? "bg-jade-50 ring-jade-100"
+                  ? "bg-brand-50 ring-brand-100"
                   : "bg-gold-100/60 ring-gold-300/50",
               )}
             >
@@ -86,7 +86,7 @@ export function NextBestActionPanel({
       <CardHeader
         title="Next Best Action"
         hint="Ogni suggerimento porta con sé i fatti che lo hanno attivato."
-        action={<Badge tone="jade">{STAGE_LABELS[stage.stage]}</Badge>}
+        action={<Badge tone="brand">{STAGE_LABELS[stage.stage]}</Badge>}
       />
 
       <p className="px-6 pt-2 text-sm text-ink-500">{stage.reason}</p>

@@ -30,7 +30,7 @@ pilastri. Non è decorazione: la forma è il dato.
 | Cardiovascular | il ritmo del respiro — la pulsazione |
 | Body Composition | la densità delle forme |
 | Movement | la velocità di deriva |
-| Nutrition | il calore della luce, dal verde-acqua all’oro |
+| Nutrition | il calore della luce, dal rosa all’oro |
 | Mental Wellbeing | la simmetria, la coerenza |
 | Lifestyle | l’intensità della luminescenza |
 
@@ -88,6 +88,24 @@ schermo, e sopra il marchio, il punteggio e la data. Niente nome del
 paziente: l’immagine è fatta per essere mostrata, e chi la mostra decide cosa
 dire. Dove `navigator.share` accetta file (iOS, Android) si apre il foglio di
 condivisione; altrove si scarica.
+
+## Colore
+
+Bianco e rosso. Il fondo è bianco, le superfici sono bianche, l’inchiostro è
+un nero neutro; il rosso del marchio (`brand-*`, da `#fdf2f4` a `#5e0a17`) è
+l’unico colore, e sta dove serve un accento: azioni, stati attivi, badge,
+focus. L’oro resta per i momenti di valore — membership, crediti — con
+parsimonia.
+
+Una conseguenza da tenere sempre presente: **il rosso è il marchio, quindi
+da solo non può voler dire "va male"**. Un miglioramento — un delta
+positivo, un valore in regola — resta verde (`signal-positive`, un verde
+neutro e calmo, non il vecchio jade). L’allarme usa il rosso profondo del
+marchio e si riconosce dal contesto: icona, testo, posizione.
+
+L’hero dello Score resta scuro. Sul bianco la Signature perderebbe la sua
+luce; sul nero l’organismo in rosso e rosa è la mossa audace che il resto
+della pagina, bianca e quieta, lascia parlare.
 
 ## Tipografia
 

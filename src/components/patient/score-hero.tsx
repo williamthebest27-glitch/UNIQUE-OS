@@ -25,7 +25,7 @@ function RingFallback({ score }: { score: number }) {
       <svg viewBox="0 0 200 200" className="h-[260px] w-[260px] opacity-90">
         <defs>
           <linearGradient id="score-gradient" x1="0" y1="1" x2="1" y2="0">
-            <stop offset="0%" stopColor="var(--color-jade-500)" />
+            <stop offset="0%" stopColor="var(--color-brand-500)" />
             <stop offset="100%" stopColor="var(--color-lume-500)" />
           </linearGradient>
         </defs>
@@ -148,7 +148,7 @@ function PillarBar({
       </div>
       <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-bone-200">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-jade-600 to-jade-400 transition-[width] duration-[1.4s] ease-[var(--ease-out-expo)]"
+          className="h-full rounded-full bg-gradient-to-r from-brand-700 to-brand-500 transition-[width] duration-[1.4s] ease-[var(--ease-out-expo)]"
           style={{ width: `${value}%` }}
         />
       </div>
@@ -157,7 +157,7 @@ function PillarBar({
           <span
             className={cx(
               "font-medium tnum",
-              delta > 0 ? "text-jade-600" : delta < 0 ? "text-signal-alert" : "text-ink-300",
+              delta > 0 ? "text-signal-positive" : delta < 0 ? "text-signal-alert" : "text-ink-300",
             )}
           >
             {formatDelta(delta)} dal controllo precedente
@@ -269,7 +269,7 @@ export function ScoreHero({
                     className={cx(
                       "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium tnum",
                       "bg-white/10 ring-1 ring-white/10",
-                      delta >= 0 ? "text-lume-300" : "text-gold-300",
+                      delta >= 0 ? "text-signal-positive-light" : "text-gold-300",
                     )}
                   >
                     <svg

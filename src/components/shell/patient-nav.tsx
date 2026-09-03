@@ -44,11 +44,11 @@ export function PatientSidebarNav() {
               "flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] transition-colors",
               "[&>span>svg]:h-[18px] [&>span>svg]:w-[18px]",
               active
-                ? "bg-jade-50 font-medium text-jade-700"
+                ? "bg-brand-50 font-medium text-brand-700"
                 : "text-ink-500 hover:bg-bone-100 hover:text-ink-900",
             )}
           >
-            <span className={active ? "text-jade-600" : "text-ink-400"}>
+            <span className={active ? "text-brand-600" : "text-ink-400"}>
               {item.icon}
             </span>
             {item.label}
@@ -80,7 +80,7 @@ export function PatientTabBar() {
                 className={cx(
                   "flex flex-col items-center gap-1 px-1 py-2.5 text-[10px] font-medium",
                   "[&>span>svg]:h-5 [&>span>svg]:w-5",
-                  active ? "text-jade-700" : "text-ink-400",
+                  active ? "text-brand-700" : "text-ink-400",
                 )}
               >
                 <span>{item.icon}</span>

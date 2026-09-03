@@ -77,7 +77,7 @@ export function NextVisitCard({ appointment }: { appointment: Appointment | null
           ) : null}
 
           <div className="mt-auto flex items-center gap-2 pt-5">
-            <Badge tone="jade">{formatRelativeDays(appointment.startsAt)}</Badge>
+            <Badge tone="brand">{formatRelativeDays(appointment.startsAt)}</Badge>
             {appointment.status === "confirmed" ? (
               <Badge>Confermata</Badge>
             ) : null}
@@ -122,7 +122,7 @@ export function ProgramCard({ enrollment }: { enrollment: ProgramEnrollment | nu
             </div>
             <div className="mt-2 h-2 overflow-hidden rounded-full bg-bone-200">
               <div
-                className="h-full rounded-full bg-jade-600"
+                className="h-full rounded-full bg-brand-600"
                 style={{ width: `${enrollment.progressPct}%` }}
               />
             </div>

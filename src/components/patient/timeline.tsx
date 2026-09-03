@@ -20,10 +20,10 @@ import {
  */
 
 const KIND_STYLE: Record<TimelineKind, { icon: React.ReactNode; dot: string; label: string }> = {
-  score: { icon: <SparkIcon />, dot: "bg-jade-600", label: "Longevity Score" },
+  score: { icon: <SparkIcon />, dot: "bg-brand-600", label: "Longevity Score" },
   appointment: { icon: <CalendarIcon />, dot: "bg-gold-500", label: "Visita" },
   document: { icon: <DocumentIcon />, dot: "bg-ink-400", label: "Documento" },
-  program_start: { icon: <PathIcon />, dot: "bg-jade-500", label: "Percorso" },
+  program_start: { icon: <PathIcon />, dot: "bg-brand-500", label: "Percorso" },
   program_end: { icon: <PathIcon />, dot: "bg-bone-300", label: "Percorso" },
 };
 

@@ -96,11 +96,11 @@ void main(){
   r = pow(clamp(r, 0.0, 1.0), 1.6 + coherence * 1.4);
 
   // Nutrition: il calore. Lifestyle: la luminescenza.
-  vec3 ink  = vec3(0.06, 0.11, 0.095);
-  vec3 jade = vec3(0.11, 0.58, 0.46);
-  vec3 lume = mix(vec3(0.62, 0.95, 0.84), vec3(0.95, 0.82, 0.54), P4);
+  vec3 ink   = vec3(0.075, 0.07, 0.072);
+  vec3 brand = vec3(0.80, 0.12, 0.21);
+  vec3 lume  = mix(vec3(1.0, 0.60, 0.66), vec3(1.0, 0.80, 0.56), P4);
 
-  vec3 col = mix(ink, jade, smoothstep(0.04, 0.58, r));
+  vec3 col = mix(ink, brand, smoothstep(0.04, 0.58, r));
   col = mix(col, lume, smoothstep(0.52, 0.94, r) * (0.5 + P6 * 0.5));
   col += lume * pow(r, 5.0) * 0.4 * (0.5 + P6 * 0.5);
 

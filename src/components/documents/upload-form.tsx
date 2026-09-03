@@ -64,7 +64,7 @@ export function UploadForm({ patientId }: { patientId?: string }) {
             id="kind"
             name="kind"
             defaultValue="other"
-            className="mt-1.5 w-full rounded-xl bg-bone-50 px-3 py-2.5 text-sm text-ink-900 ring-1 ring-bone-200 focus:ring-2 focus:ring-jade-500"
+            className="mt-1.5 w-full rounded-xl bg-bone-50 px-3 py-2.5 text-sm text-ink-900 ring-1 ring-bone-200 focus:ring-2 focus:ring-brand-500"
           >
             {CATEGORIE.map(([value, label]) => (
               <option key={value} value={value}>
@@ -84,7 +84,7 @@ export function UploadForm({ patientId }: { patientId?: string }) {
           name="title"
           type="text"
           placeholder="Se lo lasci vuoto usiamo il nome del file"
-          className="mt-1.5 w-full rounded-xl bg-bone-50 px-3.5 py-2.5 text-sm text-ink-900 ring-1 ring-bone-200 placeholder:text-ink-300 focus:ring-2 focus:ring-jade-500"
+          className="mt-1.5 w-full rounded-xl bg-bone-50 px-3.5 py-2.5 text-sm text-ink-900 ring-1 ring-bone-200 placeholder:text-ink-300 focus:ring-2 focus:ring-brand-500"
         />
       </div>
 
@@ -92,7 +92,7 @@ export function UploadForm({ patientId }: { patientId?: string }) {
         <button
           type="submit"
           disabled={inCorso}
-          className="rounded-xl bg-jade-700 px-4 py-2.5 text-sm font-medium text-bone-50 transition-colors hover:bg-jade-900 disabled:opacity-60"
+          className="rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-medium text-bone-50 transition-colors hover:bg-brand-900 disabled:opacity-60"
         >
           {inCorso ? "Caricamento e analisi…" : "Carica documento"}
         </button>
@@ -107,8 +107,8 @@ export function UploadForm({ patientId }: { patientId?: string }) {
           className={cx(
             "rounded-xl px-3.5 py-3 text-sm",
             stato.esito === "ok"
-              ? "bg-jade-50 text-jade-700"
-              : "bg-[#fbf1ee] text-signal-alert",
+              ? "bg-brand-50 text-brand-700"
+              : "bg-brand-50 text-signal-alert",
           )}
         >
           {stato.messaggio}

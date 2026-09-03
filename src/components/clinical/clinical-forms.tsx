@@ -14,8 +14,8 @@ function Esito({ stato }: { stato: StatoTesto }) {
       className={cx(
         "mt-3 rounded-xl px-3.5 py-2.5 text-sm",
         stato.esito === "ok"
-          ? "bg-jade-50 text-jade-700"
-          : "bg-[#fbf1ee] text-signal-alert",
+          ? "bg-brand-50 text-brand-700"
+          : "bg-brand-50 text-signal-alert",
       )}
     >
       {stato.messaggio}
@@ -24,7 +24,7 @@ function Esito({ stato }: { stato: StatoTesto }) {
 }
 
 const CAMPO =
-  "w-full rounded-xl bg-bone-50 px-3.5 py-2.5 text-[15px] text-ink-900 ring-1 ring-bone-200 placeholder:text-ink-300 focus:ring-2 focus:ring-jade-500";
+  "w-full rounded-xl bg-bone-50 px-3.5 py-2.5 text-[15px] text-ink-900 ring-1 ring-bone-200 placeholder:text-ink-300 focus:ring-2 focus:ring-brand-500";
 
 /**
  * Nota o valutazione.
@@ -62,7 +62,7 @@ export function NoteForm({ patientId }: { patientId: string }) {
           <input
             type="checkbox"
             name="visible"
-            className="h-4 w-4 rounded border-bone-300 text-jade-700 focus:ring-jade-500"
+            className="h-4 w-4 rounded border-bone-300 text-brand-700 focus:ring-brand-500"
           />
           Rendila visibile al paziente
         </label>
@@ -70,7 +70,7 @@ export function NoteForm({ patientId }: { patientId: string }) {
         <button
           type="submit"
           disabled={inCorso}
-          className="rounded-xl bg-jade-700 px-4 py-2.5 text-sm font-medium text-bone-50 transition-colors hover:bg-jade-900 disabled:opacity-60"
+          className="rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-medium text-bone-50 transition-colors hover:bg-brand-900 disabled:opacity-60"
         >
           {inCorso ? "Salvataggio…" : "Salva"}
         </button>
@@ -114,7 +114,7 @@ export function CreditAdjustmentForm({ patientId }: { patientId: string }) {
       <button
         type="submit"
         disabled={inCorso}
-        className="rounded-xl px-4 py-2.5 text-sm font-medium text-ink-700 ring-1 ring-bone-200 transition-colors hover:text-jade-700 disabled:opacity-60"
+        className="rounded-xl px-4 py-2.5 text-sm font-medium text-ink-700 ring-1 ring-bone-200 transition-colors hover:text-brand-700 disabled:opacity-60"
       >
         {inCorso ? "Registro…" : "Registra la correzione"}
       </button>
@@ -153,7 +153,7 @@ export function StepProposalForm({ patientId }: { patientId: string }) {
       <button
         type="submit"
         disabled={inCorso}
-        className="rounded-xl px-4 py-2.5 text-sm font-medium text-ink-700 ring-1 ring-bone-200 transition-colors hover:text-jade-700 disabled:opacity-60"
+        className="rounded-xl px-4 py-2.5 text-sm font-medium text-ink-700 ring-1 ring-bone-200 transition-colors hover:text-brand-700 disabled:opacity-60"
       >
         {inCorso ? "Invio…" : "Proponi lo step"}
       </button>

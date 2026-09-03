@@ -67,7 +67,7 @@ export function CopilotPanel({
           rows={2}
           disabled={disabled || inCorso}
           placeholder="Chiedi qualcosa su questo paziente…"
-          className="w-full resize-y rounded-xl bg-bone-50 px-3.5 py-2.5 text-[15px] text-ink-900 ring-1 ring-bone-200 placeholder:text-ink-300 focus:ring-2 focus:ring-jade-500 disabled:opacity-60"
+          className="w-full resize-y rounded-xl bg-bone-50 px-3.5 py-2.5 text-[15px] text-ink-900 ring-1 ring-bone-200 placeholder:text-ink-300 focus:ring-2 focus:ring-brand-500 disabled:opacity-60"
         />
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -95,7 +95,7 @@ export function CopilotPanel({
                 className={cx(
                   "rounded-full bg-bone-100 px-3 py-1.5 text-xs text-ink-600",
                   "ring-1 ring-bone-200 transition-colors",
-                  "hover:bg-jade-50 hover:text-jade-700 hover:ring-jade-100",
+                  "hover:bg-brand-50 hover:text-brand-700 hover:ring-brand-100",
                   "disabled:opacity-50",
                 )}
               >
@@ -112,7 +112,7 @@ export function CopilotPanel({
         ) : null}
 
         {stato.esito === "errore" ? (
-          <p role="alert" className="mt-4 rounded-xl bg-[#fbf1ee] px-3.5 py-3 text-sm text-signal-alert">
+          <p role="alert" className="mt-4 rounded-xl bg-brand-50 px-3.5 py-3 text-sm text-signal-alert">
             {stato.messaggio}
           </p>
         ) : null}

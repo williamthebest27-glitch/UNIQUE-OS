@@ -7,34 +7,36 @@
    ═══════════════════════════════════════════════════════════════════ */
 
 @theme {
-  /* Fondo caldo, non bianco clinico: la percezione deve essere
-     "premium e curato", non "ospedaliero". */
-  --color-bone-50: #faf8f5;
-  --color-bone-100: #f4f1eb;
-  --color-bone-200: #e9e4da;
-  --color-bone-300: #d8d1c3;
+  /* Bianco. Il fondo è bianco e le superfici sono bianche: la percezione
+     "premium e curato" arriva dal rosso sul bianco e dallo spazio, non dal
+     calore. Il nome della famiglia resta per non toccare duecento classi. */
+  --color-bone-50: #ffffff;
+  --color-bone-100: #fafafa;
+  --color-bone-200: #efeeee;
+  --color-bone-300: #dcdada;
 
-  /* Inchiostro verde-nero: più morbido del nero puro, coerente col jade. */
-  --color-ink-900: #10201a;
-  --color-ink-800: #1b2f27;
-  --color-ink-700: #2c443a;
-  --color-ink-500: #5b6e65;
-  --color-ink-400: #7d8d85;
-  --color-ink-300: #a3afa8;
+  /* Inchiostro neutro: un nero appena caldo, mai colorato. */
+  --color-ink-900: #141313;
+  --color-ink-800: #242222;
+  --color-ink-700: #3b3838;
+  --color-ink-500: #6b6767;
+  --color-ink-400: #8b8787;
+  --color-ink-300: #b3afaf;
 
-  /* Jade: il colore della longevità nel marchio. */
-  --color-jade-900: #06382c;
-  --color-jade-700: #0f5c4a;
-  --color-jade-600: #14705a;
-  --color-jade-500: #1a8a6e;
-  --color-jade-300: #6fbfa7;
-  --color-jade-100: #d7ece4;
-  --color-jade-50: #eef7f3;
+  /* Rosso: il colore del marchio. Sul bianco è tutto ciò che serve. */
+  --color-brand-900: #5e0a17;
+  --color-brand-700: #a3122a;
+  --color-brand-600: #b81d34;
+  --color-brand-500: #cf2a42;
+  --color-brand-300: #e98d9b;
+  --color-brand-100: #f9dfe3;
+  --color-brand-50: #fdf2f4;
 
-  /* Lume: la luce che emana la Signature. Solo lì e nei momenti che
-     la richiamano. */
-  --color-lume-300: #9ae9d1;
-  --color-lume-500: #62d9b8;
+  /* Lume: la luce che emana la Signature. Rosa, non rosso: sul fondo
+     scuro il rosso pieno si spegne. Solo lì e nei momenti che la
+     richiamano. */
+  --color-lume-300: #ffb3bd;
+  --color-lume-500: #ff6f85;
 
   /* Oro: usato con parsimonia, solo per i momenti di valore. */
   --color-gold-600: #9a763c;
@@ -42,17 +44,22 @@
   --color-gold-300: #dcc191;
   --color-gold-100: #f3e9d6;
 
-  /* Semantici */
-  --color-signal-positive: #1a8a6e;
+  /* Semantici. Il rosso è il marchio, quindi da solo non può voler dire
+     "va male": un miglioramento resta verde — un verde neutro, calmo — e
+     l'allarme è il rosso profondo del marchio, che si riconosce dal
+     contesto. */
+  --color-signal-positive: #1f8a4c;
+  /* Lo stesso verde per il testo sull'hero scuro, dove quello pieno non si legge. */
+  --color-signal-positive-light: #86d9a6;
   --color-signal-attention: #b8862c;
-  --color-signal-alert: #b0463a;
+  --color-signal-alert: #a3122a;
 
   --radius-card: 1.25rem;
 
   /* Ombre appena percettibili: la profondità viene dal contrasto,
      non dal drop shadow. */
-  --shadow-card: 0 1px 2px rgb(16 32 26 / 0.04), 0 8px 24px -12px rgb(16 32 26 / 0.10);
-  --shadow-lift: 0 2px 4px rgb(16 32 26 / 0.05), 0 16px 40px -16px rgb(16 32 26 / 0.16);
+  --shadow-card: 0 1px 2px rgb(20 19 19 / 0.04), 0 8px 24px -12px rgb(20 19 19 / 0.10);
+  --shadow-lift: 0 2px 4px rgb(20 19 19 / 0.05), 0 16px 40px -16px rgb(20 19 19 / 0.16);
 
   /* La curva di tutto ciò che si muove: parte deciso, arriva piano. */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -93,7 +100,7 @@
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-jade-500);
+    outline: 2px solid var(--color-brand-500);
     outline-offset: 2px;
     border-radius: 4px;
   }
@@ -233,8 +240,8 @@
     z-index: 1;
     pointer-events: none;
     background:
-      linear-gradient(90deg, rgb(16 32 26 / 0.92) 0%, rgb(16 32 26 / 0.55) 42%, rgb(16 32 26 / 0) 70%),
-      linear-gradient(0deg, rgb(16 32 26 / 0.7) 0%, rgb(16 32 26 / 0) 40%);
+      linear-gradient(90deg, rgb(20 19 19 / 0.92) 0%, rgb(20 19 19 / 0.55) 42%, rgb(20 19 19 / 0) 70%),
+      linear-gradient(0deg, rgb(20 19 19 / 0.7) 0%, rgb(20 19 19 / 0) 40%);
   }
 
   /* Il numero: enorme, leggero, con il disegno da display. */
@@ -252,7 +259,7 @@
     inset: -20%;
     z-index: -1;
     pointer-events: none;
-    background: radial-gradient(60% 50% at 70% 50%, rgb(98 217 184 / 0.18), transparent 70%);
+    background: radial-gradient(60% 50% at 70% 50%, rgb(255 111 133 / 0.2), transparent 70%);
     filter: blur(40px);
   }
 
@@ -265,7 +272,7 @@
     border-radius: 999px;
     font-size: 12px;
     font-weight: 500;
-    color: rgb(250 248 245 / 0.7);
+    color: rgb(255 255 255 / 0.7);
     background: rgb(255 255 255 / 0.06);
     box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
     backdrop-filter: blur(6px);

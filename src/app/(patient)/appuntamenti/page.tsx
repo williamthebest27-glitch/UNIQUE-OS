@@ -71,7 +71,7 @@ export default async function AppuntamentiPage() {
                     </p>
                   ) : null}
                   <div className="mt-2 flex flex-wrap items-center gap-2">
-                    {appt.status === "confirmed" ? <Badge tone="jade">Confermata</Badge> : null}
+                    {appt.status === "confirmed" ? <Badge tone="positive">Confermata</Badge> : null}
                     {appt.creditsCost > 0 ? (
                       <Badge>{formatCredits(appt.creditsCost)}</Badge>
                     ) : null}
@@ -154,7 +154,7 @@ export default async function AppuntamentiPage() {
                   </p>
                 </div>
                 {ESITO_LABEL[appt.status] ? (
-                  <Badge tone={appt.status === "completed" ? "jade" : "neutral"}>
+                  <Badge tone={appt.status === "completed" ? "positive" : "neutral"}>
                     {ESITO_LABEL[appt.status]}
                   </Badge>
                 ) : null}

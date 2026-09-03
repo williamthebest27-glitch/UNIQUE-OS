@@ -34,7 +34,7 @@ export default async function AccediPage({
           {errore ? (
             <p
               role="alert"
-              className="mt-5 rounded-xl bg-[#fbf1ee] px-3.5 py-3 text-sm text-signal-alert"
+              className="mt-5 rounded-xl bg-brand-50 px-3.5 py-3 text-sm text-signal-alert"
             >
               Il link non è più valido. Richiedine uno nuovo.
             </p>

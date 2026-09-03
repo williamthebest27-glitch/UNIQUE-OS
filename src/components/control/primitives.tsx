@@ -28,7 +28,7 @@ export function Kpi({
       <p
         className={cx(
           "mt-1.5 font-display text-[30px] leading-none tnum",
-          tone === "good" ? "text-jade-300" : tone === "warn" ? "text-gold-300" : "text-bone-50",
+          tone === "good" ? "text-brand-300" : tone === "warn" ? "text-gold-300" : "text-bone-50",
         )}
       >
         {value}
@@ -111,7 +111,7 @@ export function Barra({ ratio }: { ratio: number }) {
       <div
         className={cx(
           "h-full rounded-full",
-          ratio >= 0.95 ? "bg-signal-alert" : ratio >= 0.8 ? "bg-gold-500" : "bg-jade-500",
+          ratio >= 0.95 ? "bg-signal-alert" : ratio >= 0.8 ? "bg-gold-500" : "bg-signal-positive",
         )}
         style={{ width: `${pct}%` }}
       />

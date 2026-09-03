@@ -65,7 +65,7 @@ export default async function CrmPage() {
                 </div>
                 <div className="mt-1 h-2 overflow-hidden rounded-full bg-white/10">
                   <div
-                    className="h-full rounded-full bg-jade-500"
+                    className="h-full rounded-full bg-brand-500"
                     style={{ width: `${(stadio.count / massimo) * 100}%` }}
                   />
                 </div>
@@ -153,7 +153,7 @@ export default async function CrmPage() {
                           r.status === "lost"
                             ? "bg-white/5 text-bone-50/40"
                             : r.patientId
-                              ? "bg-jade-500/15 text-jade-300"
+                              ? "bg-brand-500/15 text-brand-300"
                               : "bg-white/10 text-bone-50/70",
                         )}
                       >

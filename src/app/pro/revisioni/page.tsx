@@ -86,7 +86,7 @@ function ProposalCard({ row }: { row: ProposalRow }) {
           <input type="hidden" name="proposalId" value={row.id} />
           <button
             type="submit"
-            className="rounded-lg bg-jade-700 px-3.5 py-2 text-sm font-medium text-bone-50 transition-colors hover:bg-jade-900"
+            className="rounded-lg bg-brand-700 px-3.5 py-2 text-sm font-medium text-bone-50 transition-colors hover:bg-brand-900"
           >
             Approva e applica
           </button>
@@ -96,7 +96,7 @@ function ProposalCard({ row }: { row: ProposalRow }) {
           <input
             name="note"
             placeholder="Motivo (facoltativo)"
-            className="w-52 rounded-lg bg-bone-50 px-3 py-2 text-sm ring-1 ring-bone-200 placeholder:text-ink-300 focus:ring-2 focus:ring-jade-500"
+            className="w-52 rounded-lg bg-bone-50 px-3 py-2 text-sm ring-1 ring-bone-200 placeholder:text-ink-300 focus:ring-2 focus:ring-brand-500"
           />
           <button
             type="submit"
@@ -156,7 +156,7 @@ async function PazientiPanel() {
               <input type="hidden" name="patientId" value={patient.id} />
               <button
                 type="submit"
-                className="rounded-lg px-3 py-1.5 text-sm text-ink-500 ring-1 ring-bone-200 transition-colors hover:text-jade-700"
+                className="rounded-lg px-3 py-1.5 text-sm text-ink-500 ring-1 ring-bone-200 transition-colors hover:text-brand-700"
               >
                 Ricalcola punteggio
               </button>

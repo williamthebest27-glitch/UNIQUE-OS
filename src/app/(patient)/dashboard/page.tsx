@@ -68,7 +68,7 @@ export default async function PatientHomePage() {
           >
             <BellIcon className="h-5 w-5" />
             {unreadCount > 0 ? (
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-jade-500 ring-2 ring-white" />
+              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-brand-500 ring-2 ring-white" />
             ) : null}
           </button>
         </header>

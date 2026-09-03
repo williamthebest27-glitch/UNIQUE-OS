@@ -104,7 +104,7 @@ export default async function CreditiPage() {
                 <span className="flex flex-wrap items-center gap-2">
                   {m.planName}
                   {m.status ? (
-                    <Badge tone={m.status === "active" ? "jade" : "attention"}>
+                    <Badge tone={m.status === "active" ? "positive" : "attention"}>
                       {MEMBERSHIP_STATUS_LABELS[m.status]}
                     </Badge>
                   ) : null}
@@ -178,7 +178,7 @@ export default async function CreditiPage() {
                     ) : null}
                   </span>
                   <span className="flex items-center gap-2">
-                    {metodo.isDefault ? <Badge tone="jade">Predefinito</Badge> : null}
+                    {metodo.isDefault ? <Badge tone="brand">Predefinito</Badge> : null}
                     {metodo.inScadenza ? <Badge tone="attention">In scadenza</Badge> : null}
                   </span>
                 </li>
@@ -238,7 +238,7 @@ export default async function CreditiPage() {
                     <span className="text-[15px] text-ink-700 tnum">
                       {euro(p.amountCents, p.currency)}
                     </span>
-                    <Badge tone={p.status === "paid" ? "jade" : p.status === "failed" ? "attention" : "neutral"}>
+                    <Badge tone={p.status === "paid" ? "positive" : p.status === "failed" ? "attention" : "neutral"}>
                       {PAYMENT_STATUS_LABELS[p.status] ?? p.status}
                     </Badge>
                   </span>
@@ -275,7 +275,7 @@ export default async function CreditiPage() {
                   <span
                     className={cx(
                       "text-[15px] font-medium tnum",
-                      m.amount > 0 ? "text-jade-600" : "text-ink-700",
+                      m.amount > 0 ? "text-signal-positive" : "text-ink-700",
                     )}
                   >
                     {m.amount > 0 ? "+" : "−"}
