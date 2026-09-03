@@ -153,7 +153,30 @@ un secondo utente e indica la sua email nella variabile `v_pro_email` dello scri
 Poi esegui `supabase/demo-clinica.sql`: crea i turni del professionista — senza,
 la capacità non è misurabile — e una manciata di lead per il CRM.
 
-## 7. Accedere
+## 7. Vedere l’area clinica e il Control Center
+
+Un account nasce sempre come `patient` e vede solo `/dashboard`. Le altre aree
+vogliono un ruolo diverso, ed è lo stesso applicativo a cambiare faccia:
+
+| Ruolo | Dove atterra | Cosa vede |
+|---|---|---|
+| `patient` | `/dashboard` | il proprio percorso |
+| `professional` | `/pro` | agenda, cartelle dei pazienti assegnati, revisioni |
+| `admin` / `owner` | `/control` | KPI, CRM, economia, capacità |
+
+Crea un **secondo utente** in *Authentication → Users → Add user*, poi apri
+`supabase/assegna-ruolo.sql`, compila email e ruolo, ed eseguilo nella SQL Editor.
+
+> Non promuovere l’account con cui guardi la dashboard del paziente: ogni account
+> vive in un solo livello e perderesti quella vista. Per vedere entrambe le facce
+> servono due indirizzi email.
+
+Per un professionista il ruolo da solo non basta: la Row Level Security non guarda
+il ruolo, guarda il **team di cura**. Lo script lo mette nel team dei pazienti
+esistenti, altrimenti entrerebbe in un’agenda vuota. Chi è `admin` o `owner` vede
+tutto senza assegnazioni.
+
+## 8. Accedere
 
 Vai su <http://localhost:3000>, inserisci l’email e apri il link che ricevi.
 Il badge "modalità dimostrativa" sparisce: da lì in poi i dati arrivano dal database.
@@ -185,6 +208,10 @@ il numero di invii. Per l’uso reale va configurato un SMTP proprio in
 
 **Vedo "Ci siamo quasi"** — l’account esiste ma non ha una scheda paziente: manca il
 passo 6.
+
+**Entro nell’area clinica ma non vedo nessun paziente** — il ruolo apre la porta, il
+team di cura decide cosa c’è dentro. Esegui `supabase/assegna-ruolo.sql` con
+`v_tutti := true`, oppure assegna il professionista al paziente dal suo team.
 
 **Vedo ancora "modalità dimostrativa"** o **"Supabase non ancora collegato"** — sono
 lo stesso stato: `.env.local` non ha URL e chiave, oppure il server non è stato
