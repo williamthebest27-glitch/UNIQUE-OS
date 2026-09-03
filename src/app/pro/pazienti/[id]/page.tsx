@@ -15,6 +15,9 @@ import { CreditsCard, NextVisitCard, ProgramCard } from "@/components/patient/ca
 import { ActionsCard } from "@/components/patient/lists";
 import { Timeline } from "@/components/patient/timeline";
 import { UploadForm } from "@/components/documents/upload-form";
+import { CopilotPanel } from "@/components/clinical/copilot-panel";
+import { NoteForm, StepProposalForm } from "@/components/clinical/clinical-forms";
+import { decidiStep } from "@/lib/clinical/actions";
 import { PageHeading } from "@/components/shell/page-heading";
 import { Badge, Card, CardHeader, EmptyState, SparkIcon, cx } from "@/components/ui/primitives";
 
@@ -45,6 +48,31 @@ interface DocRow {
   created_at: string;
   analyses: { id: string; status: string }[];
 }
+
+interface NoteRow {
+  id: string;
+  kind: "note" | "assessment" | "visit_summary";
+  title: string | null;
+  body: string;
+  visible_to_patient: boolean;
+  created_at: string;
+  author: { full_name: string } | null;
+}
+
+interface StepRow {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  created_at: string;
+  proposer: { full_name: string } | null;
+}
+
+const NOTE_LABEL: Record<NoteRow["kind"], string> = {
+  note: "Nota",
+  assessment: "Valutazione",
+  visit_summary: "Sintesi di visita",
+};
 
 function eta(dateOfBirth: string | null): number | null {
   if (!dateOfBirth) return null;
@@ -86,7 +114,15 @@ export default async function CartellaPazientePage({
 
   const supabase = await createSupabaseServerClient();
 
-  const [anagraficaRes, documentiRes, proposteRes, timeline, briefing] = await Promise.all([
+  const [
+    anagraficaRes,
+    documentiRes,
+    proposteRes,
+    timeline,
+    briefing,
+    noteRes,
+    stepRes,
+  ] = await Promise.all([
     supabase
       .from("patients")
       .select(
@@ -110,12 +146,29 @@ export default async function CartellaPazientePage({
 
     getPatientTimeline(id),
     getLatestBriefing(id),
+
+    supabase
+      .from("clinical_notes")
+      .select("id, kind, title, body, visible_to_patient, created_at, author:profiles(full_name)")
+      .eq("patient_id", id)
+      .order("created_at", { ascending: false })
+      .limit(10),
+
+    supabase
+      .from("care_plan_proposals")
+      .select("id, title, description, status, created_at, proposer:profiles(full_name)")
+      .eq("patient_id", id)
+      .eq("status", "proposed")
+      .order("created_at", { ascending: false })
+      .limit(10),
   ]);
 
   const anagrafica = anagraficaRes.data as unknown as AnagraficaRow | null;
   const documenti = (documentiRes.data ?? []) as unknown as DocRow[];
   const inRevisione = (proposteRes.data ?? []).length;
   const anni = eta(anagrafica?.date_of_birth ?? null);
+  const note = (noteRes.data ?? []) as unknown as NoteRow[];
+  const stepProposti = (stepRes.data ?? []) as unknown as StepRow[];
 
   return (
     <main className="mx-auto max-w-[1000px] px-5 py-10 pb-20 sm:px-8">
@@ -261,7 +314,7 @@ export default async function CartellaPazientePage({
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <NextVisitCard appointment={data.nextAppointment} />
           <ProgramCard enrollment={data.enrollment} />
-          <CreditsCard credits={data.credits} />
+          <CreditsCard membership={data.membership} />
         </div>
 
         {/* ── Documenti ───────────────────────────────────────── */}
@@ -314,17 +367,105 @@ export default async function CartellaPazientePage({
           <div className="pb-2" />
         </Card>
 
-        {/* ── Azioni e storia ─────────────────────────────────── */}
+        {/* ── Copilot clinico ─────────────────────────────────── */}
+        <CopilotPanel patientId={id} disabled={!isBrainConfigured()} />
+
+        {/* ── Azioni ──────────────────────────────────────────── */}
         <ActionsCard actions={data.actions} />
 
-        {anagrafica?.notes ? (
-          <Card>
-            <CardHeader title="Note" />
-            <p className="px-6 pb-6 pt-2 text-[15px] leading-relaxed text-ink-700">
+        {/* ── Note e valutazioni ──────────────────────────────── */}
+        <Card>
+          <CardHeader
+            title="Note e valutazioni"
+            hint="Restano al care team, a meno che tu non scelga di condividerle."
+          />
+          <div className="px-6 pt-3">
+            <NoteForm patientId={id} />
+          </div>
+
+          {anagrafica?.notes ? (
+            <p className="mt-5 border-t border-bone-200 px-6 pt-4 text-[15px] leading-relaxed text-ink-700">
               {anagrafica.notes}
             </p>
-          </Card>
-        ) : null}
+          ) : null}
+
+          {note.length > 0 ? (
+            <ul className="mt-5 divide-y divide-bone-200/80 border-t border-bone-200">
+              {note.map((n) => (
+                <li key={n.id} className="px-6 py-4">
+                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                    <span className="text-[11px] uppercase tracking-[0.08em] text-ink-300">
+                      {NOTE_LABEL[n.kind]}
+                    </span>
+                    <span className="text-xs text-ink-400">
+                      {n.author?.full_name ?? "—"} · {formatShortDate(n.created_at)}
+                    </span>
+                    {n.visible_to_patient ? <Badge tone="jade">Condivisa</Badge> : null}
+                  </div>
+                  {n.title ? (
+                    <h3 className="mt-1 text-[15px] font-medium text-ink-900">{n.title}</h3>
+                  ) : null}
+                  <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-ink-700">
+                    {n.body}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <div className="pb-2" />
+        </Card>
+
+        {/* ── Step del percorso ───────────────────────────────── */}
+        <Card>
+          <CardHeader
+            title="Proposte per il percorso"
+            hint="Chiunque nel care team può proporre; la decisione è medica."
+          />
+
+          {stepProposti.length > 0 ? (
+            <ul className="mt-2 divide-y divide-bone-200/80">
+              {stepProposti.map((step) => (
+                <li key={step.id} className="px-6 py-4">
+                  <h3 className="text-[15px] font-medium text-ink-900">{step.title}</h3>
+                  {step.description ? (
+                    <p className="mt-1 text-sm leading-relaxed text-ink-500">
+                      {step.description}
+                    </p>
+                  ) : null}
+                  <p className="mt-1 text-xs text-ink-400">
+                    Proposto da {step.proposer?.full_name ?? "—"} ·{" "}
+                    {formatShortDate(step.created_at)}
+                  </p>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {(["accepted", "rejected"] as const).map((decision) => (
+                      <form key={decision} action={decidiStep}>
+                        <input type="hidden" name="proposalId" value={step.id} />
+                        <input type="hidden" name="patientId" value={id} />
+                        <input type="hidden" name="decision" value={decision} />
+                        <button
+                          type="submit"
+                          className={cx(
+                            "rounded-lg px-3 py-1.5 text-sm transition-colors",
+                            decision === "accepted"
+                              ? "bg-jade-700 font-medium text-bone-50 hover:bg-jade-900"
+                              : "text-ink-500 ring-1 ring-bone-200 hover:text-signal-alert",
+                          )}
+                        >
+                          {decision === "accepted" ? "Accetta" : "Rifiuta"}
+                        </button>
+                      </form>
+                    ))}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
+          <div className="border-t border-bone-200 px-6 py-5">
+            <StepProposalForm patientId={id} />
+          </div>
+        </Card>
 
         <Timeline events={timeline} hint="Visite, referti e punteggi, dal più recente." />
       </div>

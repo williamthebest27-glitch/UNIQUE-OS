@@ -78,12 +78,27 @@ export const mockPatientDashboard: PatientDashboardData = {
     stepsTotal: 14,
   },
 
-  credits: {
-    balance: 12,
-    totalCredited: 24,
-    totalUsed: 12,
-    membershipName: "Unique Signature",
-    membershipEndsOn: "2027-03-31",
+  membership: {
+    planName: "Unique Signature",
+    status: "active",
+    startsOn: "2026-04-01",
+    endsOn: "2027-03-31",
+    renewsOn: "2027-04-01",
+    autoRenew: true,
+    paymentBrand: "Visa",
+    paymentLast4: "4242",
+    credits: { granted: 24, used: 12, reserved: 1, available: 11 },
+    extras: [
+      {
+        id: "extra-1",
+        name: "IV Therapy — ciclo di 3 sedute",
+        description: "Acquistato fuori membership.",
+        priceCents: 45000,
+        currency: "EUR",
+        creditsGranted: 3,
+        purchasedOn: "2026-06-18",
+      },
+    ],
   },
 
   actions: [

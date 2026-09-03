@@ -19,7 +19,7 @@ const NAV: NavItem[] = [
   { href: "/percorso", label: "Percorso", icon: <PathIcon /> },
   { href: "/documenti", label: "Documenti", icon: <DocumentIcon /> },
   { href: "/appuntamenti", label: "Appuntamenti", icon: <CalendarIcon /> },
-  { href: "/crediti", label: "Crediti", icon: <CreditIcon /> },
+  { href: "/crediti", label: "Membership", icon: <CreditIcon /> },
 ];
 
 function useIsActive() {

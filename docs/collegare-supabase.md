@@ -31,6 +31,8 @@ Dal progetto, apri **SQL Editor** ed esegui i file di `supabase/migrations/`
    proposte in revisione
 6. `20260903130000_timeline_uploads_briefings.sql` — Health Timeline, caricamento
    dal paziente, briefing pre-visita
+7. `20260903140000_professionals_membership_copilot.sql` — discipline e permessi,
+   note, task, membership completa, copilot
 
 In alternativa, con la Supabase CLI installata e il progetto collegato:
 

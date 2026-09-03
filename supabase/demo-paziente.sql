@@ -72,6 +72,7 @@ begin
   delete from public.credit_entries       where patient_id = v_patient;
   delete from public.program_enrollments  where patient_id = v_patient;
   delete from public.memberships          where patient_id = v_patient;
+  delete from public.service_purchases    where patient_id = v_patient;
   delete from public.notifications        where profile_id = v_profile;
 
   -- ── Medico di riferimento (facoltativo) ───────────────────────
@@ -84,9 +85,10 @@ begin
              full_name = coalesce(nullif(full_name, ''), 'Medico Dimostrativo')
        where id = v_pro_profile;
 
-      insert into public.professionals (profile_id, title, specialty)
-      values (v_pro_profile, 'Dott.ssa', 'Medicina della longevità')
-      on conflict (profile_id) do update set specialty = excluded.specialty
+      insert into public.professionals (profile_id, title, specialty, discipline)
+      values (v_pro_profile, 'Dott.ssa', 'Medicina della longevità', 'physician')
+      on conflict (profile_id) do update
+        set specialty = excluded.specialty, discipline = excluded.discipline
       returning id into v_pro;
 
       insert into public.care_team_members (patient_id, professional_id, role_in_team)
@@ -238,8 +240,13 @@ begin
   select id into v_tier from public.membership_tiers where slug = 'signature';
 
   if v_tier is not null then
-    insert into public.memberships (patient_id, tier_id, starts_on, ends_on, is_active)
-    values (v_patient, v_tier, v_today - 155, v_today + 210, true)
+    insert into public.memberships
+      (patient_id, tier_id, starts_on, ends_on, is_active, status, auto_renew,
+       renews_on, activated_at, payment_brand, payment_last4)
+    values (
+      v_patient, v_tier, v_today - 155, v_today + 210, true, 'active', true,
+      v_today + 211, now() - interval '155 days', 'Visa', '4242'
+    )
     returning id into v_membership;
 
     insert into public.credit_entries (patient_id, entry_type, amount, description, membership_id)
@@ -250,6 +257,14 @@ begin
   values
     (v_patient, 'consumption', -7, 'Visite e trattamenti del percorso in corso'),
     (v_patient, 'consumption', -5, 'Pannello ematochimico completo');
+
+  -- ── Servizi extra ─────────────────────────────────────────────
+  insert into public.service_purchases
+    (patient_id, name, description, price_cents, credits_granted, purchased_on)
+  values (
+    v_patient, 'IV Therapy — ciclo di 3 sedute',
+    'Acquistato fuori membership.', 45000, 3, v_today - 77
+  );
 
   -- ── Prossima visita ───────────────────────────────────────────
   insert into public.appointments

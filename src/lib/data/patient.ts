@@ -5,7 +5,8 @@ import type {
   AppNotification,
   Appointment,
   AppointmentStatus,
-  CreditSummary,
+  MembershipStatus,
+  MembershipSummary,
   DocumentKind,
   LongevityScore,
   PatientDashboardData,
@@ -118,14 +119,31 @@ interface NotificationRow {
 }
 
 interface MembershipRow {
+  starts_on: string | null;
   ends_on: string | null;
+  renews_on: string | null;
+  status: MembershipStatus | null;
+  auto_renew: boolean | null;
+  payment_brand: string | null;
+  payment_last4: string | null;
   membership_tiers: { name: string } | null;
 }
 
 interface BalanceRow {
-  balance: number;
   total_credited: number;
   total_used: number;
+  total_reserved: number;
+  available: number;
+}
+
+interface PurchaseRow {
+  id: string;
+  name: string;
+  description: string | null;
+  price_cents: number;
+  currency: string;
+  credits_granted: number;
+  purchased_on: string;
 }
 
 interface MeasurementRow {
@@ -380,11 +398,12 @@ export async function getPatientDashboard(
     appointment,
     enrollment,
     balance,
-    membership,
+    membershipRes,
     actions,
     documents,
     notifications,
     measurements,
+    purchases,
   ] = await Promise.all([
     supabase
       .from("longevity_scores")
@@ -420,13 +439,15 @@ export async function getPatientDashboard(
 
     supabase
       .from("credit_balances")
-      .select("balance, total_credited, total_used")
+      .select("total_credited, total_used, total_reserved, available")
       .eq("patient_id", patientId)
       .maybeSingle(),
 
     supabase
       .from("memberships")
-      .select("ends_on, membership_tiers(name)")
+      .select(
+        "starts_on, ends_on, renews_on, status, auto_renew, payment_brand, payment_last4, membership_tiers(name)",
+      )
       .eq("patient_id", patientId)
       .eq("is_active", true)
       .order("starts_on", { ascending: false })
@@ -462,18 +483,43 @@ export async function getPatientDashboard(
       .eq("patient_id", patientId)
       .not("value", "is", null)
       .order("measured_on", { ascending: true }),
+
+    supabase
+      .from("service_purchases")
+      .select("id, name, description, price_cents, currency, credits_granted, purchased_on")
+      .eq("patient_id", patientId)
+      .order("purchased_on", { ascending: false })
+      .limit(10),
   ]);
 
   const scoreRows = (scores.data ?? []) as ScoreRow[];
   const balanceRow = balance.data as BalanceRow | null;
-  const membershipRow = membership.data as MembershipRow | null;
+  const membershipRow = membershipRes.data as MembershipRow | null;
 
-  const credits: CreditSummary = {
-    balance: Number(balanceRow?.balance ?? 0),
-    totalCredited: Number(balanceRow?.total_credited ?? 0),
-    totalUsed: Number(balanceRow?.total_used ?? 0),
-    membershipName: membershipRow?.membership_tiers?.name ?? null,
-    membershipEndsOn: membershipRow?.ends_on ?? null,
+  const membership: MembershipSummary = {
+    planName: membershipRow?.membership_tiers?.name ?? null,
+    status: membershipRow?.status ?? null,
+    startsOn: membershipRow?.starts_on ?? null,
+    endsOn: membershipRow?.ends_on ?? null,
+    renewsOn: membershipRow?.renews_on ?? null,
+    autoRenew: membershipRow?.auto_renew ?? false,
+    paymentBrand: membershipRow?.payment_brand ?? null,
+    paymentLast4: membershipRow?.payment_last4 ?? null,
+    credits: {
+      granted: Number(balanceRow?.total_credited ?? 0),
+      used: Number(balanceRow?.total_used ?? 0),
+      reserved: Number(balanceRow?.total_reserved ?? 0),
+      available: Number(balanceRow?.available ?? 0),
+    },
+    extras: ((purchases.data ?? []) as PurchaseRow[]).map((row) => ({
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      priceCents: row.price_cents,
+      currency: row.currency,
+      creditsGranted: Number(row.credits_granted),
+      purchasedOn: row.purchased_on,
+    })),
   };
 
   // Le rilevazioni arrivano dalla più recente; il grafico le vuole in ordine
@@ -492,7 +538,7 @@ export async function getPatientDashboard(
     enrollment: enrollment.data
       ? toEnrollment(enrollment.data as unknown as EnrollmentRow)
       : null,
-    credits,
+    membership,
     actions: ((actions.data ?? []) as ActionRow[]).map(toAction),
     newDocuments: ((documents.data ?? []) as DocumentRow[]).map(toDocument),
     // Le notifiche sono di chi guarda, non del paziente guardato: in una

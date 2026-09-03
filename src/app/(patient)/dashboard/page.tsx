@@ -70,7 +70,7 @@ export default async function PatientHomePage() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <NextVisitCard appointment={data.nextAppointment} />
         <ProgramCard enrollment={data.enrollment} />
-        <CreditsCard credits={data.credits} />
+        <CreditsCard membership={data.membership} />
       </div>
 
       {/* ── Cosa fare, cosa è arrivato ─────────────────────────── */}

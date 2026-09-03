@@ -1,6 +1,7 @@
 import type {
   Appointment,
-  CreditSummary,
+  MembershipStatus,
+  MembershipSummary,
   ProgramEnrollment,
 } from "@/lib/domain/types";
 import {
@@ -139,11 +140,10 @@ export function ProgramCard({ enrollment }: { enrollment: ProgramEnrollment | nu
 
 /* ── Crediti e membership ─────────────────────────────────────────── */
 
-export function CreditsCard({ credits }: { credits: CreditSummary }) {
-  const usedPct =
-    credits.totalCredited > 0
-      ? Math.min(100, (credits.totalUsed / credits.totalCredited) * 100)
-      : 0;
+export function CreditsCard({ membership }: { membership: MembershipSummary }) {
+  const { granted, used, reserved, available } = membership.credits;
+  const pct = (value: number) =>
+    granted > 0 ? Math.min(100, Math.max(0, (value / granted) * 100)) : 0;
 
   return (
     <Card className="flex flex-col p-6">
@@ -152,40 +152,39 @@ export function CreditsCard({ credits }: { credits: CreditSummary }) {
       <div className="mt-4 flex flex-1 flex-col">
         <div className="flex items-baseline gap-2">
           <span className="font-display text-[44px] leading-none text-ink-900 tnum">
-            {credits.balance.toLocaleString("it-IT", { maximumFractionDigits: 1 })}
+            {available.toLocaleString("it-IT", { maximumFractionDigits: 1 })}
           </span>
           <span className="text-sm text-ink-400">
-            {credits.balance === 1 ? "disponibile" : "disponibili"}
+            {available === 1 ? "disponibile" : "disponibili"}
           </span>
         </div>
 
         <p className="mt-3 text-sm text-ink-500 tnum">
-          {formatCredits(credits.totalUsed)} utilizzati su{" "}
-          {credits.totalCredited.toLocaleString("it-IT")}
+          {formatCredits(used)} utilizzati
+          {reserved > 0 ? `, ${reserved.toLocaleString("it-IT")} prenotati` : ""} su{" "}
+          {granted.toLocaleString("it-IT")}
         </p>
 
-        {/* La barra mostra il consumato: è la parte che il paziente
-            vuole controllare a colpo d’occhio. */}
+        {/* Utilizzati e prenotati sono due cose diverse: i secondi non sono
+            ancora spesi, ma nemmeno più disponibili. Due colori, non uno. */}
         <div
-          className="mt-2 h-2 overflow-hidden rounded-full bg-bone-200"
+          className="mt-2 flex h-2 overflow-hidden rounded-full bg-bone-200"
           role="img"
-          aria-label={`${Math.round(usedPct)} percento dei crediti utilizzato`}
+          aria-label={`${used} crediti utilizzati e ${reserved} prenotati su ${granted}`}
         >
-          <div
-            className={cx(
-              "h-full rounded-full",
-              usedPct > 80 ? "bg-signal-attention" : "bg-gold-500",
-            )}
-            style={{ width: `${usedPct}%` }}
-          />
+          <div className="h-full bg-gold-500" style={{ width: `${pct(used)}%` }} />
+          <div className="h-full bg-gold-300" style={{ width: `${pct(reserved)}%` }} />
         </div>
 
-        {credits.membershipName ? (
+        {membership.planName ? (
           <div className="mt-auto flex flex-wrap items-center gap-2 pt-6">
-            <Badge tone="gold">{credits.membershipName}</Badge>
-            {credits.membershipEndsOn ? (
+            <Badge tone="gold">{membership.planName}</Badge>
+            {membership.status && membership.status !== "active" ? (
+              <Badge tone="attention">{MEMBERSHIP_STATUS_LABELS[membership.status]}</Badge>
+            ) : null}
+            {membership.endsOn ? (
               <span className="text-xs text-ink-400">
-                fino al {formatShortDate(credits.membershipEndsOn)}
+                fino al {formatShortDate(membership.endsOn)}
               </span>
             ) : null}
           </div>
@@ -194,3 +193,11 @@ export function CreditsCard({ credits }: { credits: CreditSummary }) {
     </Card>
   );
 }
+
+export const MEMBERSHIP_STATUS_LABELS: Record<MembershipStatus, string> = {
+  pending: "In attivazione",
+  active: "Attiva",
+  past_due: "Pagamento sospeso",
+  cancelled: "Disdetta",
+  expired: "Scaduta",
+};

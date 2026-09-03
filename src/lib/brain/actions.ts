@@ -7,6 +7,11 @@ import { getMetric } from "@/lib/score/metrics";
 import { recomputeAndStoreScore } from "@/lib/score/service";
 import { analyzeDocument } from "@/lib/brain/analyze";
 import { generateBriefing } from "@/lib/brain/briefing";
+import {
+  DISCIPLINE_LABELS,
+  canWriteMetric,
+  type Discipline,
+} from "@/lib/professionals/disciplines";
 
 /**
  * Le azioni con cui un professionista chiude il ciclo: chiedere l'analisi
@@ -81,6 +86,24 @@ export async function approvaProposta(formData: FormData): Promise<void> {
   // Una proposta già decisa non si ridecide: la seconda approvazione
   // sarebbe un doppio clic, non una scelta.
   if (proposal.status !== "needs_review") return;
+
+  // Competenza per disciplina: un osteopata non valida un pannello
+  // lipidico. Chi ha ruolo amministrativo non è vincolato — non firma un
+  // dato clinico, gestisce il sistema.
+  if (profile.role === "professional") {
+    const { data: proRow } = await supabase
+      .from("professionals")
+      .select("discipline")
+      .eq("profile_id", profile.id)
+      .maybeSingle();
+
+    const discipline = (proRow as { discipline: Discipline } | null)?.discipline ?? "other";
+    if (!canWriteMetric(discipline, proposal.metric_code)) {
+      throw new Error(
+        `${DISCIPLINE_LABELS[discipline]}: questo parametro è fuori dal tuo ambito di competenza.`,
+      );
+    }
+  }
 
   const metric = getMetric(proposal.metric_code);
 

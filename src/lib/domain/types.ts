@@ -157,12 +157,50 @@ export interface PatientDocument {
   sizeBytes: number | null;
 }
 
-export interface CreditSummary {
-  balance: number;
-  totalCredited: number;
-  totalUsed: number;
-  membershipName: string | null;
-  membershipEndsOn: string | null;
+export type MembershipStatus =
+  | "pending"
+  | "active"
+  | "past_due"
+  | "cancelled"
+  | "expired";
+
+export interface ServicePurchase {
+  id: string;
+  name: string;
+  description: string | null;
+  priceCents: number;
+  currency: string;
+  creditsGranted: number;
+  purchasedOn: string;
+}
+
+/**
+ * I crediti in quattro numeri distinti.
+ *
+ * `reserved` sono impegnati sulle visite già fissate: non si possono
+ * spendere due volte, ma non sono nemmeno consumati. Confonderli con i
+ * disponibili è il modo classico per far prenotare al paziente una visita
+ * che non può pagare.
+ */
+export interface CreditLedger {
+  granted: number;
+  used: number;
+  reserved: number;
+  available: number;
+}
+
+export interface MembershipSummary {
+  planName: string | null;
+  status: MembershipStatus | null;
+  startsOn: string | null;
+  endsOn: string | null;
+  renewsOn: string | null;
+  autoRenew: boolean;
+  /** Solo circuito e ultime quattro cifre: il resto sta dal gestore dei pagamenti. */
+  paymentBrand: string | null;
+  paymentLast4: string | null;
+  credits: CreditLedger;
+  extras: ServicePurchase[];
 }
 
 export interface AppNotification {
@@ -212,7 +250,7 @@ export interface PatientDashboardData {
   scoreHistory: ScorePoint[];
   nextAppointment: Appointment | null;
   enrollment: ProgramEnrollment | null;
-  credits: CreditSummary;
+  membership: MembershipSummary;
   actions: RecommendedAction[];
   newDocuments: PatientDocument[];
   notifications: AppNotification[];

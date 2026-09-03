@@ -58,7 +58,14 @@ Regole non negoziabili:
 
 /* ── Raccolta dei dati ────────────────────────────────────────────── */
 
-async function collectPatientData(patientId: string) {
+/**
+ * Tutto ciò che il modello può leggere di un paziente.
+ *
+ * Le query passano dal client di sessione: è la Row Level Security a
+ * decidere cosa entra nel prompt. Condivisa con il copilot, così le due
+ * funzioni AI guardano esattamente gli stessi dati.
+ */
+export async function collectPatientData(patientId: string) {
   const supabase = await createSupabaseServerClient();
 
   const [patient, scores, measurements, appointments, documents, enrollment, actions, team] =
