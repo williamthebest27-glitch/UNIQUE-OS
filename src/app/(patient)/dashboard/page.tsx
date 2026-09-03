@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { getPatientDashboard } from "@/lib/data/patient";
+import { requirePatientDashboard } from "@/lib/data/patient";
+import { SchedaInAttesa } from "@/components/patient/scheda-in-attesa";
 import { ScoreHero } from "@/components/patient/score-hero";
 import {
   CreditsCard,
@@ -28,7 +29,8 @@ const todayFormatter = new Intl.DateTimeFormat("it-IT", {
 });
 
 export default async function PatientHomePage() {
-  const data = await getPatientDashboard();
+  const data = await requirePatientDashboard();
+  if (!data) return <SchedaInAttesa />;
   const unreadCount = data.notifications.filter((n) => n.readAt === null).length;
   const firstName = data.profile.firstName ?? data.profile.fullName.split(" ")[0];
 

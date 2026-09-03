@@ -1,11 +1,14 @@
 import { redirect } from "next/navigation";
+import { getCurrentProfile, homePathForRole } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
 
 /**
- * Punto d ingresso unico. Quando l autenticazione sarà attiva, qui si
- * leggerà il ruolo del profilo e si smisterà verso il livello giusto:
- * /dashboard per il paziente, /pro per il professionista, /control per
- * amministrazione e management.
+ * Punto d’ingresso unico: smista verso il livello che compete al ruolo.
+ * È l’unico posto in cui questa decisione viene presa.
  */
-export default function RootPage() {
-  redirect("/dashboard");
+export default async function RootPage() {
+  const profile = await getCurrentProfile();
+  if (!profile) redirect("/accedi");
+  redirect(homePathForRole(profile.role));
 }

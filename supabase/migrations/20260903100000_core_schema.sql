@@ -105,7 +105,7 @@ create index longevity_scores_by_patient
   on public.longevity_scores (patient_id, measured_on desc);
 
 -- I pilastri che compongono lo Score, normalizzati per poterne analizzare
--- l andamento singolarmente nel tempo.
+-- l’andamento singolarmente nel tempo.
 create table public.score_pillars (
   id       uuid primary key default gen_random_uuid(),
   score_id uuid not null references public.longevity_scores (id) on delete cascade,
@@ -272,7 +272,11 @@ create table public.credit_entries (
 create index credit_entries_by_patient
   on public.credit_entries (patient_id, created_at desc);
 
-create view public.credit_balances as
+-- security_invoker è obbligatorio: senza, la vista girerebbe con i permessi
+-- del proprietario e restituirebbe i saldi di tutti i pazienti, scavalcando
+-- la Row Level Security di credit_entries.
+create view public.credit_balances
+with (security_invoker = true) as
 select
   patient_id,
   coalesce(sum(amount), 0)                            as balance,

@@ -52,7 +52,7 @@ export type CreditEntryType =
   | "adjustment";
 
 /**
- * I pilastri dell Unique Longevity Score.
+ * I pilastri dell’Unique Longevity Score.
  *
  * Sono deliberatamente pochi e stabili: il paziente deve poterli
  * riconoscere e ricordare. La composizione dei biomarcatori dentro
@@ -200,7 +200,8 @@ export interface ProgressHighlight {
  */
 export interface PatientDashboardData {
   profile: Profile;
-  score: LongevityScore;
+  /** Null per un paziente appena preso in carico, prima del primo pannello. */
+  score: LongevityScore | null;
   scoreHistory: ScorePoint[];
   nextAppointment: Appointment | null;
   enrollment: ProgramEnrollment | null;

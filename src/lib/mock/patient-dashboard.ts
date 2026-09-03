@@ -3,10 +3,10 @@ import type { PatientDashboardData } from "@/lib/domain/types";
 /**
  * Dati dimostrativi della home paziente.
  *
- * Servono a progettare e valutare l interfaccia prima che Supabase sia
+ * Servono a progettare e valutare l’interfaccia prima che Supabase sia
  * collegato. `getPatientDashboard()` in `src/lib/data/patient.ts` è già
- * la sola porta d accesso: quando arriva il database reale si sostituisce
- * l implementazione lì, e nessun componente cambia.
+ * la sola porta d’accesso: quando arriva il database reale si sostituisce
+ * l’implementazione lì, e nessun componente cambia.
  */
 export const mockPatientDashboard: PatientDashboardData = {
   profile: {
@@ -26,7 +26,7 @@ export const mockPatientDashboard: PatientDashboardData = {
     trend: "up",
     biologicalAge: 39.4,
     summary:
-      "Metabolismo e infiammazione sono in fascia ottimale. Il margine di crescita più ampio resta sull assetto ormonale.",
+      "Metabolismo e infiammazione sono in fascia ottimale. Il margine di crescita più ampio resta sull’assetto ormonale.",
     pillars: [
       { key: "metabolic", label: "Metabolismo", value: 82, delta: 5 },
       { key: "cardiovascular", label: "Cardiovascolare", value: 76, delta: 3 },
@@ -89,7 +89,7 @@ export const mockPatientDashboard: PatientDashboardData = {
       id: "act-1",
       title: "Ripetere il pannello ormonale",
       description:
-        "L unico pilastro in leggero calo. Prelievo a digiuno, idealmente entro due settimane.",
+        "L’unico pilastro in leggero calo. Prelievo a digiuno, idealmente entro due settimane.",
       pillarKey: "hormonal",
       source: "professional",
       status: "suggested",

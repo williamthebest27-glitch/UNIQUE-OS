@@ -1,17 +1,17 @@
 # Sicurezza e dati sanitari
 
 Unique OS tratta dati relativi alla salute: **categoria particolare** ai sensi
-dell art. 9 del GDPR. Non è una web app come un altra, e alcune scelte tecniche non
+dell’art. 9 del GDPR. Non è una web app come un’altra, e alcune scelte tecniche non
 sono negoziabili. Questo documento raccoglie ciò che è già implementato e ciò che
 resta da fare prima di trattare dati di pazienti reali.
 
 ## Il modello dei permessi
 
-La regola di fondo: **è il database a decidere chi vede cosa, non l applicazione.**
+La regola di fondo: **è il database a decidere chi vede cosa, non l’applicazione.**
 
 Ogni tabella clinica ha la Row Level Security attiva
 (`supabase/migrations/20260903100100_rls_policies.sql`). Le query
-dell applicazione non filtrano per paziente: se una query fosse sbagliata o un
+dell’applicazione non filtrano per paziente: se una query fosse sbagliata o un
 endpoint venisse chiamato con un id altrui, Postgres non restituirebbe comunque
 righe non autorizzate. È una rete di sicurezza deliberata, che regge anche a un
 errore di programmazione.
@@ -48,7 +48,7 @@ percorso è la chiave dei permessi, e le policy sullo storage riusano le stesse
 funzioni delle tabelle. Il database conserva solo metadati e puntatore, così i
 permessi si governano in un posto solo.
 
-Il bucket non è pubblico: l accesso ai file passa da URL firmati a scadenza breve.
+Il bucket non è pubblico: l’accesso ai file passa da URL firmati a scadenza breve.
 
 ## Già implementato
 
@@ -66,17 +66,17 @@ Il bucket non è pubblico: l accesso ai file passa da URL firmati a scadenza bre
    della regione non è modificabile dopo la creazione del progetto.
 2. **Accordo sul trattamento dei dati** con Supabase e con ogni altro fornitore che
    tocchi dati di pazienti (hosting, email, pagamenti, provider AI).
-3. **Registro dei trattamenti** e valutazione d impatto (DPIA): con dati sanitari su
+3. **Registro dei trattamenti** e valutazione d’impatto (DPIA): con dati sanitari su
    larga scala è verosimilmente obbligatoria.
 4. **Popolare `audit_log` davvero.** La tabella esiste; vanno scritte le chiamate a
    ogni lettura e modifica di dati clinici, lato server.
 5. **Autenticazione a due fattori** per i profili `professional`, `admin` e `owner`.
-6. **Politica di conservazione e cancellazione** — diritto all oblio, tempi di
+6. **Politica di conservazione e cancellazione** — diritto all’oblio, tempi di
    conservazione della documentazione sanitaria, esportazione dei dati su richiesta
    del paziente (portabilità, art. 20).
 7. **Consensi.** Il tipo di documento `consent` è previsto nello schema; va costruito
    il flusso di raccolta e revoca, con data e versione del testo firmato.
 8. **Unique Brain.** Quando il layer AI leggerà i dati clinici, dovrà rispettare gli
-   stessi confini della RLS — interrogando il database con l identità dell utente,
+   stessi confini della RLS — interrogando il database con l’identità dell’utente,
    mai con la chiave service-role. È il punto in cui è più facile aprire una falla,
-   e va progettato con questa consapevolezza fin dall inizio.
+   e va progettato con questa consapevolezza fin dall’inizio.

@@ -165,7 +165,7 @@ export function CreditsCard({ credits }: { credits: CreditSummary }) {
         </p>
 
         {/* La barra mostra il consumato: è la parte che il paziente
-            vuole controllare a colpo d occhio. */}
+            vuole controllare a colpo d’occhio. */}
         <div
           className="mt-2 h-2 overflow-hidden rounded-full bg-bone-200"
           role="img"

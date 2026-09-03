@@ -2,7 +2,7 @@
 
 **Il cervello digitale di Unique Longevity Clinic.**
 
-Non una web app per i pazienti, ma l infrastruttura in cui convergono dati clinici,
+Non una web app per i pazienti, ma l’infrastruttura in cui convergono dati clinici,
 Longevity Score, documenti, appuntamenti, professionisti, membership, crediti,
 pagamenti, comunicazioni, CRM, marketing, procedure e analytics — con sopra un
 unico layer di intelligenza artificiale.
@@ -17,8 +17,8 @@ Il principio che regge ogni scelta tecnica di questo repository:
 
 | Livello | Chi lo usa | Stato |
 | --- | --- | --- |
-| **Patient App** | Il paziente | 🟢 Home operativa su dati dimostrativi |
-| **Professional App** | Medici e professionisti | ⚪ Da avviare |
+| **Patient App** | Il paziente | 🟢 Home completa, collegata al database |
+| **Professional App** | Medici e professionisti | 🟡 Accesso e ruolo riconosciuti, interfaccia da costruire |
 | **Unique Control Center** | Amministrazione e management | ⚪ Da avviare |
 | **Unique Brain** | Layer AI trasversale | ⚪ Da avviare |
 
@@ -29,26 +29,23 @@ distinti.
 
 ## Stato attuale
 
-Costruito e funzionante:
-
 - **Home del paziente** — saluto, Unique Longevity Score con anello e andamento
   storico, sei pilastri, prossima visita, percorso attivo, crediti, azioni
   consigliate, documenti nuovi, messaggi e progressi ottenuti.
-- **Sezioni Percorso, Documenti, Appuntamenti e Crediti** — navigabili, costruite
-  sugli stessi componenti.
-- **Design system** — palette, tipografia e componenti condivisi dai quattro livelli.
-- **Schema del database** — tabelle, indici e viste per identità, Score, biomarcatori,
-  percorsi, appuntamenti, documenti, membership, crediti, notifiche e audit.
-- **Row Level Security completa** — le regole di accesso ai dati sanitari.
+- **Sezioni Percorso, Documenti, Appuntamenti e Crediti**, sugli stessi componenti.
+- **Autenticazione senza password** — link di accesso via email, sessione rinnovata
+  a ogni richiesta, rotte protette, smistamento per ruolo dalla radice.
+- **Dati reali da Supabase** — tutte le query della home passano dal database e sono
+  filtrate dalla Row Level Security.
+- **Schema completo** — identità, care team, Score e pilastri, biomarcatori,
+  percorsi, appuntamenti, documenti, membership, registro crediti append-only,
+  notifiche, audit log.
+- **Design system** condiviso dai quattro livelli.
 
-Non ancora collegato:
-
-- Autenticazione reale (i dati della home sono dimostrativi, in
-  `src/lib/mock/patient-dashboard.ts`).
-- Il progetto Supabase: le migrazioni sono scritte ma non ancora applicate.
-
-Tutta l interfaccia legge da `src/lib/data/patient.ts`. Quando Supabase sarà
-collegato si sostituisce il corpo di quelle funzioni e **nessun componente cambia**.
+**Modalità dimostrativa.** Finché `.env.local` è vuoto l’applicazione gira su dati
+di esempio, senza autenticazione, e lo dichiara con un avviso nella barra laterale.
+Serve a lavorare sull’interfaccia senza dipendere dal database. Appena le chiavi
+Supabase ci sono, passa da sola ai dati reali.
 
 ## Stack
 
@@ -56,18 +53,22 @@ collegato si sostituisce il corpo di quelle funzioni e **nessun componente cambi
 - **TypeScript** in modalità strict
 - **Tailwind CSS v4** — i token di design vivono in `src/app/globals.css`
 - **Supabase** — Postgres, autenticazione e storage, in regione UE
-- Nessuna libreria di grafici: anello dello Score e sparkline sono SVG scritti a mano,
-  così restano leggeri, accessibili e coerenti col resto del design
+- Nessuna libreria di grafici: anello dello Score e sparkline sono SVG scritti a
+  mano, così restano leggeri, accessibili e coerenti col resto del design
 
 ## Struttura
 
 ```
 src/
+  proxy.ts                Sessione e rotte protette (in Next 16 era middleware.ts)
   app/
-    (patient)/            Patient App — layout con barra laterale e tab bar
+    page.tsx              Smistamento per ruolo
+    accedi/               Accesso con link via email
+    auth/callback/        Atterraggio del link ricevuto
+    pro/                  Area professionale (segnaposto)
+    (patient)/            Patient App — barra laterale e tab bar
       dashboard/          La home descritta nella visione
       percorso/  documenti/  appuntamenti/  crediti/
-    layout.tsx            Layout radice, metadati, viewport
     globals.css           Token di design: colori, tipografia, ombre
   components/
     ui/primitives.tsx     Card, Badge, DeltaPill, icone
@@ -75,12 +76,16 @@ src/
     shell/                Navigazione e intestazioni di pagina
   lib/
     domain/types.ts       Modello di dominio condiviso dai quattro livelli
+    supabase/             Client browser, client server, configurazione
+    auth.ts               Profilo collegato e percorso per ruolo
     data/                 Unico punto di accesso ai dati
-    mock/                 Dati dimostrativi, da rimuovere a collegamento fatto
+    mock/                 Dati dimostrativi
     format.ts             Date, orari e numeri in italiano
 
-supabase/migrations/      Schema e policy di sicurezza
-docs/                     Modello dello Score, sicurezza e dati sanitari
+supabase/
+  migrations/             Schema, sicurezza, cataloghi
+  demo-paziente.sql       Popola un paziente di prova
+docs/                     Collegamento a Supabase, modello dello Score, GDPR
 ```
 
 ## Avvio locale
@@ -90,8 +95,8 @@ npm install
 npm run dev
 ```
 
-L applicazione risponde su <http://localhost:3000> e reindirizza alla home del
-paziente. Per ora non serve alcuna variabile d ambiente: i dati sono dimostrativi.
+L’applicazione risponde su <http://localhost:3000>. Senza variabili d’ambiente parte
+in modalità dimostrativa e non serve altro.
 
 Verifica dei tipi:
 
@@ -99,37 +104,32 @@ Verifica dei tipi:
 npm run typecheck
 ```
 
-## Collegare Supabase
+## Collegare il database
 
-1. Creare un progetto Supabase **in regione UE** (Francoforte o Irlanda). Non è un
-   dettaglio: la piattaforma tratta dati relativi alla salute, categoria particolare
-   ai sensi dell art. 9 del GDPR.
-2. Copiare `.env.example` in `.env.local` e compilare le chiavi.
-3. Applicare le migrazioni nell ordine in cui sono numerate, dalla SQL Console del
-   progetto o con la Supabase CLI:
+Procedura completa in **[docs/collegare-supabase.md](docs/collegare-supabase.md)**:
+creazione del progetto in regione UE, migrazioni, configurazione dell’accesso,
+chiavi, primo utente e dati di prova.
 
-   ```bash
-   supabase db push
-   ```
-
-4. Sostituire l implementazione delle funzioni in `src/lib/data/patient.ts`.
-
-Le query dell applicazione **non filtrano per paziente**: ci pensa la Row Level
-Security. Se una query fosse sbagliata, Postgres non restituirebbe comunque righe
-che l utente non ha diritto di vedere. È una rete di sicurezza deliberata.
+Un punto che vale la pena ripetere qui: le query dell’applicazione **non filtrano
+per paziente**. Ci pensa la Row Level Security. Se una query fosse sbagliata,
+Postgres non restituirebbe comunque righe che l’utente non ha diritto di vedere.
+È una rete di sicurezza deliberata, che regge anche a un errore di programmazione.
 
 ## Documentazione
 
-- [Il modello dell Unique Longevity Score](docs/longevity-score.md) — come è composto
-  il punteggio e quali sono le assunzioni da validare clinicamente.
+- [Collegare Supabase](docs/collegare-supabase.md) — dalla modalità dimostrativa al
+  database reale, passo per passo.
+- [Il modello dell’Unique Longevity Score](docs/longevity-score.md) — come è composto
+  il punteggio e quali assunzioni vanno validate clinicamente.
 - [Sicurezza e dati sanitari](docs/sicurezza-e-gdpr.md) — modello dei permessi,
   tracciamento degli accessi e adempimenti aperti.
 
 ## Prossimi passi
 
-1. **Autenticazione** — login del paziente e smistamento per ruolo dalla radice.
-2. **Collegamento a Supabase** — sostituire i dati dimostrativi con quelli reali.
-3. **Professional App** — elenco pazienti, scheda clinica, caricamento referti.
-4. **Control Center** — agenda, membership, crediti, incassi, KPI.
-5. **Unique Brain** — interrogazione in linguaggio naturale su dati, documenti e
+1. **Professional App** — elenco pazienti, scheda clinica, caricamento referti,
+   scrittura delle azioni consigliate.
+2. **Control Center** — agenda, membership, crediti, incassi, KPI.
+3. **Calcolo dello Score** — dai biomarcatori al punteggio, con i pesi definiti dal
+   team medico.
+4. **Unique Brain** — interrogazione in linguaggio naturale su dati, documenti e
    procedure, con gli stessi confini di accesso della Row Level Security.

@@ -120,7 +120,7 @@ export function Badge({
   );
 }
 
-/** Riga vuota onesta: dice cosa comparirà qui, non solo che non c è nulla. */
+/** Riga vuota onesta: dice cosa comparirà qui, non solo che non c’è nulla. */
 export function EmptyState({ children }: { children: ReactNode }) {
   return (
     <p className="px-6 py-8 text-center text-sm text-ink-400">{children}</p>

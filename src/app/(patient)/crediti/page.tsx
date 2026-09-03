@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { getPatientDashboard } from "@/lib/data/patient";
+import { requirePatientDashboard } from "@/lib/data/patient";
+import { SchedaInAttesa } from "@/components/patient/scheda-in-attesa";
 import { PageHeading } from "@/components/shell/page-heading";
 import { CreditsCard } from "@/components/patient/cards";
 
@@ -7,7 +8,8 @@ export const metadata: Metadata = { title: "Crediti" };
 export const dynamic = "force-dynamic";
 
 export default async function CreditiPage() {
-  const data = await getPatientDashboard();
+  const data = await requirePatientDashboard();
+  if (!data) return <SchedaInAttesa />;
 
   return (
     <div className="space-y-6 lg:space-y-8">

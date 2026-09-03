@@ -92,7 +92,7 @@
 }
 
 @layer utilities {
-  /* Il tratto dell anello dello Score si disegna al caricamento. */
+  /* Il tratto dell’anello dello Score si disegna al caricamento. */
   @keyframes score-draw {
     from {
       stroke-dashoffset: var(--ring-circumference);

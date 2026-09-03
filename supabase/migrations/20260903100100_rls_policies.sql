@@ -1,9 +1,9 @@
 -- ═══════════════════════════════════════════════════════════════════
 -- UNIQUE OS — Row Level Security
 --
--- Regola d oro: il database, non l applicazione, decide chi vede cosa.
--- Anche se una query dell app fosse sbagliata, Postgres non restituisce
--- righe che l utente non ha diritto di vedere.
+-- Regola d’oro: il database, non l’applicazione, decide chi vede cosa.
+-- Anche se una query dell’app fosse sbagliata, Postgres non restituisce
+-- righe che l’utente non ha diritto di vedere.
 --
 --   paziente      → esclusivamente i propri dati
 --   professionista → solo i pazienti a lui assegnati (care_team_members)
@@ -37,7 +37,7 @@ as $fn$
   );
 $fn$;
 
--- Il patient_id dell utente collegato, se è un paziente.
+-- Il patient_id dell’utente collegato, se è un paziente.
 create or replace function public.my_patient_id()
 returns uuid
 language sql
@@ -48,7 +48,7 @@ as $fn$
   select id from public.patients where profile_id = auth.uid();
 $fn$;
 
--- Il professional_id dell utente collegato, se è un professionista.
+-- Il professional_id dell’utente collegato, se è un professionista.
 create or replace function public.my_professional_id()
 returns uuid
 language sql
@@ -59,7 +59,7 @@ as $fn$
   select id from public.professionals where profile_id = auth.uid();
 $fn$;
 
--- Unico punto in cui si decide se l utente può vedere un paziente.
+-- Unico punto in cui si decide se l’utente può vedere un paziente.
 -- Ogni policy clinica passa da qui: se la regola cambia, cambia in un
 -- posto solo.
 create or replace function public.can_access_patient(target uuid)
@@ -91,7 +91,7 @@ as $fn$
     );
 $fn$;
 
--- Vero se l utente può scrivere dati clinici: staff o professionista del team.
+-- Vero se l’utente può scrivere dati clinici: staff o professionista del team.
 create or replace function public.can_write_clinical(target uuid)
 returns boolean
 language sql
@@ -225,7 +225,7 @@ create policy documents_write on public.documents
   with check (public.can_write_clinical(patient_id));
 
 -- ── recommended_actions ───────────────────────────────────────────
--- Il paziente legge le proprie azioni e può segnarne l avanzamento,
+-- Il paziente legge le proprie azioni e può segnarne l’avanzamento,
 -- ma non può crearne di nuove né modificarne il testo.
 create policy actions_select on public.recommended_actions
   for select using (public.can_access_patient(patient_id));

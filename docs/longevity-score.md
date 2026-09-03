@@ -1,4 +1,4 @@
-# Il modello dell Unique Longevity Score
+# Il modello dell’Unique Longevity Score
 
 Lo Score è il cuore del prodotto: è ciò che trasforma una serie di visite separate
 in un percorso che il paziente vede muoversi nel tempo. Questo documento descrive
@@ -36,15 +36,15 @@ tutto lo storico. Il valore in home è semplicemente la riga più recente. Lo st
 non è un effetto collaterale del sistema: è il prodotto.
 
 **I pilastri sono normalizzati, non un blob JSON.** La tabella `score_pillars`
-permette di analizzare l andamento di un singolo pilastro nel tempo, su tutta la
+permette di analizzare l’andamento di un singolo pilastro nel tempo, su tutta la
 popolazione dei pazienti — informazione preziosa per il Control Center e per il Brain.
 
 **I biomarcatori grezzi restano separati.** `biomarkers` conserva i valori misurati
 con la loro unità, gli intervalli di riferimento e il referto di provenienza. Lo
 Score è una funzione calcolata su questi dati, non un dato inserito a mano: se
-l algoritmo cambia, i punteggi storici si possono ricalcolare.
+l’algoritmo cambia, i punteggi storici si possono ricalcolare.
 
-Il campo `computed_by` registra la versione dell algoritmo usata (`uls-v1`,
+Il campo `computed_by` registra la versione dell’algoritmo usata (`uls-v1`,
 `uls-v2`, …). Serve a distinguere un miglioramento del paziente da un cambio di
 formula — una confusione che, senza questo campo, diventa impossibile da sciogliere
 a posteriori.
@@ -59,7 +59,7 @@ a posteriori.
    idealmente aggiustata per età e sesso.
 3. **Dati mancanti.** Se un pilastro non ha misure recenti, lo Score va calcolato
    sui pilastri disponibili, oppure va mostrato come incompleto? La seconda ipotesi
-   è più onesta verso il paziente, e va rappresentata nell interfaccia.
+   è più onesta verso il paziente, e va rappresentata nell’interfaccia.
 4. **Frequenza di ricalcolo.** Il modello attuale prevede una rilevazione a ogni
    pannello ematochimico. Con i dati dei dispositivi indossabili la frequenza
    potrebbe diventare continua, e servirebbe distinguere lo Score "clinico" da
@@ -68,14 +68,14 @@ a posteriori.
    metodo di stima è da definire — e va scelto con cura, perché è il numero che il
    paziente racconterà agli altri.
 
-## Nell interfaccia
+## Nell’interfaccia
 
-L anello in home mostra il punteggio complessivo; sotto, i sei pilastri con la
+L’anello in home mostra il punteggio complessivo; sotto, i sei pilastri con la
 variazione rispetto al controllo precedente. Il grafico di andamento **scala sui
 dati, non su 0–100**: su un asse pieno, quattro punti di crescita diventerebbero
 una linea piatta e il progresso del paziente sparirebbe.
 
 Le variazioni usano il segno meno tipografico (−) e sono colorate secondo il
-significato clinico, non secondo la direzione: un calo dell emoglobina glicata è
+significato clinico, non secondo la direzione: un calo dell’emoglobina glicata è
 verde, perché è una notizia buona. La logica è nel componente `DeltaPill`, che
 tiene separati `direction` e `isImprovement` proprio per questo.

@@ -95,7 +95,7 @@ function ScoreSparkline({ history }: { history: ScorePoint[] }) {
   return (
     <figure className="mt-6">
       <figcaption className="sr-only">
-        Andamento dell Unique Longevity Score nelle ultime {history.length} rilevazioni
+        Andamento dell’Unique Longevity Score nelle ultime {history.length} rilevazioni
       </figcaption>
       <svg viewBox="0 0 260 76" className="h-auto w-full" role="img">
         <defs>
@@ -167,9 +167,28 @@ export function ScoreHero({
   score,
   history,
 }: {
-  score: LongevityScore;
+  score: LongevityScore | null;
   history: ScorePoint[];
 }) {
+  // Un paziente appena preso in carico non ha ancora un punteggio. Meglio
+  // dirgli quando arriverà che mostrargli uno zero.
+  if (score === null) {
+    return (
+      <Card className="animate-rise-in p-8 text-center sm:p-12">
+        <div className="mx-auto flex h-[132px] w-[132px] items-center justify-center rounded-full border-[13px] border-bone-200">
+          <span className="font-display text-[38px] text-ink-300">—</span>
+        </div>
+        <h2 className="mt-7 font-display text-[24px] text-ink-900">
+          Il tuo Longevity Score arriva presto
+        </h2>
+        <p className="mx-auto mt-2 max-w-md text-[15px] leading-relaxed text-ink-500">
+          Il punteggio viene calcolato dopo il primo pannello di esami. Da quel
+          momento lo vedrai qui, insieme al suo andamento nel tempo.
+        </p>
+      </Card>
+    );
+  }
+
   const delta =
     score.previousScore !== null ? score.score - score.previousScore : null;
 
