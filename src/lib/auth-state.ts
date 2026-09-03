@@ -9,6 +9,16 @@ export type StatoAccesso = {
   esito: "iniziale" | "inviato" | "errore";
   messaggio?: string;
   email?: string;
+  /** Breve codice dell'errore, per chi assiste. */
+  codice?: string;
+  /**
+   * L'origine verso cui punta il collegamento appena spedito.
+   *
+   * Mostrarla non è un vezzo tecnico: se in produzione dicesse
+   * `localhost`, l'email arriverebbe con un link verso il computer di chi
+   * la riceve, e il guasto sarebbe altrimenti invisibile.
+   */
+  origine?: string;
 };
 
 export const statoAccessoIniziale: StatoAccesso = { esito: "iniziale" };

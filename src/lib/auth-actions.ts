@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { messaggioPerErrore } from "@/lib/auth-errors";
 import { appUrl, isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { StatoAccesso } from "@/lib/auth-state";
@@ -45,26 +46,27 @@ export async function richiediAccesso(
   const next =
     richiesto.startsWith("/") && !richiesto.startsWith("//") ? richiesto : "/";
 
+  const origine = appUrl();
+
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: `${appUrl()}/auth/callback?next=${encodeURIComponent(next)}`,
+      emailRedirectTo: `${origine}/auth/callback?next=${encodeURIComponent(next)}`,
       // I pazienti vengono registrati dalla clinica, non si iscrivono da soli.
       shouldCreateUser: false,
     },
   });
 
   if (error) {
-    console.error("[accesso] invio link fallito:", error.message);
-    return {
-      esito: "errore",
-      messaggio: "Non siamo riusciti a inviare il link. Riprova fra poco.",
-      email,
-    };
+    // Il testo originale resta nei log del server; davanti al paziente va
+    // qualcosa di leggibile, che non riveli se l'indirizzo è registrato.
+    console.error("[accesso] invio link fallito:", error.code, error.message);
+    const { messaggio, codice } = messaggioPerErrore(error.code, error.message);
+    return { esito: "errore", messaggio, codice, email };
   }
 
-  return { esito: "inviato", email };
+  return { esito: "inviato", email, origine };
 }
 
 export async function esci() {

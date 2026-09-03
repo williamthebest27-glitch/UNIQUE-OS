@@ -28,11 +28,19 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) return NextResponse.redirect(`${origin}${next}`);
     console.error("[auth] scambio del codice fallito:", error.message);
-  } else if (tokenHash && type) {
+    return NextResponse.redirect(`${origin}/accedi?errore=scaduto`);
+  }
+
+  if (tokenHash && type) {
     const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
     if (!error) return NextResponse.redirect(`${origin}${next}`);
     console.error("[auth] verifica del token fallita:", error.message);
+    return NextResponse.redirect(`${origin}/accedi?errore=scaduto`);
   }
 
-  return NextResponse.redirect(`${origin}/accedi?errore=link`);
+  // Nessun codice e nessun token: il collegamento è arrivato monco. Non è
+  // la stessa cosa di un link scaduto, e dirlo cambia cosa può fare chi
+  // legge — di solito basta incollare l'indirizzo per intero.
+  console.error("[auth] collegamento senza codice né token");
+  return NextResponse.redirect(`${origin}/accedi?errore=mancante`);
 }

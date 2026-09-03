@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { LoginForm } from "./login-form";
+import { motivoLink } from "@/lib/auth-errors";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 export const metadata: Metadata = { title: "Accedi" };
@@ -36,7 +37,7 @@ export default async function AccediPage({
               role="alert"
               className="mt-5 rounded-xl bg-brand-50 px-3.5 py-3 text-sm text-signal-alert"
             >
-              Il link non è più valido. Richiedine uno nuovo.
+              {motivoLink(errore)}
             </p>
           ) : null}
 

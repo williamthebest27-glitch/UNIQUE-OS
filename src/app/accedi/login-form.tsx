@@ -32,6 +32,16 @@ export function LoginForm({ next }: { next?: string }) {
           <span className="font-medium text-ink-800">{stato.email}</span>.
           Il collegamento resta valido per un’ora.
         </p>
+
+        {/* Dove riporta il link. Se qui comparisse localhost mentre stai
+            usando il sito pubblicato, l'email sarebbe inservibile: è il
+            guasto più difficile da vedere, e questa riga lo rende ovvio. */}
+        {stato.origine ? (
+          <p className="mt-4 text-xs leading-relaxed text-ink-400">
+            Il link riporta a{" "}
+            <span className="font-medium text-ink-500">{stato.origine}</span>
+          </p>
+        ) : null}
       </div>
     );
   }
@@ -64,6 +74,11 @@ export function LoginForm({ next }: { next?: string }) {
       {stato.esito === "errore" && stato.messaggio ? (
         <p id="errore-accesso" role="alert" className="text-sm text-signal-alert">
           {stato.messaggio}
+          {stato.codice ? (
+            <span className="mt-1 block text-xs text-ink-400">
+              codice: {stato.codice}
+            </span>
+          ) : null}
         </p>
       ) : null}
 
