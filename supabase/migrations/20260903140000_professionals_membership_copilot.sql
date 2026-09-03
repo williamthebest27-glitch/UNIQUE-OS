@@ -233,7 +233,18 @@ create policy purchases_staff_write on public.service_purchases
  * prenotazioni — una visita spostata o annullata libererebbe un credito
  * che qualcuno deve ricordarsi di restituire.
  */
-create or replace view public.credit_balances
+
+-- La vista si elimina e si ricrea, non si sostituisce: `create or replace
+-- view` in Postgres può solo aggiungere colonne in fondo, mai rinominarle
+-- né riordinarle. Qui l'elenco cambia sia di ordine sia di contenuto
+-- (arrivano `total_reserved` e `available`), e il confronto posizionale
+-- farebbe fallire la migrazione con "cannot change name of view column".
+-- Nessuna vista e nessun vincolo dipende da credit_balances, quindi
+-- l'eliminazione è sicura e volutamente senza `cascade`: se un giorno
+-- qualcosa dipendesse da lei, è giusto che la migrazione si fermi.
+drop view if exists public.credit_balances;
+
+create view public.credit_balances
 with (security_invoker = true) as
 with ledger as (
   select

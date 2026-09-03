@@ -44,6 +44,26 @@ In alternativa, con la Supabase CLI installata e il progetto collegato:
 supabase db push
 ```
 
+### Provarle prima, in locale
+
+Prima di incollare qualcosa nella SQL Console conviene eseguirla su un
+Postgres vero:
+
+```bash
+npm run db:verifica
+```
+
+Applica tutte le migrazioni in ordine su un Postgres in WebAssembly — niente
+Docker, niente server — e poi controlla le tre cose che non possono
+sbagliare: che ogni tabella abbia la Row Level Security accesa, che abbia
+almeno una policy, e che ogni vista sia `security_invoker`. Con
+`npm run db:verifica -- seed` esegue anche i dati dimostrativi.
+
+Serve a scoprire qui, e non a metà di una migrazione già in corso su
+Supabase, errori come quello di `create or replace view`, che in Postgres
+può solo aggiungere colonne in fondo: rinominarle o riordinarle richiede di
+eliminare la vista e ricrearla.
+
 > **Se il secondo file si ferma sulle policy dello storage** — in alcuni progetti
 > `storage.objects` non è modificabile via SQL. Esegui il resto del file e crea le
 > due policy dall’interfaccia, in *Storage → patient-documents → Policies*, usando
@@ -155,3 +175,11 @@ server non è stato riavviato dopo averlo compilato.
 **La home resta vuota con i dati caricati** — quasi certamente la Row Level Security
 sta facendo il suo mestiere: stai guardando con un account diverso da quello a cui
 appartengono i dati.
+
+**"cannot change name of view column"** — è il modo in cui Postgres dice che una
+vista sta cambiando forma. `create or replace view` sa solo aggiungere colonne in
+fondo: se cambiano nome o ordine, la vista va eliminata e ricreata. Le migrazioni
+in repo lo fanno già; se lo incontri su una nuova, aggiungi
+`drop view if exists public.<nome>;` prima del `create view`. Un `create or
+replace` che fallisce non lascia nulla a metà: la migrazione si ferma e basta
+rieseguirla dopo la correzione.

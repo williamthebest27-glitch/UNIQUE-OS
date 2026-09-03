@@ -228,8 +228,13 @@ create trigger appointments_credit_engine
  * Prima i prenotati venivano dedotti dagli appuntamenti futuri. Andava
  * bene per mostrarli, non per governarli: senza righe non c'era storico
  * dei passaggi, e una disdetta tardiva non poteva addebitare nulla.
+ *
+ * Come nella migrazione precedente: eliminata e ricreata, perché
+ * `create or replace view` non sa rinominare né riordinare le colonne.
  */
-create or replace view public.credit_balances
+drop view if exists public.credit_balances;
+
+create view public.credit_balances
 with (security_invoker = true) as
 with ledger as (
   select
