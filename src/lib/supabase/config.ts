@@ -16,7 +16,26 @@ export function isSupabaseConfigured(): boolean {
   return supabaseUrl.length > 0 && supabaseAnonKey.length > 0;
 }
 
-/** Origine pubblica dell’applicazione, per i link inviati via email. */
+/**
+ * Origine pubblica dell’applicazione, per i link inviati via email.
+ *
+ * Usata solo lato server, nell’azione che manda il collegamento di
+ * accesso. L’ordine conta: prima ciò che è stato deciso a mano, poi il
+ * dominio di produzione che Vercel espone da sé, poi l’URL del singolo
+ * deploy, e solo alla fine lo sviluppo locale.
+ *
+ * Il ripiego su localhost era una trappola: dimenticare
+ * `NEXT_PUBLIC_APP_URL` in produzione non rompeva niente di visibile, ma
+ * spediva ai pazienti un collegamento verso il loro stesso computer.
+ */
 export function appUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const esplicito = process.env.NEXT_PUBLIC_APP_URL;
+  if (esplicito) return esplicito.replace(/\/+$/, "");
+
+  // Vercel le valorizza da sé, senza protocollo.
+  const vercel =
+    process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL;
+  if (vercel) return `https://${vercel.replace(/^https?:\/\//, "").replace(/\/+$/, "")}`;
+
+  return "http://localhost:3000";
 }
