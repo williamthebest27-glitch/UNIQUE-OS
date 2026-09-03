@@ -19,7 +19,7 @@ Il principio che regge ogni scelta tecnica di questo repository:
 | --- | --- | --- |
 | **Patient App** | Il paziente | 🟢 Home completa, collegata al database |
 | **Professional App** | Medici e professionisti | 🟢 Agenda, pazienti, cartella unificata, permessi per disciplina |
-| **Unique Control Center** | Amministrazione e management | ⚪ Da avviare |
+| **Unique Control Center** | Amministrazione e management | 🟢 Control room, economia, capacità, CRM |
 | **Unique Brain** | Layer AI trasversale | 🟡 Ingestione documenti, briefing e copilot clinico |
 
 I quattro livelli non sono quattro prodotti: sono quattro interfacce sullo stesso
@@ -61,6 +61,13 @@ distinti.
   automatici all’amministrazione. Il numero della carta non entra mai nel database.
 - **Prenotazioni** — il paziente vede, prenota e disdice; il gestionale esistente
   sincronizza agende e disponibilità da un endpoint dedicato.
+- **Control Center** — KPI di giornata e di mese, unit economics per servizio,
+  professionista e paziente, compensi ricostruibili riga per riga, capacità e
+  proiezioni di crescita, CRM con imbuto e valore per campagna.
+- **Next Best Action** — regole cliniche e commerciali tenute separate per
+  costruzione, ciascuna con i fatti che l’hanno attivata.
+- **Customer journey** — lo stato di ogni persona derivato dai fatti, non da un
+  campo aggiornato a mano.
 - **Motore clinico AI** — un documento viene letto da Claude, i parametri estratti
   vengono validati da regole deterministiche, quelli clinicamente rilevanti
   finiscono in coda di revisione e lo Score si ricalcola su ciò che è approvato.
@@ -110,6 +117,10 @@ src/
     professionals/        Discipline e ambiti di competenza
     credits/              Regole di disdetta e movimenti
     appointments/         Prenotazione, disdetta, esito della visita
+    economics/            Unit economics e compensi, con test
+    capacity/             Capacità, saturazione e proiezioni, con test
+    journey/              Stato del percorso, derivato dai fatti
+    nba/                  Next Best Action: regole cliniche e commerciali
     supabase/             Client browser, client server, configurazione
     auth.ts               Profilo collegato e percorso per ruolo
     data/                 Unico punto di accesso ai dati
@@ -156,6 +167,8 @@ Postgres non restituirebbe comunque righe che l’utente non ha diritto di veder
   database reale, passo per passo.
 - [Il modello dell’Unique Longevity Score](docs/longevity-score.md) — come è composto
   il punteggio e quali assunzioni vanno validate clinicamente.
+- [Control Center, CRM e capacità](docs/control-center.md) — journey, Next Best
+  Action, unit economics, compensi e proiezioni di crescita.
 - [Crediti, pagamenti e prenotazioni](docs/crediti-pagamenti-prenotazioni.md) —
   la macchina a stati del credito, gli avvisi di incasso, l’integrazione col
   gestionale.
@@ -174,7 +187,8 @@ Postgres non restituirebbe comunque righe che l’utente non ha diritto di veder
    confermati dal team medico. Le decisioni aperte sono in docs/longevity-score.md.
 2. **Anamnesi strutturata** — un questionario le cui risposte alimentino
    direttamente le metriche di anamnesi e stile di vita.
-3. **Control Center** — vista di direzione su agenda, incassi e KPI.
+3. **AI sales agent e omnichannel** — WhatsApp, Meta ed email: servono le
+   credenziali dei canali, il modello dati è pronto.
 4. **Pagamenti** — collegare un gestore esterno: stato, rinnovo e incassi oggi
    si compilano a mano, ma lo schema e gli avvisi sono già pronti.
 5. **Unique Brain** — interrogazione in linguaggio naturale su dati, documenti e

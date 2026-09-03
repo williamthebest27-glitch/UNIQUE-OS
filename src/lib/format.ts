@@ -100,3 +100,30 @@ export function formatCredits(amount: number): string {
   const n = amount.toLocaleString(LOCALE, { maximumFractionDigits: 1 });
   return `${n} ${amount === 1 ? "credito" : "crediti"}`;
 }
+
+/** Centesimi → "1.234 €". Senza decimali: in una dashboard non servono. */
+export function formatEuro(cents: number, decimali = 0): string {
+  return (cents / 100).toLocaleString(LOCALE, {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: decimali,
+    maximumFractionDigits: decimali,
+  });
+}
+
+/** 0,1234 → "12%". */
+export function formatPercent(ratio: number, decimali = 0): string {
+  return ratio.toLocaleString(LOCALE, {
+    style: "percent",
+    minimumFractionDigits: decimali,
+    maximumFractionDigits: decimali,
+  });
+}
+
+/** Minuti → "12 h 30 min". */
+export function formatDurata(minuti: number): string {
+  const ore = Math.floor(minuti / 60);
+  const resto = Math.round(minuti % 60);
+  if (ore === 0) return `${resto} min`;
+  return resto === 0 ? `${ore} h` : `${ore} h ${resto} min`;
+}

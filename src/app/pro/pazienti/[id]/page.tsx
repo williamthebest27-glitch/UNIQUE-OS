@@ -16,6 +16,8 @@ import { ActionsCard } from "@/components/patient/lists";
 import { Timeline } from "@/components/patient/timeline";
 import { UploadForm } from "@/components/documents/upload-form";
 import { CopilotPanel } from "@/components/clinical/copilot-panel";
+import { NextBestActionPanel } from "@/components/clinical/next-best-action";
+import { getPatientSignals } from "@/lib/data/nba";
 import {
   CreditAdjustmentForm,
   NoteForm,
@@ -130,6 +132,7 @@ export default async function CartellaPazientePage({
     briefing,
     movimenti,
     agenda,
+    segnali,
     noteRes,
     stepRes,
   ] = await Promise.all([
@@ -158,6 +161,7 @@ export default async function CartellaPazientePage({
     getLatestBriefing(id),
     getCreditLedger(id, 12),
     getPatientAppointments(id),
+    getPatientSignals(id),
 
     supabase
       .from("clinical_notes")
@@ -492,6 +496,15 @@ export default async function CartellaPazientePage({
           )}
           <div className="pb-2" />
         </Card>
+
+        {/* ── Next Best Action ────────────────────────────────── */}
+        {segnali ? (
+          <NextBestActionPanel
+            stage={segnali.stage}
+            clinical={segnali.azioni.clinical}
+            commercial={segnali.azioni.commercial}
+          />
+        ) : null}
 
         {/* ── Copilot clinico ─────────────────────────────────── */}
         <CopilotPanel patientId={id} disabled={!isBrainConfigured()} />

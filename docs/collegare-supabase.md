@@ -35,6 +35,8 @@ Dal progetto, apri **SQL Editor** ed esegui i file di `supabase/migrations/`
    note, task, membership completa, copilot
 8. `20260903150000_credit_engine_payments_booking.sql` — credit engine, pagamenti,
    servizi, disponibilità, integrazione col gestionale
+9. `20260903160000_crm_economics_capacity.sql` — CRM, identità omnicanale,
+   prezzi e regole di compenso, ambulatori e orari
 
 In alternativa, con la Supabase CLI installata e il progetto collegato:
 
@@ -110,6 +112,9 @@ Per verificarlo, apri `/pro/revisioni` con un account professionale e premi
 
 Se vuoi vedere anche il medico di riferimento nella card della prossima visita, crea
 un secondo utente e indica la sua email nella variabile `v_pro_email` dello script.
+
+Poi esegui `supabase/demo-clinica.sql`: crea i turni del professionista — senza,
+la capacità non è misurabile — e una manciata di lead per il CRM.
 
 ## 7. Accedere
 

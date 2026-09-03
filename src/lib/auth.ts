@@ -80,8 +80,10 @@ export function homePathForRole(role: AppRole): string {
     case "patient":
       return "/dashboard";
     case "professional":
+      return "/pro";
     case "admin":
     case "owner":
-      return "/pro";
+      // Chi dirige entra dalla control room, non dall agenda clinica.
+      return "/control";
   }
 }
