@@ -50,3 +50,4 @@ coverage/
 # Il modello resta in supabase/, la copia compilata vive qui e non esce.
 supabase/locale/*
 !supabase/locale/LEGGIMI.md
+.vercel
