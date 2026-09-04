@@ -29,10 +29,23 @@ distinti.
 
 ## Stato attuale
 
-- **Home del paziente** — saluto, Unique Longevity Score con anello e andamento
-  storico, sei pilastri, prossima visita, percorso attivo, crediti, azioni
-  consigliate, documenti nuovi, messaggi e progressi ottenuti.
-- **Sezioni Percorso, Documenti, Appuntamenti e Crediti**, sugli stessi componenti.
+- **Patient App** — tredici sezioni, ciascuna con una domanda a cui risponde:
+  home, Longevity Score, percorso, piano, risultati, progressi, questionari,
+  documenti, appuntamenti, messaggi, membership, assistente, profilo. La home
+  si apre sul **prossimo passo**, uno solo, con scritto il perché: dieci inviti
+  all'azione su una schermata non sono dieci opportunità. Su telefono quattro
+  voci a portata di pollice e un pannello per il resto; su schermo largo una
+  colonna che si stringe a icone.
+- **Il confine clinico, scritto in codice** — dire che un valore sta fuori
+  dall'intervallo di riferimento del laboratorio è riportare un fatto stampato;
+  dire cosa significhi per quella persona è medicina. La distinzione è in
+  pagina, in chiaro, e nell'assistente è un elenco di forme di domanda valutato
+  **prima** di ogni altra: «il mio punteggio è preoccupante?» riceve il proprio
+  medico, non una risposta.
+- **Questionari, messaggi e consensi** — ciò che nessun esame misura, una
+  conversazione con chi ti segue (clinica o amministrativa: la categoria decide
+  chi legge), e i consensi come registro append-only con la versione
+  dell'informativa. Revocare scrive una riga, non ne cancella una.
 - **Accesso con password o con link via email** — chi entra ogni giorno vuole una
   password, chi entra due volte l’anno non se la ricorderebbe: convivono, e la
   prima password si sceglie da un collegamento ricevuto per posta. Sessione
@@ -256,6 +269,8 @@ Postgres non restituirebbe comunque righe che l’utente non ha diritto di veder
 
 - [Collegare Supabase](docs/collegare-supabase.md) — dalla modalità dimostrativa al
   database reale, passo per passo.
+- [La Patient App](docs/patient-app.md) — le sezioni e la domanda a cui
+  rispondono, il prossimo passo, il confine clinico, l'isolamento fra pazienti.
 - [Il modello dell’Unique Longevity Score](docs/longevity-score.md) — come è composto
   il punteggio e quali assunzioni vanno validate clinicamente.
 - [Il design](docs/design.md) — la Signature, la tipografia, il movimento e

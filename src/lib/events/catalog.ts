@@ -40,6 +40,9 @@ export const EVENT_CATALOG = {
   "appointment.updated":      { entity: "appointment", label: "Appuntamento aggiornato",             severity: "info" },
 
   "document.uploaded":        { entity: "document",    label: "Documento caricato",                  severity: "important" },
+  "assessment.completed":     { entity: "assessment",  label: "Questionario consegnato",             severity: "important" },
+  "message.sent":             { entity: "message",     label: "Messaggio scritto",                   severity: "info" },
+  "consent.changed":          { entity: "consent",     label: "Consenso aggiornato dal paziente",    severity: "important" },
   "score.updated":            { entity: "score",       label: "Longevity Score aggiornato",          severity: "info" },
   "measurement.flagged":      { entity: "measurement", label: "Valore fuori soglia da rivedere",     severity: "critical" },
 

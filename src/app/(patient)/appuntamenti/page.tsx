@@ -3,7 +3,7 @@ import { requirePatientDashboard } from "@/lib/data/patient";
 import { getOpenSlots, getPatientAppointments } from "@/lib/data/appointments";
 import { SchedaInAttesa } from "@/components/patient/scheda-in-attesa";
 import { PageHeading } from "@/components/shell/page-heading";
-import { SEZIONI_PAZIENTE } from "@/lib/sezioni";
+import { sezioneDi } from "@/lib/patient/sezioni";
 import { BookButton, CancelButton } from "@/components/appointments/booking";
 import { formatCredits, formatShortDate, formatTime, formatWeekdayDayMonth } from "@/lib/format";
 import { CANCELLATION_HOURS } from "@/lib/credits/rules";
@@ -31,7 +31,7 @@ export default async function AppuntamentiPage() {
 
   return (
     <div className="space-y-6 lg:space-y-8">
-      <PageHeading {...SEZIONI_PAZIENTE.appuntamenti} />
+      <PageHeading title={sezioneDi("/appuntamenti")!.titolo} subtitle={sezioneDi("/appuntamenti")!.sottotitolo} />
 
       {/* ── In programma ─────────────────────────────────────── */}
       <Card>

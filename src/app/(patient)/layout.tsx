@@ -2,8 +2,17 @@ import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 import { esci } from "@/lib/auth-actions";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { PatientSidebarNav, PatientTabBar } from "@/components/shell/patient-nav";
+import { contatoriNav } from "@/lib/data/paziente-sezioni";
+import { ColonnaPaziente, PatientTabBar } from "@/components/shell/patient-nav";
 import { BellIcon } from "@/components/ui/primitives";
+
+/**
+ * Il guscio della Patient App.
+ *
+ * Fondo chiaro, spazio largo, una sola cosa alla volta: è l'opposto del
+ * Control Center, e deve esserlo. Al paziente serve calma; a chi dirige
+ * serve vedere tutto insieme.
+ */
 
 function Wordmark() {
   return (
@@ -56,6 +65,22 @@ function LogoutButton({ className }: { className?: string }) {
   );
 }
 
+/** La campanella, con il pallino solo quando c'è davvero qualcosa. */
+function Campanella({ nonLette }: { nonLette: number }) {
+  return (
+    <Link
+      href="/notifiche"
+      aria-label={nonLette > 0 ? `Notifiche, ${nonLette} non lette` : "Notifiche"}
+      className="relative rounded-full p-2 text-ink-500 transition-colors hover:bg-bone-100 hover:text-ink-900"
+    >
+      <BellIcon className="h-5 w-5" />
+      {nonLette > 0 ? (
+        <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-brand-500 ring-2 ring-bone-50" />
+      ) : null}
+    </Link>
+  );
+}
+
 export default async function PatientLayout({
   children,
 }: {
@@ -63,52 +88,56 @@ export default async function PatientLayout({
 }) {
   const profile = await requireProfile();
   const demo = !isSupabaseConfigured();
+  const contatori = await contatoriNav();
 
   return (
     <div className="min-h-dvh md:flex">
-      {/* Colonna di navigazione, da tablet in su. */}
-      <aside className="sticky top-0 hidden h-dvh w-[248px] shrink-0 flex-col border-r border-bone-200 bg-bone-50 px-5 py-7 md:flex lg:w-[264px]">
-        <Wordmark />
-
-        <div className="mt-9 flex-1">
-          <PatientSidebarNav />
-        </div>
-
-        <div className="space-y-4 border-t border-bone-200 pt-5">
-          {demo ? <DemoBadge /> : null}
-          <div className="flex items-center gap-3">
-            <Initials name={profile.fullName} />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-ink-900">
-                {profile.fullName}
-              </p>
-              <LogoutButton className="text-xs text-ink-400 transition-colors hover:text-ink-700" />
+      <ColonnaPaziente
+        marchio={<Wordmark />}
+        marchioStretto={
+          <Link
+            href="/dashboard"
+            aria-label="Unique — vai alla home"
+            className="font-display text-[26px] leading-none text-ink-900"
+          >
+            U
+          </Link>
+        }
+        messaggiNonLetti={contatori.messaggiNonLetti}
+        questionariDaFare={contatori.questionariDaFare}
+        piede={
+          <div className="space-y-4 border-t border-bone-200 pt-5">
+            {demo ? <DemoBadge /> : null}
+            <div className="flex items-center gap-3">
+              <Initials name={profile.fullName} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-ink-900">{profile.fullName}</p>
+                <LogoutButton className="text-xs text-ink-400 transition-colors hover:text-ink-700" />
+              </div>
+              <Campanella nonLette={contatori.notificheNonLette} />
             </div>
           </div>
-        </div>
-      </aside>
+        }
+      />
 
       {/* Barra superiore, solo su telefono. */}
       <header className="sticky top-0 z-40 flex items-center justify-between gap-3 border-b border-bone-200 bg-bone-50/95 px-5 py-3.5 backdrop-blur md:hidden">
         <Wordmark />
         <div className="flex items-center gap-1">
-          <button
-            type="button"
-            aria-label="Notifiche"
-            className="rounded-full p-2 text-ink-500 transition-colors hover:bg-bone-100"
-          >
-            <BellIcon className="h-5 w-5" />
-          </button>
+          <Campanella nonLette={contatori.notificheNonLette} />
           <LogoutButton className="rounded-full px-2.5 py-2 text-xs text-ink-500 transition-colors hover:bg-bone-100" />
         </div>
       </header>
 
-      {/* pb-24 lascia spazio alla tab bar su telefono. */}
+      {/* pb-24 lascia spazio alla barra in fondo su telefono. */}
       <main className="min-w-0 flex-1 px-5 pt-6 pb-24 sm:px-8 md:pb-12 lg:px-12 lg:pt-10">
         <div className="mx-auto w-full max-w-[1180px]">{children}</div>
       </main>
 
-      <PatientTabBar />
+      <PatientTabBar
+        messaggiNonLetti={contatori.messaggiNonLetti}
+        questionariDaFare={contatori.questionariDaFare}
+      />
     </div>
   );
 }

@@ -231,3 +231,87 @@ export const mockPatientDashboard: PatientDashboardData = {
     },
   ],
 };
+
+/* ═══════════════════════════════════════════════════════════════════
+   Le sezioni nuove, in modalità dimostrativa
+
+   Servono a poter lavorare su risultati, questionari e messaggi senza un
+   database. Sono dichiaratamente finti: l'avviso nella barra laterale lo
+   dice, e nessuna di queste righe raggiunge mai un paziente vero.
+   ═══════════════════════════════════════════════════════════════════ */
+
+export const mockLetture = [
+  { metricCode: "hba1c", label: "Emoglobina glicata", unit: "%", value: 5.9, category: null, refLow: 4, refHigh: 5.6, measuredOn: "2026-01-14" },
+  { metricCode: "hba1c", label: "Emoglobina glicata", unit: "%", value: 5.3, category: null, refLow: 4, refHigh: 5.6, measuredOn: "2026-08-20" },
+  { metricCode: "glucose_fasting", label: "Glicemia a digiuno", unit: "mg/dL", value: 96, category: null, refLow: 70, refHigh: 99, measuredOn: "2026-01-14" },
+  { metricCode: "glucose_fasting", label: "Glicemia a digiuno", unit: "mg/dL", value: 89, category: null, refLow: 70, refHigh: 99, measuredOn: "2026-08-20" },
+  { metricCode: "ldl", label: "Colesterolo LDL", unit: "mg/dL", value: 132, category: null, refLow: null, refHigh: 115, measuredOn: "2026-01-14" },
+  { metricCode: "ldl", label: "Colesterolo LDL", unit: "mg/dL", value: 121, category: null, refLow: null, refHigh: 115, measuredOn: "2026-08-20" },
+  { metricCode: "hdl", label: "Colesterolo HDL", unit: "mg/dL", value: 58, category: null, refLow: 40, refHigh: null, measuredOn: "2026-08-20" },
+  { metricCode: "vo2max", label: "VO₂ max", unit: "mL/kg/min", value: 40.5, category: null, refLow: null, refHigh: null, measuredOn: "2026-01-14" },
+  { metricCode: "vo2max", label: "VO₂ max", unit: "mL/kg/min", value: 44.1, category: null, refLow: null, refHigh: null, measuredOn: "2026-08-20" },
+  { metricCode: "body_fat_pct", label: "Massa grassa", unit: "%", value: 21.3, category: null, refLow: null, refHigh: null, measuredOn: "2026-01-14" },
+  { metricCode: "body_fat_pct", label: "Massa grassa", unit: "%", value: 18.4, category: null, refLow: null, refHigh: null, measuredOn: "2026-08-20" },
+  { metricCode: "sbp", label: "Pressione sistolica", unit: "mmHg", value: 127, category: null, refLow: null, refHigh: 130, measuredOn: "2026-01-14" },
+  { metricCode: "sbp", label: "Pressione sistolica", unit: "mmHg", value: 118, category: null, refLow: null, refHigh: 130, measuredOn: "2026-08-20" },
+];
+
+export const mockQuestionari = [
+  {
+    id: "demo-q1",
+    titolo: "Qualità del sonno",
+    descrizione: "Sette domande sulle ultime due settimane.",
+    stato: "not_started" as const,
+    progressoPct: 0,
+    minutiStimati: 4,
+    scadeIl: "2026-09-20",
+    completatoIl: null,
+    domande: [],
+    risposte: {},
+  },
+  {
+    id: "demo-q2",
+    titolo: "Stile di vita",
+    descrizione: "Movimento, alimentazione, alcol e fumo.",
+    stato: "in_progress" as const,
+    progressoPct: 50,
+    minutiStimati: 6,
+    scadeIl: null,
+    completatoIl: null,
+    domande: [],
+    risposte: {},
+  },
+  {
+    id: "demo-q3",
+    titolo: "Benessere ed energia",
+    descrizione: "Come ti senti nelle ultime due settimane.",
+    stato: "completed" as const,
+    progressoPct: 100,
+    minutiStimati: 4,
+    scadeIl: null,
+    completatoIl: "2026-08-18T10:12:00Z",
+    domande: [],
+    risposte: {},
+  },
+];
+
+export const mockConversazioni = [
+  {
+    id: "demo-t1",
+    oggetto: "Referto di agosto",
+    categoria: "clinical" as const,
+    chiusa: false,
+    ultimoMessaggioIl: "2026-08-22T08:40:00Z",
+    nonLetti: 1,
+    anteprima: "Ho visto i valori: la glicata è scesa. Ne parliamo alla prossima visita.",
+  },
+  {
+    id: "demo-t2",
+    oggetto: "Fattura di luglio",
+    categoria: "administrative" as const,
+    chiusa: true,
+    ultimoMessaggioIl: "2026-07-30T15:05:00Z",
+    nonLetti: 0,
+    anteprima: "Trovi la fattura fra i tuoi documenti. Buona giornata.",
+  },
+];

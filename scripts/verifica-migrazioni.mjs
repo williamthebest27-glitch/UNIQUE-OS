@@ -61,7 +61,12 @@ if (conSeed) {
   // Il trigger su auth.users crea il profilo, esattamente come in Supabase.
   await q("insert into auth.users (email) values ($1), ($2)", [EMAIL_PAZIENTE, EMAIL_PRO]);
 
-  for (const nome of ["demo-paziente.sql", "demo-clinica.sql", "demo-marketing.sql"]) {
+  for (const nome of [
+    "demo-paziente.sql",
+    "demo-clinica.sql",
+    "demo-marketing.sql",
+    "demo-paziente-sezioni.sql",
+  ]) {
     const sql = readFileSync(join(SUPABASE, nome), "utf8")
       .replaceAll("'INSERISCI-LA-TUA-EMAIL@esempio.it'", `'${EMAIL_PAZIENTE}'`)
       .replace(/v_pro_email(\s+)text(\s*):=(\s*)''/, `v_pro_email$1text$2:=$3'${EMAIL_PRO}'`);
@@ -99,7 +104,35 @@ if (conSeed) {
     ["documenti", "select id from public.documents"],
     ["note cliniche", "select id from public.clinical_notes"],
     ["punteggi", "select id from public.longevity_scores"],
+    ["questionari", "select id from public.patient_assessments"],
+    ["consensi", "select id from public.patient_consents"],
+    // I fili amministrativi la reception li deve vedere: è chi risponde
+    // di appuntamenti e fatture. Quelli clinici no, mai.
+    [
+      "messaggi clinici",
+      `select m.id from public.messages m
+         join public.message_threads t on t.id = m.thread_id
+        where t.category = 'clinical'`,
+    ],
   ];
+
+  /*
+   * Un controllo vale quanto i dati su cui gira.
+   *
+   * Una tabella vuota passa qualunque verifica di permessi: "la
+   * reception non vede i questionari" sarebbe vero nel modo in cui è
+   * vero che non vede una tabella che non esiste. Qui si pretende che
+   * ogni query dell'elenco, eseguita **senza restrizioni**, trovi almeno
+   * una riga — altrimenti il test dopo non prova niente.
+   */
+  const senzaRighe = [];
+  for (const [nome, sql] of CLINICO) {
+    if ((await q(sql)).length === 0) senzaRighe.push(nome);
+  }
+  if (senzaRighe.length > 0) {
+    console.log(`✘ il controllo girerebbe a vuoto — nessuna riga in: ${senzaRighe.join(", ")}`);
+    uscita = 1;
+  }
 
   const comeRuolo = async (ruolo, email) => {
     const [{ id }] = await q("insert into auth.users (email) values ($1) returning id", [email]);
@@ -125,6 +158,77 @@ if (conSeed) {
       uscita = 1;
     }
   };
+
+  /*
+   * Un paziente non vede l'altro.
+   *
+   * È lo scenario che conta più di tutti: cambiare un id in un URL o in
+   * una chiamata. Nella Patient App gli id non compaiono, ma non è
+   * quella la difesa — la difesa è che una riga di un altro paziente non
+   * esiste per la sessione di questo, qualunque query si scriva.
+   *
+   * Il test crea un secondo paziente vuoto, entra come lui e prova a
+   * leggere **tutto** senza filtri: se la Row Level Security regge, non
+   * torna niente. Le stesse query, eseguite dal primo paziente, devono
+   * invece restituire le sue righe — altrimenti staremmo festeggiando
+   * un database che non risponde.
+   */
+  const PROPRI = [
+    ["misure", "select id from public.measurements"],
+    ["documenti", "select id from public.documents"],
+    ["punteggi", "select id from public.longevity_scores"],
+    ["questionari", "select id from public.patient_assessments"],
+    ["messaggi", "select id from public.messages"],
+    ["conversazioni", "select id from public.message_threads"],
+    ["consensi", "select id from public.patient_consents"],
+    ["crediti", "select id from public.credit_entries"],
+    ["appuntamenti", "select id from public.appointments"],
+  ];
+
+  const comePaziente = async (profiloId) => {
+    await db.exec(`set request.jwt.claim.sub = '${profiloId}'`);
+    await db.exec("set role authenticated");
+    const visti = [];
+    for (const [nome, sql] of PROPRI) {
+      try {
+        if ((await q(sql)).length > 0) visti.push(nome);
+      } catch {
+        // Permesso negato: la riga non si vede, ed è quello che vogliamo.
+      }
+    }
+    await db.exec("reset role");
+    return visti;
+  };
+
+  const [primo] = await q(
+    "select p.id, p.profile_id from public.patients p order by p.created_at limit 1",
+  );
+
+  if (!primo) {
+    console.log("✘ nessun paziente dimostrativo: isolamento non verificabile");
+    uscita = 1;
+  } else {
+    // Il secondo paziente: stesso ruolo, scheda diversa, nessun dato.
+    const [{ id: altroProfilo }] = await q(
+      "insert into auth.users (email) values ($1) returning id",
+      ["verifica.paziente@esempio.it"],
+    );
+    await q("update public.profiles set role = 'patient' where id = $1", [altroProfilo]);
+    await q("insert into public.patients (profile_id) values ($1)", [altroProfilo]);
+
+    const suoi = await comePaziente(primo.profile_id);
+    const altrui = await comePaziente(altroProfilo);
+
+    if (suoi.length === 0) {
+      console.log("✘ il paziente non vede nemmeno i propri dati: il test non prova nulla");
+      uscita = 1;
+    } else if (altrui.length > 0) {
+      console.log(`✘ un paziente vede i dati di un altro: ${altrui.join(", ")}`);
+      uscita = 1;
+    } else {
+      console.log(`✔ paziente: vede i propri dati (${suoi.length} tabelle), nessuno degli altri`);
+    }
+  }
 
   await comeRuolo("marketing", "verifica.marketing@esempio.it");
   await comeRuolo("reception", "verifica.reception@esempio.it");

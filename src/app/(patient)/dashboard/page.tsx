@@ -1,21 +1,15 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { requirePatientDashboard } from "@/lib/data/patient";
+import { situazione } from "@/lib/data/percorso-paziente";
 import { SchedaInAttesa } from "@/components/patient/scheda-in-attesa";
 import { ScoreHero } from "@/components/patient/score-hero";
 import { Intro } from "@/components/patient/intro";
 import { Reveal, SplitText } from "@/components/motion/reveal";
-import {
-  CreditsCard,
-  NextVisitCard,
-  ProgramCard,
-} from "@/components/patient/cards";
-import {
-  ActionsCard,
-  DocumentsCard,
-  HighlightsCard,
-  NotificationsCard,
-} from "@/components/patient/lists";
-import { BellIcon } from "@/components/ui/primitives";
+import { ProssimoPasso } from "@/components/patient/prossimo-passo";
+import { CreditsCard, NextVisitCard, ProgramCard } from "@/components/patient/cards";
+import { ActionsCard, DocumentsCard, HighlightsCard } from "@/components/patient/lists";
+import { ChevronIcon } from "@/components/ui/primitives";
 
 export const metadata: Metadata = { title: "Home" };
 
@@ -23,7 +17,18 @@ export const metadata: Metadata = { title: "Home" };
 // prerenderizzata a build time.
 export const dynamic = "force-dynamic";
 
-const todayFormatter = new Intl.DateTimeFormat("it-IT", {
+/**
+ * La home del paziente.
+ *
+ * L'ordine è una gerarchia, non un'impaginazione. Prima **cosa fare
+ * adesso**, perché è la domanda con cui si apre un'app di salute; poi
+ * **come sto**, che è la ragione per cui si torna; poi il presente
+ * concreto — la prossima visita, il percorso, i crediti; poi ciò che è
+ * arrivato. I progressi chiudono, perché sono la prova che il percorso
+ * funziona e si guardano volentieri per ultimi.
+ */
+
+const oggiFormatter = new Intl.DateTimeFormat("it-IT", {
   weekday: "long",
   day: "numeric",
   month: "long",
@@ -34,7 +39,7 @@ export default async function PatientHomePage() {
   const data = await requirePatientDashboard();
   if (!data) return <SchedaInAttesa />;
 
-  const unreadCount = data.notifications.filter((n) => n.readAt === null).length;
+  const stato = await situazione(data);
   const firstName = data.profile.firstName ?? data.profile.fullName.split(" ")[0];
 
   return (
@@ -43,37 +48,25 @@ export default async function PatientHomePage() {
 
       <div className="space-y-6 lg:space-y-8">
         {/* ── Saluto ─────────────────────────────────────────────── */}
-        <header className="flex items-start justify-between gap-6">
-          <div>
-            <h1 className="font-display text-[34px] leading-[1.05] text-ink-900 sm:text-[44px]">
-              <SplitText text={`Ciao ${firstName}.`} />
-            </h1>
-            <p
-              className="mt-2 text-sm text-ink-400 first-letter:uppercase"
-              data-reveal=""
-              style={{ "--i": 3 } as React.CSSProperties}
-            >
-              {todayFormatter.format(new Date())}
-            </p>
-          </div>
-
-          <button
-            type="button"
-            aria-label={
-              unreadCount > 0 ? `Notifiche, ${unreadCount} non lette` : "Notifiche"
-            }
-            className="relative hidden rounded-full bg-white p-2.5 text-ink-500 ring-1 ring-bone-200 transition-colors hover:text-ink-900 md:block"
+        <header>
+          <h1 className="font-display text-[34px] leading-[1.05] text-ink-900 sm:text-[44px]">
+            <SplitText text={`Ciao ${firstName}.`} />
+          </h1>
+          <p
+            className="mt-2 text-sm text-ink-400 first-letter:uppercase"
             data-reveal=""
-            style={{ "--i": 4 } as React.CSSProperties}
+            style={{ "--i": 3 } as React.CSSProperties}
           >
-            <BellIcon className="h-5 w-5" />
-            {unreadCount > 0 ? (
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-brand-500 ring-2 ring-white" />
-            ) : null}
-          </button>
+            {oggiFormatter.format(new Date())} · {stato.fase.reason}
+          </p>
         </header>
 
-        {/* ── La Signature ───────────────────────────────────────── */}
+        {/* ── Cosa fare adesso ───────────────────────────────────── */}
+        <Reveal index={0}>
+          <ProssimoPasso passi={stato.passi} />
+        </Reveal>
+
+        {/* ── Come sto ───────────────────────────────────────────── */}
         <Reveal index={1}>
           <ScoreHero score={data.score} history={data.scoreHistory} seed={data.profile.id} />
         </Reveal>
@@ -96,19 +89,30 @@ export default async function PatientHomePage() {
           <Reveal className="lg:col-span-2" index={0}>
             <ActionsCard actions={data.actions} />
           </Reveal>
-          <div className="space-y-6">
-            <Reveal index={1}>
-              <DocumentsCard documents={data.newDocuments} />
-            </Reveal>
-            <Reveal index={2}>
-              <NotificationsCard notifications={data.notifications} />
-            </Reveal>
-          </div>
+          <Reveal index={1}>
+            <DocumentsCard documents={data.newDocuments} />
+          </Reveal>
         </div>
 
         {/* ── La prova che il percorso funziona ──────────────────── */}
         <Reveal>
           <HighlightsCard highlights={data.highlights} />
+        </Reveal>
+
+        <Reveal>
+          <Link
+            href="/assistente"
+            className="group flex items-center gap-4 rounded-card bg-ink-900 px-6 py-5 text-bone-50 transition-colors hover:bg-ink-800"
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block font-display text-[20px] leading-tight">Chiedi a Unique</span>
+              <span className="mt-1 block text-sm text-bone-50/55">
+                Come sto andando, cosa è cambiato, cosa mi conviene fare. Risponde con i tuoi dati,
+                senza mandarli da nessuna parte.
+              </span>
+            </span>
+            <ChevronIcon className="h-5 w-5 shrink-0 text-bone-50/50 transition-transform group-hover:translate-x-0.5" />
+          </Link>
         </Reveal>
       </div>
     </>

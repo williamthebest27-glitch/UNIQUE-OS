@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { requirePatientDashboard } from "@/lib/data/patient";
 import { SchedaInAttesa } from "@/components/patient/scheda-in-attesa";
 import { PageHeading } from "@/components/shell/page-heading";
-import { SEZIONI_PAZIENTE } from "@/lib/sezioni";
+import { sezioneDi } from "@/lib/patient/sezioni";
 import { CreditsCard, MEMBERSHIP_STATUS_LABELS } from "@/components/patient/cards";
 import { formatShortDate } from "@/lib/format";
 import { Badge, Card, CardHeader, EmptyState, cx } from "@/components/ui/primitives";
@@ -58,7 +58,7 @@ export default async function CreditiPage() {
 
   return (
     <div className="space-y-6 lg:space-y-8">
-      <PageHeading {...SEZIONI_PAZIENTE.crediti} />
+      <PageHeading title={sezioneDi("/crediti")!.titolo} subtitle={sezioneDi("/crediti")!.sottotitolo} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <CreditsCard membership={m} />

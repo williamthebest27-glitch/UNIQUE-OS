@@ -38,7 +38,8 @@ with stato as (
     (12, '20260904110000_knowledge_base.sql',                 to_regclass('public.knowledge_entries')  is not null),
     (13, '20260904120000_marketing.sql',                      to_regclass('public.campaigns')          is not null),
     (14, '20260904130000_brain_approvals_tasks.sql',          to_regclass('public.brain_proposals')    is not null),
-    (15, '20260904140000_gestionale.sql',                     to_regclass('public.receipt_counters')   is not null)
+    (15, '20260904140000_gestionale.sql',                     to_regclass('public.receipt_counters')   is not null),
+    (16, '20260904150000_esperienza_paziente.sql',            to_regclass('public.patient_assessments') is not null)
   ) as t(numero, file, applicata)
 )
 select

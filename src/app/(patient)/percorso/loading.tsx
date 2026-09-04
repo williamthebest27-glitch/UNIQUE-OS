@@ -1,4 +1,4 @@
-import { SEZIONI_PAZIENTE } from "@/lib/sezioni";
+import { sezioneDi } from "@/lib/patient/sezioni";
 import {
   CardScheletro,
   PaginaInCaricamento,
@@ -6,7 +6,7 @@ import {
 
 export default function CaricamentoPercorso() {
   return (
-    <PaginaInCaricamento {...SEZIONI_PAZIENTE.percorso}>
+    <PaginaInCaricamento title={sezioneDi("/percorso")!.titolo} subtitle={sezioneDi("/percorso")!.sottotitolo}>
       <div className="space-y-6">
         <CardScheletro righe={2} className="min-h-[180px]" />
         <div className="grid gap-6 lg:grid-cols-2">

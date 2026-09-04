@@ -1,9 +1,9 @@
-import { SEZIONI_PAZIENTE } from "@/lib/sezioni";
+import { sezioneDi } from "@/lib/patient/sezioni";
 import { ListaScheletro, PaginaInCaricamento } from "@/components/shell/skeleton";
 
 export default function CaricamentoDocumenti() {
   return (
-    <PaginaInCaricamento {...SEZIONI_PAZIENTE.documenti}>
+    <PaginaInCaricamento title={sezioneDi("/documenti")!.titolo} subtitle={sezioneDi("/documenti")!.sottotitolo}>
       <ListaScheletro righe={5} />
     </PaginaInCaricamento>
   );

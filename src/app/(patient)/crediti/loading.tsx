@@ -1,4 +1,4 @@
-import { SEZIONI_PAZIENTE } from "@/lib/sezioni";
+import { sezioneDi } from "@/lib/patient/sezioni";
 import {
   CardScheletro,
   ListaScheletro,
@@ -7,7 +7,7 @@ import {
 
 export default function CaricamentoCrediti() {
   return (
-    <PaginaInCaricamento {...SEZIONI_PAZIENTE.crediti}>
+    <PaginaInCaricamento title={sezioneDi("/crediti")!.titolo} subtitle={sezioneDi("/crediti")!.sottotitolo}>
       <div className="space-y-6">
         <div className="grid gap-6 sm:grid-cols-2">
           <CardScheletro righe={3} />
