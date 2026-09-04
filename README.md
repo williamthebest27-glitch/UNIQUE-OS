@@ -33,8 +33,10 @@ distinti.
   storico, sei pilastri, prossima visita, percorso attivo, crediti, azioni
   consigliate, documenti nuovi, messaggi e progressi ottenuti.
 - **Sezioni Percorso, Documenti, Appuntamenti e Crediti**, sugli stessi componenti.
-- **Autenticazione senza password** — link di accesso via email, sessione rinnovata
-  a ogni richiesta, rotte protette, smistamento per ruolo dalla radice.
+- **Accesso con password o con link via email** — chi entra ogni giorno vuole una
+  password, chi entra due volte l’anno non se la ricorderebbe: convivono, e la
+  prima password si sceglie da un collegamento ricevuto per posta. Sessione
+  rinnovata a ogni richiesta, rotte protette, smistamento per ruolo dalla radice.
 - **Dati reali da Supabase** — tutte le query della home passano dal database e sono
   filtrate dalla Row Level Security.
 - **Longevity Score calcolato, non inserito** — sette pilastri, una trentina di

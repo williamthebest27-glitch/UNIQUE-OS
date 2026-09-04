@@ -29,7 +29,8 @@ export default async function AccediPage({
             Accedi al tuo percorso
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-ink-500">
-            Ti inviamo un link sicuro via email. Nessuna password da ricordare.
+            Entra con la tua password. Se preferisci, ti mandiamo un link via
+            email.
           </p>
 
           {errore ? (

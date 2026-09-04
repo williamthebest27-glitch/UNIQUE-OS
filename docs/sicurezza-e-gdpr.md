@@ -48,6 +48,32 @@ Se la regola di accesso cambia, cambia in un posto solo. La scrittura di dati
 clinici passa da `can_write_clinical()`, che esclude il paziente stesso: nessuno
 può modificare il proprio referto.
 
+## Le password
+
+Si entra con email e password, o con un link via email: due strade per persone
+diverse, e la seconda resta perché per un paziente che accede due volte l’anno è
+spesso la migliore.
+
+Le password le custodisce Supabase, non l’applicazione: qui non transitano mai in
+chiaro fuori dalla richiesta che le porta, non finiscono nei log — dove va solo il
+codice dell’errore — e non esiste una tabella nostra che le contenga.
+
+Il minimo è **dodici caratteri**, non i sei che Supabase applica per impostazione
+predefinita: la password di un professionista è la chiave della cartella clinica
+di qualcun altro. Il controllo sta in `PASSWORD_MINIMA`, e va ripetuto nel
+progetto Supabase (Authentication → Policies) perché valga anche per chi non
+passa dall’applicazione.
+
+Per cambiarla non si chiede la vecchia: a dimostrare l’identità è la sessione,
+aperta dal collegamento ricevuto per posta. Chiederla in più darebbe l’impressione
+di un controllo che non c’è, e chi arriva dal link una password vecchia potrebbe
+non averla mai avuta.
+
+Un messaggio d’errore non dice mai se un indirizzo è registrato: Supabase risponde
+`invalid_credentials` sia per una password sbagliata sia per un utente inesistente,
+e l’applicazione ripete quella stessa frase — "email o password non corretti" —
+per entrambi.
+
 ## La chiave service-role
 
 `SUPABASE_SERVICE_ROLE_KEY` **bypassa completamente la Row Level Security**. Va usata
@@ -125,7 +151,12 @@ autorizza solo la direzione, e il controllo sta anche nel database — in
    larga scala è verosimilmente obbligatoria.
 4. **Popolare `audit_log` davvero.** La tabella esiste; vanno scritte le chiamate a
    ogni lettura e modifica di dati clinici, lato server.
-5. **Autenticazione a due fattori** per i profili `professional`, `admin` e `owner`.
+5. **Autenticazione a due fattori** per i profili `professional`, `admin` e
+   `owner`. Con l’accesso a password è diventata più urgente, non meno: finché
+   c’era solo il link via email, entrare richiedeva l’accesso a una casella;
+   adesso basta una stringa, e una stringa si riusa, si scrive su un foglio e si
+   ritrova nelle violazioni altrui. Supabase supporta il TOTP: va acceso per chi
+   vede dati clinici.
 6. **Politica di conservazione e cancellazione** — diritto all’oblio, tempi di
    conservazione della documentazione sanitaria, esportazione dei dati su richiesta
    del paziente (portabilità, art. 20).

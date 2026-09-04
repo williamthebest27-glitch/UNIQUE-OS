@@ -1,3 +1,5 @@
+import { PASSWORD_MINIMA } from "./auth-state.ts";
+
 /**
  * Che cosa dire quando l'accesso non riesce.
  *
@@ -80,6 +82,87 @@ export function messaggioPerErrore(codice?: string | null, testo?: string | null
   // Restano i casi che rivelerebbero se l'indirizzo è registrato
   // (`otp_disabled`, "signups not allowed"): messaggio generico, sempre.
   return GENERICO;
+}
+
+/**
+ * Che cosa dire quando l'accesso con password non riesce.
+ *
+ * Funzione a sé e non un ramo della precedente, perché il messaggio
+ * generico è diverso: lì si parla di un link che non è partito, qui di
+ * credenziali che non tornano.
+ *
+ * Il confine sull'esistenza dell'indirizzo resta, ma si sposta: Supabase
+ * risponde `invalid_credentials` sia quando la password è sbagliata sia
+ * quando l'utente non esiste, ed è esattamente ciò che serve. Ripeterlo
+ * in italiano — "email o password non corretti" — non rivela quale dei
+ * due sia.
+ */
+const GENERICO_PASSWORD: EsitoErrore = {
+  messaggio:
+    "Non siamo riusciti a completare l’accesso. Riprova, oppure scrivi alla segreteria.",
+  codice: "accesso",
+};
+
+export function messaggioPerPassword(
+  codice?: string | null,
+  testo?: string | null,
+): EsitoErrore {
+  const c = (codice ?? "").toLowerCase();
+  const t = (testo ?? "").toLowerCase();
+
+  if (c.includes("invalid_credentials") || t.includes("invalid login credentials")) {
+    return {
+      messaggio: "Email o password non corretti.",
+      codice: "credenziali",
+    };
+  }
+
+  if (c.includes("email_not_confirmed") || t.includes("email not confirmed")) {
+    return {
+      messaggio:
+        "L’indirizzo non è ancora stato confermato. Apri il link che ti abbiamo inviato, " +
+        "oppure entra con un link via email.",
+      codice: "non-confermata",
+    };
+  }
+
+  if (c.includes("weak_password") || t.includes("password should be")) {
+    return {
+      messaggio: `La password è troppo debole: servono almeno ${PASSWORD_MINIMA} caratteri, e meglio se non sono una parola sola.`,
+      codice: "debole",
+    };
+  }
+
+  if (c.includes("same_password") || t.includes("should be different")) {
+    return {
+      messaggio: "La nuova password è uguale a quella di prima.",
+      codice: "identica",
+    };
+  }
+
+  // Troppi tentativi ravvicinati: è una difesa, non un guasto, e va detto
+  // così — altrimenti chi ha davvero dimenticato la password insiste.
+  if (
+    c.includes("rate_limit") ||
+    t.includes("rate limit") ||
+    t.includes("too many requests")
+  ) {
+    return {
+      messaggio:
+        "Troppi tentativi ravvicinati. Attendi qualche minuto: è una protezione dell’account, non un guasto.",
+      codice: "limite-tentativi",
+    };
+  }
+
+  if (c.includes("session") || t.includes("session")) {
+    return {
+      messaggio:
+        "La sessione è scaduta prima che facessi in tempo. Richiedi un nuovo link e riprova.",
+      codice: "sessione",
+    };
+  }
+
+  return GENERICO_PASSWORD;
 }
 
 /** I motivi per cui un collegamento ricevuto via email può non funzionare. */

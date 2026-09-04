@@ -134,8 +134,27 @@ Senza il secondo, il link ricevuto via email non riporta all’applicazione.
 ### Le email di accesso: da Supabase a Resend
 
 Il servizio di posta incluso in Supabase serve solo a provare: **due email
-all’ora**, senza garanzie di consegna. Con l’accesso senza password l’email *è*
-il login, quindi in produzione va sostituito. Resend è una scelta ragionevole.
+all’ora**, senza garanzie di consegna. L’email resta la strada per la prima
+password e per chi preferisce entrare con un link, quindi in produzione va
+sostituito. Resend è una scelta ragionevole.
+
+### La prima password
+
+Un account creato con il link via email non ha una password: `signInWithPassword`
+non ha niente con cui confrontarsi finché non se ne sceglie una.
+
+Due strade, e la seconda non richiede che la posta funzioni:
+
+- **Dall’applicazione** — in `/accedi`, *"Non ho una password, o non la ricordo"*.
+  Arriva un collegamento che apre `/imposta-password`; da lì in poi si entra
+  direttamente.
+- **Dalla dashboard** — Authentication → Users → l’utente → *Reset password*, o
+  impostandola a mano. Utile per il primo accesso di chi amministra, prima che
+  l’SMTP sia configurato.
+
+Il minimo è **dodici caratteri**, applicato dall’applicazione. Vale la pena
+alzarlo anche nel progetto — Authentication → Policies → Password requirements —
+perché quello vale per tutti, non solo per chi passa da qui.
 
 **Su Resend**
 
