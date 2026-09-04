@@ -90,7 +90,7 @@ function Voce({
  * `localStorage` andrebbero fuori sincrono al primo clic.
  *
  * Il marchio e il blocco in fondo arrivano da fuori come contenuto, così
- * la colonna non conosce né il profilo né l'azione di uscita.
+ * la colonna non conosce il profilo di chi la sta guardando.
  */
 export function ColonnaPaziente({
   marchio,
@@ -102,7 +102,8 @@ export function ColonnaPaziente({
   marchio: React.ReactNode;
   /** Il marchio a colonna stretta: una lettera, non un logo rimpicciolito. */
   marchioStretto: React.ReactNode;
-  piede: React.ReactNode;
+  /** Il blocco in fondo alla colonna, quando c'è qualcosa da dire. */
+  piede?: React.ReactNode;
   messaggiNonLetti?: number;
   questionariDaFare?: number;
 }) {
@@ -155,7 +156,7 @@ export function ColonnaPaziente({
 
       <StrumentiPaziente stretta={stretta} alterna={alterna} />
 
-      {stretta ? null : <div className="pt-3">{piede}</div>}
+      {stretta || !piede ? null : <div className="pt-3">{piede}</div>}
     </aside>
   );
 }

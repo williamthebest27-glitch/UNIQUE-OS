@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
-import { esci } from "@/lib/auth-actions";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { contatoriNav } from "@/lib/data/paziente-sezioni";
 import { ColonnaPaziente, PatientTabBar } from "@/components/shell/patient-nav";
-import { BellIcon } from "@/components/ui/primitives";
+import { BarraSuperiore } from "@/components/shell/barra-utente";
+import { BellIcon, cx } from "@/components/ui/primitives";
 import { Marchio } from "@/components/brand/marchio";
 
 /**
@@ -31,22 +31,21 @@ function Wordmark() {
   );
 }
 
-function Initials({ name }: { name: string }) {
-  const initials =
-    name
-      .split(" ")
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase() ?? "")
-      .join("") || "?";
-
+/**
+ * Il marchio dove lo spazio è poco: la colonna stretta e la barra sul
+ * telefono. Il logotipo per esteso non è rimpicciolito, è tolto — sotto
+ * una certa larghezza «Longevity Clinic» in maiuscoletto spaziato non si
+ * legge più, occupa soltanto.
+ */
+function Simbolo({ className }: { className?: string }) {
   return (
-    <span
-      aria-hidden="true"
-      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-700 text-[13px] font-semibold text-bone-50"
+    <Link
+      href="/dashboard"
+      aria-label="Unique — vai alla home"
+      className={cx("flex shrink-0", className)}
     >
-      {initials}
-    </span>
+      <Marchio className="h-8 w-auto" />
+    </Link>
   );
 }
 
@@ -56,16 +55,6 @@ function DemoBadge() {
     <p className="rounded-lg bg-gold-100 px-2.5 py-1.5 text-[11px] leading-snug text-gold-600">
       Modalità dimostrativa — dati di esempio
     </p>
-  );
-}
-
-function LogoutButton({ className }: { className?: string }) {
-  return (
-    <form action={esci}>
-      <button type="submit" className={className}>
-        Esci
-      </button>
-    </form>
   );
 }
 
@@ -98,45 +87,26 @@ export default async function PatientLayout({
     <div className="min-h-dvh md:flex">
       <ColonnaPaziente
         marchio={<Wordmark />}
-        marchioStretto={
-          <Link
-            href="/dashboard"
-            aria-label="Unique — vai alla home"
-            className="flex justify-center"
-          >
-            <Marchio className="h-8 w-auto" />
-          </Link>
-        }
+        marchioStretto={<Simbolo className="justify-center" />}
         messaggiNonLetti={contatori.messaggiNonLetti}
         questionariDaFare={contatori.questionariDaFare}
-        piede={
-          <div className="space-y-4 border-t border-bone-200 pt-5">
-            {demo ? <DemoBadge /> : null}
-            <div className="flex items-center gap-3">
-              <Initials name={profile.fullName} />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-ink-900">{profile.fullName}</p>
-                <LogoutButton className="text-xs text-ink-400 transition-colors hover:text-ink-700" />
-              </div>
-              <Campanella nonLette={contatori.notificheNonLette} />
-            </div>
-          </div>
-        }
+        piede={demo ? <DemoBadge /> : null}
       />
 
-      {/* Barra superiore, solo su telefono. */}
-      <header className="sticky top-0 z-40 flex items-center justify-between gap-3 border-b border-bone-200 bg-bone-50/95 px-5 py-3.5 backdrop-blur md:hidden">
-        <Wordmark />
-        <div className="flex items-center gap-1">
-          <Campanella nonLette={contatori.notificheNonLette} />
-          <LogoutButton className="rounded-full px-2.5 py-2 text-xs text-ink-500 transition-colors hover:bg-bone-100" />
-        </div>
-      </header>
+      {/* Barra e contenuto in colonna: così la barra resta in cima al
+          contenuto, a fianco del menu e non sopra di esso. */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <BarraSuperiore
+          simbolo={<Simbolo />}
+          nome={profile.fullName}
+          azioni={<Campanella nonLette={contatori.notificheNonLette} />}
+        />
 
-      {/* pb-24 lascia spazio alla barra in fondo su telefono. */}
-      <main className="min-w-0 flex-1 px-5 pt-6 pb-24 sm:px-8 md:pb-12 lg:px-12 lg:pt-10">
-        <div className="mx-auto w-full max-w-[1180px]">{children}</div>
-      </main>
+        {/* pb-24 lascia spazio alla barra in fondo su telefono. */}
+        <main className="min-w-0 flex-1 px-5 pt-6 pb-24 sm:px-8 md:pb-12 lg:px-12 lg:pt-10">
+          <div className="mx-auto w-full max-w-[1180px]">{children}</div>
+        </main>
+      </div>
 
       <PatientTabBar
         messaggiNonLetti={contatori.messaggiNonLetti}

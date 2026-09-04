@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
-import { esci } from "@/lib/auth-actions";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getProNavCounts } from "@/lib/data/professional";
 import { ProSidebarNav, ProTabBar, type ProCounts } from "@/components/shell/pro-nav";
+import { BarraSuperiore } from "@/components/shell/barra-utente";
 import { Marchio } from "@/components/brand/marchio";
 
 /**
@@ -32,22 +32,16 @@ function Wordmark() {
   );
 }
 
-function Initials({ name }: { name: string }) {
-  const initials =
-    name
-      .split(" ")
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase() ?? "")
-      .join("") || "?";
-
+/** Il marchio per la barra sul telefono: il simbolo, non il logotipo. */
+function Simbolo() {
   return (
-    <span
-      aria-hidden="true"
-      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-700 text-[13px] font-semibold text-bone-50"
+    <Link
+      href="/pro"
+      aria-label="Unique — vai all'area clinica"
+      className="flex shrink-0"
     >
-      {initials}
-    </span>
+      <Marchio className="h-8 w-auto" />
+    </Link>
   );
 }
 
@@ -56,16 +50,6 @@ function DemoBadge() {
     <p className="rounded-lg bg-gold-100 px-2.5 py-1.5 text-[11px] leading-snug text-gold-600">
       Modalità dimostrativa — dati di esempio
     </p>
-  );
-}
-
-function LogoutButton({ className }: { className?: string }) {
-  return (
-    <form action={esci}>
-      <button type="submit" className={className}>
-        Esci
-      </button>
-    </form>
   );
 }
 
@@ -95,30 +79,23 @@ export default async function ProLayout({
           <ProSidebarNav counts={counts} />
         </div>
 
-        <div className="space-y-4 border-t border-bone-200 pt-5">
-          {demo ? <DemoBadge /> : null}
-          <div className="flex items-center gap-3">
-            <Initials name={profile.fullName} />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-ink-900">
-                {profile.fullName}
-              </p>
-              <LogoutButton className="text-xs text-ink-400 transition-colors hover:text-ink-700" />
-            </div>
+        {demo ? (
+          <div className="border-t border-bone-200 pt-5">
+            <DemoBadge />
           </div>
-        </div>
+        ) : null}
       </aside>
 
-      {/* Barra superiore, solo su telefono. */}
-      <header className="sticky top-0 z-40 flex items-center justify-between gap-3 border-b border-bone-200 bg-bone-50/95 px-5 py-3.5 backdrop-blur md:hidden">
-        <Wordmark />
-        <LogoutButton className="rounded-full px-2.5 py-2 text-xs text-ink-500 transition-colors hover:bg-bone-100" />
-      </header>
+      {/* Barra e contenuto in colonna: così la barra resta in cima al
+          contenuto, a fianco del menu e non sopra di esso. */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <BarraSuperiore simbolo={<Simbolo />} nome={profile.fullName} />
 
-      {/* pb-24 lascia spazio alla tab bar su telefono. */}
-      <main className="min-w-0 flex-1 px-5 pt-6 pb-24 sm:px-8 md:pb-12 lg:px-12 lg:pt-10">
-        <div className="mx-auto w-full max-w-[1180px]">{children}</div>
-      </main>
+        {/* pb-24 lascia spazio alla tab bar su telefono. */}
+        <main className="min-w-0 flex-1 px-5 pt-6 pb-24 sm:px-8 md:pb-12 lg:px-12 lg:pt-10">
+          <div className="mx-auto w-full max-w-[1180px]">{children}</div>
+        </main>
+      </div>
 
       <ProTabBar counts={counts} />
     </div>
