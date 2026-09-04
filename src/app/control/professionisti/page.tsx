@@ -1,7 +1,21 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
-import { elencoProfessionisti, elencoSedi, elencoServizi } from "@/lib/data/gestione";
-import { attivaDisattivaProfessionista, creaProfessionista, generaDisponibilita, salvaTurni } from "@/lib/gestione/actions";
+import {
+  elencoProfessionisti,
+  elencoSedi,
+  elencoServizi,
+  nomiPazienti,
+  teamPerProfessionista,
+} from "@/lib/data/gestione";
+import {
+  assegnaAlTeam,
+  attivaDisattivaProfessionista,
+  chiudiAssegnazione,
+  creaProfessionista,
+  generaDisponibilita,
+  salvaTurni,
+} from "@/lib/gestione/actions";
 import { DISCIPLINE, GIORNI_SETTIMANA, etichetta } from "@/lib/gestione/etichette";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { formatDurata } from "@/lib/format";
@@ -35,13 +49,25 @@ export default async function ProfessionistiPage() {
     );
   }
 
-  const [profile, professionisti, servizi, sedi] = await Promise.all([
+  const [profile, professionisti, servizi, sedi, pazienti, team] = await Promise.all([
     requireProfile(),
     elencoProfessionisti(),
     elencoServizi(false),
     elencoSedi(),
+    nomiPazienti(),
+    teamPerProfessionista(),
   ]);
   const direzione = ["admin", "owner"].includes(profile.role);
+
+  // Chi si può ancora assegnare a ciascuno: l'elenco meno chi già segue.
+  // Si calcola qui e non dentro la lista perché serve una riga sola per
+  // professionista, e nel corpo della `map` non c'è posto per una const.
+  const assegnabiliA = new Map(
+    professionisti.map((p) => {
+      const gia = new Set((team.get(p.id) ?? []).map((s) => s.patientId));
+      return [p.id, pazienti.filter((x) => !gia.has(x.id))] as const;
+    }),
+  );
 
   const oggi = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" }).format(new Date());
   const fraUnMese = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
@@ -131,6 +157,78 @@ export default async function ProfessionistiPage() {
                   </Campo>
                 </ModuloAzione>
               </details>
+
+              {direzione ? (
+                <details>
+                  <summary className="cursor-pointer text-sm text-bone-50/70 hover:text-bone-50">
+                    Pazienti seguiti · <span className="tnum">{(team.get(p.id) ?? []).length}</span>
+                  </summary>
+
+                  {(team.get(p.id) ?? []).length === 0 ? (
+                    <p className="mt-3 text-xs text-bone-50/35">
+                      Nessuno. Entra in area clinica e non trova nessun paziente: è il team a
+                      decidere cosa vede, non il ruolo.
+                    </p>
+                  ) : (
+                    <ul className="mt-3 space-y-1.5">
+                      {(team.get(p.id) ?? []).map((s) => (
+                        <li key={s.patientId} className="flex flex-wrap items-baseline gap-x-3">
+                          <Link
+                            href={`/control/pazienti/${s.patientId}`}
+                            className="text-sm text-bone-50/80 hover:text-bone-50"
+                          >
+                            {s.nome}
+                          </Link>
+                          {s.ruolo ? <span className="text-xs text-bone-50/35">{s.ruolo}</span> : null}
+                          <form action={chiudiAssegnazione} className="ml-auto">
+                            <input type="hidden" name="patientId" value={s.patientId} />
+                            <input type="hidden" name="professionalId" value={p.id} />
+                            <button
+                              type="submit"
+                              className="text-xs text-bone-50/40 transition-colors hover:text-gold-300"
+                            >
+                              Togli
+                            </button>
+                          </form>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {(assegnabiliA.get(p.id) ?? []).length === 0 ? (
+                    <p className="mt-3 text-xs text-bone-50/35">
+                      {pazienti.length === 0
+                        ? "Nessun paziente in anagrafica."
+                        : "Segue già tutti i pazienti in anagrafica."}
+                    </p>
+                  ) : (
+                    <ModuloAzione
+                      action={assegnaAlTeam}
+                      invio="Assegna"
+                      variante="quieto"
+                      className="mt-3 grid gap-3"
+                    >
+                      <input type="hidden" name="professionalId" value={p.id} />
+                      <Campo label="Aggiungi un paziente">
+                        <Scelta name="patientId" required defaultValue="">
+                          <option value="" disabled>
+                            Scegli…
+                          </option>
+                          {(assegnabiliA.get(p.id) ?? []).map((x) => (
+                            <option key={x.id} value={x.id}>
+                              {x.nome}
+                              {x.codice ? ` · ${x.codice}` : ""}
+                            </option>
+                          ))}
+                        </Scelta>
+                      </Campo>
+                      <Campo label="Ruolo nel team" hint="Facoltativo: è come compare in cartella.">
+                        <Testo name="ruolo" placeholder="Referente clinico" autoComplete="off" />
+                      </Campo>
+                    </ModuloAzione>
+                  )}
+                </details>
+              ) : null}
             </div>
           </Panel>
         ))

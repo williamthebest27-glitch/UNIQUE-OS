@@ -220,7 +220,7 @@ export default async function PazientiPage({
           <Niente>
             {attivi > 0 || filtri.q
               ? "Nessun paziente con questi filtri."
-              : "Nessun paziente assegnato. Le assegnazioni si gestiscono in care_team_members."}
+              : "Nessun paziente assegnato. Il care team lo compone la direzione, dalla scheda del paziente o dalla pagina dei professionisti."}
           </Niente>
         ) : (
           <ul className="mt-1 divide-y divide-bone-200/80">
