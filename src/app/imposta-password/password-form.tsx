@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { impostaPassword } from "@/lib/auth-actions";
 import { PASSWORD_MINIMA, statoPasswordIniziale } from "@/lib/auth-state";
+import { alzaSipario, calaSipario } from "@/components/brand/sipario";
 
 /**
  * Scegliere la password.
@@ -21,8 +22,21 @@ const ETICHETTA = "block text-[13px] font-medium text-ink-700";
 export function PasswordForm() {
   const [stato, azione, inCorso] = useActionState(impostaPassword, statoPasswordIniziale);
 
+  /*
+   * Anche questa è una soglia, ed è la prima di tutte: chi arriva qui
+   * dal link non ha mai avuto una password, e «Salva e entra» è il
+   * momento in cui l'account diventa suo. Il sipario cala come sul
+   * pulsante d'accesso — e si rialza subito se la password non passa.
+   * Come là, sta sul `submit` e non su `action`: l'azione del server
+   * resta al suo posto, e il modulo continua a funzionare senza
+   * JavaScript.
+   */
+  useEffect(() => {
+    if (stato.esito === "errore") alzaSipario();
+  }, [stato]);
+
   return (
-    <form action={azione} className="space-y-4">
+    <form action={azione} onSubmit={() => calaSipario()} className="space-y-4">
       <div>
         <label htmlFor="password" className={ETICHETTA}>
           Nuova password

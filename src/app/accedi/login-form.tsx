@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import {
   accediConPassword,
   richiediAccesso,
   richiediReimpostazione,
 } from "@/lib/auth-actions";
 import { statoAccessoIniziale } from "@/lib/auth-state";
+import { alzaSipario, calaSipario } from "@/components/brand/sipario";
 
 /**
  * Tre strade per la stessa porta.
@@ -108,6 +109,29 @@ export function LoginForm({ next }: { next?: string }) {
     statoAccessoIniziale,
   );
 
+  /*
+   * La soglia.
+   *
+   * «Entra» non è un pulsante come gli altri: chiude questa pagina e ne
+   * apre un'altra. Il sipario d'avvio cala sopra il modulo e il marchio
+   * si riempie mentre il server verifica la password, così l'attesa è
+   * l'ingresso nell'applicazione invece di un pulsante spento. Se la
+   * password non passa la pagina non cambia, e il sipario si rialza
+   * subito: l'errore sta lì sotto e non deve aspettare una scena.
+   *
+   * Il sipario si aggancia al `submit`, non all'azione: `action` deve
+   * restare l'azione del server, o il modulo smetterebbe di funzionare
+   * senza JavaScript — che è poi l'unico caso in cui il sipario non
+   * servirebbe comunque a nulla.
+   *
+   * Le altre due strade — il link via email e la scelta della password —
+   * non portano dentro: spediscono una lettera e restano qui. Lì il
+   * sipario sarebbe una promessa non mantenuta.
+   */
+  useEffect(() => {
+    if (statoPassword.esito === "errore") alzaSipario();
+  }, [statoPassword]);
+
   if (statoLink.esito === "inviato") {
     return (
       <PostaInviata
@@ -134,7 +158,11 @@ export function LoginForm({ next }: { next?: string }) {
   if (modalita === "password") {
     return (
       <div className="space-y-5">
-        <form action={azionePassword} className="space-y-4">
+        <form
+          action={azionePassword}
+          onSubmit={() => calaSipario()}
+          className="space-y-4"
+        >
           {next ? <input type="hidden" name="next" value={next} /> : null}
 
           <div>
