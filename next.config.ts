@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // pdfjs va lasciata fuori dal bundle: e una libreria Node con risorse
+  // proprie, e impacchettarla la rompe.
+  serverExternalPackages: ["pdfjs-dist"],
   reactStrictMode: true,
   // Il badge di sviluppo copre l angolo in basso a sinistra, dove vive
   // il profilo nella barra laterale.

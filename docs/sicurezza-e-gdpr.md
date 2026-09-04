@@ -110,6 +110,23 @@ settembre" ha una risposta ricostruibile per intero.
 un'altra cosa: gli eventi dicono cosa è cambiato, l'audit chi ha guardato. È il
 punto ancora aperto (vedi sotto).
 
+## Dove finiscono i dati clinici
+
+Da nessuna parte. Referti, misure e domande sulla cartella restano
+nell'infrastruttura: li legge il lettore proprietario, li confronta il copilot
+proprietario, e nessuno dei due apre una connessione verso l'esterno.
+
+È la differenza che conta di più in questo documento. Finché l'estrazione passava
+da un modello esterno, ogni referto caricato era un trasferimento di dati
+particolari verso un fornitore — con accordo sul trattamento, base giuridica e
+riga nel registro da mantenere. Adesso quel trasferimento non avviene, e
+l'adempimento sparisce insieme al rischio.
+
+Il modello linguistico resta disponibile per i casi che il codice non copre — un
+referto scansionato, una domanda posta in modo del tutto libero — e si accende di
+proposito con `UNIQUE_BRAIN=anthropic`. Accendendolo, quegli adempimenti tornano:
+è una decisione, e va presa sapendolo.
+
 ## Il Brain e i confini
 
 Il layer AI legge attraverso gli stessi confini di tutti: ogni strumento usa il

@@ -52,8 +52,11 @@ distinti.
 - **Area professionale** — agenda del giorno, documenti nuovi, task, pazienti da
   rivalutare, e permessi differenziati per disciplina: un valore fuori soglia
   clinica lo approva un medico, e a imporlo è il database.
-- **Copilot clinico** — risponde sui dati in cartella dichiarando sempre le fonti,
-  e vede solo ciò che vede chi lo interroga.
+- **Copilot clinico, senza modello** — cosa è peggiorato, cosa è migliorato, il
+  confronto fra le ultime due rilevazioni, cosa manca allo Score. Sono domande di
+  confronto, e un confronto è aritmetica su dati strutturati: la direzione la
+  decide la stessa curva che alimenta il punteggio, non il segno del valore
+  grezzo. Cita sempre valore e data, e vede solo ciò che vede chi lo interroga.
 - **Membership completa** — piano, stato, rinnovo, metodo di pagamento e i crediti
   in quattro numeri distinti: assegnati, utilizzati, prenotati, disponibili.
 - **Credit engine** — macchina a stati nel database: prenotazione, visita svolta,
@@ -70,9 +73,13 @@ distinti.
   costruzione, ciascuna con i fatti che l’hanno attivata.
 - **Customer journey** — lo stato di ogni persona derivato dai fatti, non da un
   campo aggiornato a mano.
-- **Motore clinico AI** — un documento viene letto da Claude, i parametri estratti
-  vengono validati da regole deterministiche, quelli clinicamente rilevanti
-  finiscono in coda di revisione e lo Score si ricalcola su ciò che è approvato.
+- **Lettura dei referti, senza modello** — il PDF viene riletto ricostruendo le
+  righe dalla posizione dei frammenti, gli esami si riconoscono dai sinonimi del
+  catalogo, le unità si convertono e ogni valore porta la fiducia della lettura.
+  I parametri passano poi dalle stesse regole deterministiche di prima: quelli
+  clinicamente rilevanti finiscono in coda di revisione, e lo Score si ricalcola
+  su ciò che un medico ha approvato. Un referto scansionato è un'immagine, e il
+  sistema lo dichiara invece di leggerlo male.
 - **Schema completo** — identità, care team, Score e pilastri, biomarcatori,
   percorsi, appuntamenti, documenti, membership, registro crediti append-only,
   notifiche, audit log.

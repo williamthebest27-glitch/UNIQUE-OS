@@ -107,7 +107,7 @@ export function CopilotPanel({
 
         {disabled ? (
           <p className="mt-4 text-xs text-ink-400">
-            ANTHROPIC_API_KEY non è impostata: il copilot è spento.
+            Il copilot è momentaneamente disattivato.
           </p>
         ) : null}
 

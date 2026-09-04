@@ -1,5 +1,33 @@
 # Il motore clinico AI
 
+> **Aggiornamento.** Il referto lo legge un lettore proprietario, senza modello e
+> senza rete. Il modello resta disponibile per i casi che il lettore non copre —
+> le scansioni, soprattutto — e si accende di proposito con `UNIQUE_BRAIN=anthropic`.
+>
+> **Come legge.** Un referto di laboratorio italiano non è prosa: è una tabella
+> con nome dell'esame, valore e intervallo di riferimento, scritta in cento
+> impaginazioni diverse. Il catalogo delle metriche porta già i sinonimi con cui
+> ogni esame compare su quei fogli; il lettore aggiunge il resto — ricostruisce
+> le righe del PDF dalla posizione verticale dei frammenti, taglia via
+> l'intervallo di riferimento prima di cercare il valore, legge i numeri
+> all'italiana, converte le unità (mmol/L → mg/dL) e dichiara quanto è sicuro di
+> ogni lettura.
+>
+> **Perché deterministico è meglio, qui.** Non per costo o per privacy — quelle
+> sono ragioni vere ma vengono dopo. È che un lettore a regole sbaglia sempre
+> allo stesso modo: se non riconosce un esame non lo riconosce mai, e lo si vede
+> subito. Un modello lo riconosce nove volte su dieci, e la decima sbaglia in
+> silenzio su un paziente che nessuno ricontrolla.
+>
+> **Cosa non sa fare, e lo dice.** Un referto scansionato è un'immagine: qui non
+> c'è riconoscimento ottico, e il documento resta in cartella per un
+> professionista invece di essere letto male.
+>
+> Quello che cambia è **solo chi legge**. Validazione, confronto con lo storico,
+> soglie di plausibilità e la decisione su cosa richiede un medico restano lo
+> stesso codice deterministico descritto qui sotto.
+
+
 Quando arriva un nuovo documento, il sistema lo legge, ne estrae i parametri,
 li confronta con lo storico e propone l’aggiornamento dei sottoscore.
 

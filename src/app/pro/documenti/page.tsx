@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getDocumentiRecenti } from "@/lib/data/professional";
-import { isBrainConfigured } from "@/lib/brain/extraction";
 import { formatShortDate } from "@/lib/format";
 import { PageHeading } from "@/components/shell/page-heading";
 import { Badge, Card, ChevronIcon, EmptyState } from "@/components/ui/primitives";
@@ -59,14 +58,7 @@ export default async function DocumentiPage() {
         subtitle="Referti e allegati dei pazienti che segui, dal più recente. Si aprono nella cartella, dove si analizzano e si approvano i valori."
       />
 
-      {!isBrainConfigured() ? (
-        <p className="mt-5 rounded-xl bg-gold-100 px-4 py-3 text-sm text-gold-600">
-          ANTHROPIC_API_KEY non è impostata: i documenti si caricano e si
-          leggono, ma il motore non ne estrae i valori.
-        </p>
-      ) : null}
-
-      <Card className="mt-8">
+            <Card className="mt-8">
         {documenti.length === 0 ? (
           <EmptyState>
             Nessun documento. Compaiono qui appena un paziente ne carica uno o

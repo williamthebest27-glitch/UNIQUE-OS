@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { isBrainConfigured } from "@/lib/brain/extraction";
+import { capacitaAttive } from "@/lib/brain/fornitore";
 import { approvaProposta, ricalcolaPunteggio, rifiutaProposta } from "@/lib/brain/actions";
 import { REVIEW_REASON_LABELS, type ReviewReason } from "@/lib/brain/validation";
 import { formatShortDate } from "@/lib/format";
@@ -218,10 +218,11 @@ export default async function RevisioniPage() {
         subtitle="I valori che il motore AI ha estratto dai documenti e propone di scrivere in cartella. Finché non li approvi, non toccano il punteggio del paziente."
       />
 
-      {!isBrainConfigured() ? (
+      {!capacitaAttive().estrazione ? (
         <p className="mt-5 rounded-xl bg-gold-100 px-4 py-3 text-sm text-gold-600">
-          ANTHROPIC_API_KEY non è impostata: il motore non può analizzare nuovi
-          documenti. Le proposte già in coda restano approvabili.
+          I referti li legge il lettore proprietario: riconosce gli esami dal
+          catalogo e non manda niente fuori. Un referto scansionato resta però
+          un&rsquo;immagine, e per quello servirebbe un modello.
         </p>
       ) : null}
 

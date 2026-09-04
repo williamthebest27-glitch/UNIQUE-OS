@@ -7,7 +7,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getPatientDashboard } from "@/lib/data/patient";
 import { getPatientTimeline } from "@/lib/data/timeline";
 import { getLatestBriefing } from "@/lib/brain/briefing";
-import { isBrainConfigured } from "@/lib/brain/extraction";
+import { capacitaAttive } from "@/lib/brain/fornitore";
 import { analizzaDocumento, generaBriefing } from "@/lib/brain/actions";
 import { formatShortDate } from "@/lib/format";
 import { ScoreHero } from "@/components/patient/score-hero";
@@ -121,6 +121,10 @@ export default async function CartellaPazientePage({
 
   const data = await getPatientDashboard(id);
   if (!data) notFound();
+
+  // Lettura dei referti e copilot funzionano con il motore proprietario.
+  // La sintesi pre-visita è scrittura, e quella vuole ancora un modello.
+  const capacita = capacitaAttive();
 
   const supabase = await createSupabaseServerClient();
 
@@ -310,7 +314,7 @@ export default async function CartellaPazientePage({
               </p>
             )}
 
-            {isBrainConfigured() ? (
+            {capacita.redazione ? (
               <form action={generaBriefing} className="mt-5">
                 <input type="hidden" name="patientId" value={id} />
                 <button
@@ -322,7 +326,9 @@ export default async function CartellaPazientePage({
               </form>
             ) : (
               <p className="mt-4 text-xs text-ink-400">
-                ANTHROPIC_API_KEY non è impostata: la sintesi non può essere generata.
+                La sintesi scritta richiede un modello linguistico, che non è
+                configurato. Il copilot qui sotto risponde comunque: chiedigli una
+                sintesi prima della visita.
               </p>
             )}
           </div>
@@ -477,7 +483,7 @@ export default async function CartellaPazientePage({
 
                     {analizzato ? (
                       <Badge tone="positive">Analizzato</Badge>
-                    ) : isBrainConfigured() ? (
+                    ) : (
                       <form action={analizzaDocumento}>
                         <input type="hidden" name="documentId" value={doc.id} />
                         <input type="hidden" name="patientId" value={id} />
@@ -488,7 +494,7 @@ export default async function CartellaPazientePage({
                           Analizza
                         </button>
                       </form>
-                    ) : null}
+                    )}
                   </li>
                 );
               })}
@@ -507,7 +513,7 @@ export default async function CartellaPazientePage({
         ) : null}
 
         {/* ── Copilot clinico ─────────────────────────────────── */}
-        <CopilotPanel patientId={id} disabled={!isBrainConfigured()} />
+        <CopilotPanel patientId={id} disabled={false} />
 
         {/* ── Azioni ──────────────────────────────────────────── */}
         <ActionsCard actions={data.actions} />

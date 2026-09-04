@@ -5,6 +5,8 @@ import { requireProfile } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { BRAIN_MODEL, BrainNotConfiguredError, isBrainConfigured } from "@/lib/brain/extraction";
 import { collectPatientData } from "@/lib/brain/briefing";
+import { motoreConversazione } from "@/lib/brain/fornitore";
+import { rispondiSullaCartella } from "@/lib/clinical/copilot-proprio";
 
 /**
  * Il copilot clinico dentro la cartella.
@@ -80,8 +82,6 @@ export async function askCopilot(
   patientId: string,
   question: string,
 ): Promise<CopilotAnswer> {
-  if (!isBrainConfigured()) throw new BrainNotConfiguredError();
-
   const profile = await requireProfile();
   if (profile.role === "patient") {
     throw new Error("Il copilot clinico è riservato ai professionisti.");
@@ -89,6 +89,23 @@ export async function askCopilot(
 
   const domanda = question.trim();
   if (domanda.length < 3) throw new Error("La domanda è troppo corta.");
+
+  /*
+   * Il copilot proprietario risponde per confronto.
+   *
+   * Le domande davanti a una cartella sono domande di confronto — cosa è
+   * peggiorato, cosa manca, com'è quel valore — e un confronto è
+   * aritmetica su dati già strutturati. Il modello serve per le domande
+   * poste in modo davvero libero, e si accende di proposito.
+   *
+   * In entrambi i casi vale lo stesso confine: i dati arrivano dal client
+   * di sessione, quindi il copilot vede ciò che vede chi lo interroga.
+   */
+  if (motoreConversazione() === "proprio") {
+    return rispostaPropria(patientId, domanda, profile.id);
+  }
+
+  if (!isBrainConfigured()) throw new BrainNotConfiguredError();
 
   const dati = await collectPatientData(patientId);
   if (!dati.anagrafica) throw new Error("Paziente non trovato o non accessibile.");
@@ -160,6 +177,46 @@ ${JSON.stringify(dati, null, 2)}`,
     await supabase.from("copilot_messages").update({ error: message }).eq("id", row.id);
     throw error;
   }
+}
+
+/**
+ * La risposta del motore proprietario, registrata come le altre.
+ *
+ * Stessa tabella, stessa forma, stesse fonti: chi rilegge una
+ * conversazione fra sei mesi non deve chiedersi quale motore aveva
+ * risposto — lo dice il campo `model`, e il resto è identico.
+ */
+async function rispostaPropria(
+  patientId: string,
+  domanda: string,
+  profileId: string,
+): Promise<CopilotAnswer> {
+  const esito = await rispondiSullaCartella(patientId, domanda);
+  const supabase = await createSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from("copilot_messages")
+    .insert({
+      patient_id: patientId,
+      profile_id: profileId,
+      question: domanda,
+      answer: esito.testo,
+      sources: esito.fonti,
+      model: `copilot-unique${esito.intento ? `:${esito.intento}` : ""}`,
+    })
+    .select("id, created_at")
+    .single();
+
+  if (error) throw new Error(`Risposta non registrata: ${error.message}`);
+  const row = data as { id: string; created_at: string };
+
+  return {
+    id: row.id,
+    question: domanda,
+    answer: esito.testo,
+    sources: esito.fonti,
+    createdAt: row.created_at,
+  };
 }
 
 /** Le ultime domande fatte da chi guarda su questo paziente. */

@@ -9,6 +9,8 @@ import {
   isBrainConfigured,
 } from "@/lib/brain/extraction";
 import { validateExtraction, type ValidatedProposal } from "@/lib/brain/validation";
+import { motoreConversazione } from "@/lib/brain/fornitore";
+import { estraiSenzaModello } from "@/lib/clinical/estrazione-propria";
 import { createSupabaseServiceClient, isServiceRoleConfigured } from "@/lib/supabase/service";
 
 /**
@@ -50,7 +52,6 @@ export class ServiceRoleRequiredError extends Error {
 }
 
 export async function analyzeDocument(documentId: string): Promise<AnalysisOutcome> {
-  if (!isBrainConfigured()) throw new BrainNotConfiguredError();
 
   const profile = await requireProfile();
   const session = await createSupabaseServerClient();
@@ -92,7 +93,7 @@ export async function analyzeDocument(documentId: string): Promise<AnalysisOutco
       document_id: document.id,
       patient_id: document.patient_id,
       status: "pending",
-      model: BRAIN_MODEL,
+      model: motoreConversazione() === "anthropic" ? BRAIN_MODEL : "lettore-unique",
       requested_by: profile.id,
     })
     .select("id")
@@ -107,13 +108,36 @@ export async function analyzeDocument(documentId: string): Promise<AnalysisOutco
       throw new Error(`File non scaricabile: ${file.error?.message ?? "assente"}`);
     }
 
-    const base64 = Buffer.from(await file.data.arrayBuffer()).toString("base64");
+    const contenuto = new Uint8Array(await file.data.arrayBuffer());
 
-    const extraction = await extractFromDocument({
-      data: base64,
-      mimeType: document.mime_type ?? "application/pdf",
-      fileName: document.title,
-    });
+    /*
+     * Chi legge il referto.
+     *
+     * Il lettore proprietario è la strada normale: ricostruisce le righe
+     * del PDF, riconosce gli esami dai sinonimi del catalogo, converte le
+     * unità e dichiara quanto è sicuro di ogni valore. Non esce niente
+     * dall'infrastruttura — e un referto è il documento più sensibile che
+     * questa applicazione tocchi.
+     *
+     * Il modello si accende di proposito, e serve dove il lettore si
+     * ferma: referti scansionati, impaginazioni fuori dall'ordinario,
+     * documenti che non sono referti.
+     *
+     * Quello che cambia è **solo** chi legge. Validazione, confronto con
+     * lo storico e decisione su cosa richiede un medico restano lo stesso
+     * codice deterministico di prima.
+     */
+    const extraction =
+      motoreConversazione() === "anthropic" && isBrainConfigured()
+        ? await extractFromDocument({
+            data: Buffer.from(contenuto).toString("base64"),
+            mimeType: document.mime_type ?? "application/pdf",
+            fileName: document.title,
+          })
+        : await estraiSenzaModello({
+            dati: contenuto,
+            mimeType: document.mime_type,
+          });
 
     const previousValues = await loadLatestValues(supabase, document.patient_id);
     const { proposals, discarded } = validateExtraction(extraction.measurements, {
