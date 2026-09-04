@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { aSiparioAperto } from "@/components/brand/sipario";
 import { cx } from "@/components/ui/primitives";
 import { inMovimento } from "@/lib/landing/capacita";
 import { useScena } from "@/lib/landing/scena";
@@ -71,23 +72,35 @@ export function Etichetta({
  *
  * Con `\n` nel testo si forza un a capo: nei titoli di questa pagina la
  * rottura di riga è parte della composizione, non un caso.
+ *
+ * Un titolo che nasce già in campo — ce n'è uno solo, quello dell'hero —
+ * ha un trigger che scatta prima ancora che si sia scorso, e sul telefono
+ * lo scatto cade sotto al sipario d'avvio. `attendiSipario` gli dice di
+ * aspettare la scena scoperta, come fa l'accensione attorno a lui.
  */
 export function Titolo({
   testo,
   className,
   tag: Tag = "h2",
   ritardo = 0,
+  attendiSipario = false,
 }: {
   testo: string;
   className?: string;
   tag?: "h1" | "h2" | "h3" | "p";
   ritardo?: number;
+  /** Solo per il titolo dell'hero: sale quando il sipario si alza. */
+  attendiSipario?: boolean;
 }) {
-  const rif = useScena<HTMLElement>(({ gsap, radice }) => {
+  const rif = useScena<HTMLElement>(({ gsap, radice, ridotta }) => {
     const parole = radice.querySelectorAll<HTMLElement>("[data-parola]");
     if (parole.length === 0) return;
 
-    gsap.from(parole, {
+    // Su schermo largo il titolo dell'hero sale come sempre: lì il
+    // desktop resta esattamente com'era.
+    const aspetta = attendiSipario && ridotta;
+
+    const salita = gsap.from(parole, {
       yPercent: 118,
       opacity: 0,
       // Una rotazione minima sull'asse X dà alla parola un peso che la
@@ -96,13 +109,42 @@ export function Titolo({
       duration: 1.15,
       ease: "expo.out",
       stagger: 0.055,
-      delay: ritardo,
-      scrollTrigger: {
-        trigger: radice,
-        start: "top 86%",
-        once: true,
-      },
+      delay: aspetta ? 0 : ritardo,
+      paused: aspetta,
+      // Chi aspetta il sipario è già in campo: un trigger di scorrimento
+      // scatterebbe subito, e il `play` lo rimetterebbe in corsa da capo.
+      scrollTrigger: aspetta
+        ? undefined
+        : {
+            trigger: radice,
+            start: "top 86%",
+            once: true,
+          },
     });
+
+    if (!aspetta) return;
+
+    // Sotto al sipario il titolo è già giù, e lo si disegna adesso:
+    // aspettare il primo tick vorrebbe dire rischiare di mostrarlo su,
+    // farlo sparire e riportarlo su un istante dopo.
+    salita.pause(0);
+
+    /* Il ritardo non è un'attesa ma una posizione nella coreografia — il
+       titolo sale dopo il marchio — e va conservato. Un `play()` nudo lo
+       brucerebbe: la partenza nel tempo globale è passata da un pezzo, e
+       il titolo salirebbe insieme al marchio invece che dietro di lui.
+
+       Il rinvio nasce fuori dal contesto GSAP — la richiamata arriva
+       dopo — quindi il revert non lo conosce e va spento a mano. */
+    let rinvio: ReturnType<typeof gsap.delayedCall> | null = null;
+    const smetti = aSiparioAperto(() => {
+      rinvio = gsap.delayedCall(ritardo, () => salita.play());
+    });
+
+    return () => {
+      smetti();
+      rinvio?.kill();
+    };
   });
 
   const righe = testo.split("\n");

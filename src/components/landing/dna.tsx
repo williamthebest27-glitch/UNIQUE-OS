@@ -41,7 +41,7 @@ const SOGLIA = 1 / 48;
 export function DnaFilm() {
   const video = useRef<HTMLVideoElement>(null);
 
-  const rif = useScena<HTMLElement>(({ gsap, radice, ridotta }) => {
+  const rif = useScena<HTMLElement>(({ gsap, ScrollTrigger, radice, ridotta }) => {
     const palco = radice.querySelector<HTMLElement>("[data-palco]");
     const nastro = radice.querySelector<HTMLElement>("[data-nastro]");
     const nodo = video.current;
@@ -51,12 +51,35 @@ export function DnaFilm() {
        riproduzione non ha più niente da fare: lo toglie il CSS. */
     radice.dataset.scorre = "";
 
-    /* Servono i dati, non i soli metadati: un fotogramma si mostra solo
-       se è stato scaricato. Il caricamento parte qui e non nel markup,
-       così chi ha meno movimento non se lo trova addosso comunque. */
-    nodo.preload = "auto";
     nodo.muted = true;
-    nodo.load();
+
+    /* Servono i dati, non i soli metadati: un fotogramma si mostra solo
+       se è stato scaricato. Il caricamento parte da qui e non dal
+       markup, così chi ha meno movimento non se lo trova addosso
+       comunque. */
+    const carica = () => {
+      nodo.preload = "auto";
+      nodo.load();
+    };
+
+    /* **Sul telefono non si scarica subito.** Sono quasi tre megabyte —
+       il film è codificato fitto apposta, per poterlo scorrere — e
+       chiederli al montaggio significa metterli in fila con i caratteri,
+       con i moduli e con l'idratazione, sulla rete di un telefono, nei
+       secondi esatti in cui si guardano le prime due schermate. Il film
+       arriva comunque in tempo: la richiesta parte mezza schermata prima
+       che il palco entri in campo, e da lì al pin c'è più di una
+       schermata e mezza di scorrimento. Su desktop resta com'era: lì la
+       banda non è la risorsa scarsa. */
+    const anticipo = ridotta
+      ? ScrollTrigger.create({
+          trigger: palco,
+          start: "top bottom+=50%",
+          once: true,
+          onEnter: carica,
+        })
+      : null;
+    if (!anticipo) carica();
 
     let durata = 0;
     let ultimo = -1;
@@ -101,6 +124,7 @@ export function DnaFilm() {
 
     return () => {
       nodo.removeEventListener("loadedmetadata", misura);
+      anticipo?.kill();
       scena.scrollTrigger?.kill();
       scena.kill();
     };

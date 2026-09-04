@@ -2,7 +2,7 @@
 
 import { Marchio } from "@/components/brand/marchio";
 import { Entra, Etichetta, Titolo } from "@/components/landing/primitive";
-import { useScena } from "@/lib/landing/scena";
+import { useScena, type Regia } from "@/lib/landing/scena";
 import { cx } from "@/components/ui/primitives";
 
 /**
@@ -79,8 +79,28 @@ function tracciato(s: Sorgente): string {
 }
 
 export function SystemVisualization() {
-  const rif = useScena<HTMLElement>(({ gsap, radice }) => {
-    const q = gsap.utils.selector(radice);
+  const rif = useScena<HTMLElement>(({ gsap, radice, ridotta }) => {
+    /* Le due composizioni stanno tutte e due nel markup e il CSS ne
+       mostra una sola. Si lavora solo su quella a schermo: animare
+       l'altra è lavoro buttato, e nel caso del telefono è lavoro buttato
+       che *costa* — otto impulsi in ciclo infinito su nodi in
+       `display: none`, per sempre, sul dispositivo che se lo può
+       permettere meno. */
+    const radiale = radice.querySelector<HTMLElement>("[data-radiale]");
+    const spina = radice.querySelector<HTMLElement>("[data-spina]");
+    const disegno = radiale && radiale.offsetWidth > 0 ? radiale : spina;
+    if (!disegno) return;
+
+    const q = gsap.utils.selector(disegno);
+
+    /* Sul telefono la spina ha una regia sua: le stesse tre battute, ma
+       legate a ciò che si muove invece che al bordo alto della sezione.
+       Ovunque altro — desktop, e la fascia stretta dei portatili dove il
+       CSS mostra comunque la spina — non cambia una riga. */
+    if (ridotta && disegno === spina) {
+      scenaSpina(gsap, spina);
+      return;
+    }
 
     /* ── Le linee si disegnano scorrendo ──────────────────────────
        Ogni tracciato dichiara `pathLength={1}`: da lì in poi trattino e
@@ -267,6 +287,7 @@ function Centro({ compatto = false }: { compatto?: boolean }) {
 function Radiale() {
   return (
     <div
+      data-radiale=""
       className="relative hidden aspect-[1440/840] w-full xl:block"
       aria-hidden="true"
     >
@@ -351,6 +372,89 @@ function Radiale() {
   );
 }
 
+/* ── La regia della spina ─────────────────────────────────────────── */
+
+/**
+ * Le stesse tre battute della radiale — le linee si disegnano, le
+ * sorgenti arrivano, il centro si accende — ancorate però al disegno.
+ *
+ * Ed è tutta qui la differenza, che non è una taratura ma un errore di
+ * geometria. La radiale sta subito sotto il titolo: legarla al bordo
+ * alto della sezione — `top 68%`, `top 52%` — la fa partire quando è già
+ * in campo, e infatti su schermo largo funziona. La spina sta in fondo,
+ * sotto un titolo e una chiosa che in colonna valgono quasi una
+ * schermata, dentro una sezione alta più di una e mezza. Con gli stessi
+ * ancoraggi, su un telefono da 812 punti, il centro finiva di accendersi
+ * a 1104 di scorrimento ed entrava nel viewport a 1144: quaranta punti
+ * troppo tardi, cioè mai, per chiunque.
+ *
+ * Da qui l'impressione che prima del film non si muovesse niente. Non
+ * era un'impressione: non si muoveva.
+ *
+ * Le sorgenti, poi, non arrivano più in blocco ma una per una, quando
+ * toccano il bordo basso. Su una colonna alta quanto lo schermo è la
+ * stessa idea di prima — «arrivano una alla volta» — detta però nella
+ * direzione in cui il pollice sta già andando.
+ */
+function scenaSpina(gsap: Regia["gsap"], spina: HTMLElement) {
+  const q = gsap.utils.selector(spina);
+
+  /* La dorsale si disegna scendendo. Sul telefono è l'unica linea che
+     ci sia, e fa il lavoro degli otto archi: la convergenza non è
+     dichiarata, è compiuta da chi scorre. */
+  gsap.fromTo(
+    q("[data-dorsale]"),
+    { scaleY: 0, transformOrigin: "50% 0%" },
+    {
+      scaleY: 1,
+      ease: "none",
+      scrollTrigger: {
+        trigger: spina,
+        start: "top 84%",
+        end: "bottom 68%",
+        scrub: 0.6,
+      },
+    },
+  );
+
+  for (const sorgente of q<HTMLElement>("[data-sorgente]")) {
+    gsap.from(sorgente, {
+      opacity: 0,
+      y: 14,
+      duration: 0.9,
+      ease: "expo.out",
+      scrollTrigger: { trigger: sorgente, start: "top 90%", once: true },
+    });
+  }
+
+  /* Il centro si accende quando è arrivato tutto — e adesso «tutto»
+     vuol dire anche che il centro è davanti agli occhi. */
+  const centro = q<HTMLElement>("[data-centro]")[0];
+  if (!centro) return;
+
+  gsap.fromTo(
+    q("[data-aureola]"),
+    { scale: 0.6, opacity: 0 },
+    {
+      scale: 1,
+      opacity: 1,
+      ease: "none",
+      scrollTrigger: { trigger: centro, start: "top 96%", end: "top 52%", scrub: 1 },
+    },
+  );
+
+  gsap.fromTo(
+    centro,
+    { scale: 0.86, opacity: 0.25 },
+    {
+      scale: 1,
+      opacity: 1,
+      ease: "expo.out",
+      scrollTrigger: { trigger: centro, start: "top 92%", end: "top 48%", scrub: 1 },
+    },
+  );
+}
+
 /* ── La spina dorsale, su telefono ────────────────────────────────── */
 
 /**
@@ -364,10 +468,11 @@ function Radiale() {
  */
 function Spina() {
   return (
-    <div className="relative xl:hidden" aria-hidden="true">
+    <div data-spina="" className="relative xl:hidden" aria-hidden="true">
       {/* La spina: parte trasparente in alto — il sistema non comincia
           da nessuna parte — e arriva calda in basso, dove c'è il centro. */}
       <div
+        data-dorsale=""
         className="absolute bottom-14 left-1/2 top-1 w-px -translate-x-1/2"
         style={{
           background:
