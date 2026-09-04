@@ -400,4 +400,8 @@ export const DOMANDE_ESEMPIO: string[] = [
   "Cosa è successo negli ultimi sette giorni?",
   "Quali task sono in sospeso?",
   "Preparami i contatti per chi non usa i crediti da 90 giorni",
+  "Fatturato per servizio ad agosto",
+  "Qual è il servizio più redditizio?",
+  "Perché il fatturato è sceso?",
+  "Quante visite di nutrizione questo mese?",
 ];

@@ -173,7 +173,9 @@ export async function chiediAlBrain(input: {
    * il motore non sa fare: la conversazione davvero libera.
    */
   if (motoreConversazione() === "proprio") {
-    const esito = await rispondiConMotoreProprio(domanda);
+    // L'ultima domanda posta serve ai seguiti: "perché?", "e ad agosto?".
+    const ultimaDomanda = [...storia].reverse().find((m) => m.role === "user")?.content ?? null;
+    const esito = await rispondiConMotoreProprio(domanda, { domandaPrecedente: ultimaDomanda });
 
     await supabase.from("brain_messages").insert({
       conversation_id: id,

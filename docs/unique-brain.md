@@ -52,21 +52,72 @@ indovina è un motore di cui non ci si fida al terzo errore.
 E può anche *fare*: "preparami i contatti per chi non usa i crediti da 90 giorni"
 crea una proposta, con anteprima e autorizzazione. Lo stesso ciclo di sempre.
 
+### Da un elenco a una grammatica
+
+Il catalogo di intenti ha un limite strutturale: un intento è una domanda
+scritta a mano, e quindici intenti sono quindici domande. Per capire "tutto"
+non se ne scrivono altri quindici — si smette di scrivere domande.
+
+[`interrogazione.ts`](../src/lib/brain/interrogazione.ts) riconosce **tre cose
+componibili**: che cosa si misura, per cosa lo si raggruppa, con quali filtri.
+Le combinazioni sono centinaia senza che nessuno le abbia previste una per una.
+
+| Domanda | Interrogazione |
+| --- | --- |
+| quanto abbiamo fatturato per servizio ad agosto | fatturato × servizio, 2026-08 |
+| qual è il servizio più redditizio | margine × servizio, il primo |
+| i tre professionisti che fatturano di più | fatturato × professionista, primi 3 |
+| quante visite di nutrizione questo mese | visite, disciplina = nutrizione |
+| quanto ha fatturato il dottor Rossi a luglio | fatturato, professionista = Rossi, 2026-07 |
+| da quale canale arrivano più lead | lead × canale, il primo |
+
+Tredici misure (fatturato, margine, visite, pazienti, lead, membership, crediti,
+spesa, compensi, conversione, no-show, documenti, task), sette dimensioni
+(servizio, professionista, disciplina, canale, campagna, sede, paziente), un
+periodo, una classifica, un limite. Il risolutore non calcola niente di nuovo:
+raggruppa le righe economiche visita per visita che il motore di unit economics
+produce già, e che sono già testate.
+
+**Il perché.** "Perché il fatturato è sceso?" non si risponde con un'opinione: si
+scompone la differenza fra i due mesi e si ordina chi l'ha causata. È
+aritmetica, e proprio per questo ci si può fidare — dice *dove* la variazione è
+avvenuta, non perché le persone si sono comportate così, e la risposta lo
+dichiara. Si fermano all'ottanta per cento della variazione spiegata: le voci
+oltre sono rumore, ed elencarle nasconde quelle che contano.
+
+**I seguiti.** "Perché?" da solo non è una domanda, è un seguito; "e ad agosto?"
+pure. Con l'ultima domanda in mano si completano: la prima diventa la
+spiegazione di ciò che si era appena misurato, la seconda la stessa misura su un
+altro mese.
+
+**Prima di arrendersi, la knowledge base.** Una domanda che non è né una misura
+né un intento può avere una risposta scritta da qualcuno — una procedura, una
+FAQ. Si cerca con le parole della domanda, e solo se non esce niente il Brain
+dice che non ha capito.
+
+**Ciò che non si può fare si dice.** "I crediti utilizzati li ho solo per
+oggi" è una risposta; un numero di oggi spacciato per il mese è un errore. Ogni
+risultato porta i limiti con sé, e la frase li ripete.
+
 ### Il pregio che un modello non ha
 
-**Si può testare.** 47 casi di prova coprono il riconoscimento e la composizione:
-un intento sbagliato è un caso di prova che fallisce, non una supposizione sul
-comportamento di un modello. Quando la risposta cambia, si sa perché.
+**Si può testare.** Il riconoscimento, l'interrogazione e la composizione sono
+coperti da casi di prova: un intento sbagliato è un test che fallisce, non una
+supposizione sul comportamento di un modello. Quando la risposta cambia, si sa
+perché. E una batteria di domande poste come le porrebbe una persona è il modo
+in cui si trovano gli errori — "quanto costa la visita nutrizionale" finiva fra
+le visite invece che nel listino, ed è diventata un caso di prova.
 
 ### Il modello, quando serve
 
-`UNIQUE_BRAIN=anthropic` (con `ANTHROPIC_API_KEY`) accende il modello linguistico
-per la conversazione libera. Si attiva **di proposito**: una chiave dimenticata in
-un file di ambiente non è un consenso a mandare fuori i numeri dell'azienda.
+`UNIQUE_BRAIN=anthropic` (con `ANTHROPIC_API_KEY`) accende il modello linguistico.
+Si attiva **di proposito**: una chiave dimenticata in un file di ambiente non è
+un consenso a mandare fuori i numeri dell'azienda.
 
-Tre cose restano lavoro di lingua e vogliono un modello, e il sistema lo dichiara
-invece di fingere: leggere un referto ed estrarne i valori, il copilot clinico
-dentro la cartella, e il Content Brain.
+Referti, copilot clinico e contenuti funzionano senza modello — ne hanno una
+versione proprietaria ciascuno, descritta nei rispettivi documenti. Il modello
+aggiunge tre cose che restano lavoro di lingua: la conversazione davvero libera,
+la lettura di un referto scansionato, e il copy finito invece dell'impalcatura.
 
 ---
 

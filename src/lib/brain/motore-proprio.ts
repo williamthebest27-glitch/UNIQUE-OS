@@ -9,6 +9,9 @@ import { describeEvent } from "@/lib/events/catalog";
 import { pazientiInattivi } from "@/lib/approvals/executor";
 import { creaProposta } from "@/lib/approvals/proposals";
 import { DOMANDE_ESEMPIO, riconosciIntento, type Intento } from "@/lib/brain/intenti";
+import { estraiInterrogazione, periodoDellaDomanda, normalizzaDomanda, type Interrogazione } from "@/lib/brain/interrogazione";
+import { componiRisultato } from "@/lib/brain/risposte-interrogazione";
+import { risolvi } from "@/lib/brain/risolutore";
 import type { TracciaStrumento } from "@/lib/brain/tools";
 import {
   componiAiuto,
@@ -79,7 +82,50 @@ function esito(
   return { risposta: testo, tracce, intento: intento?.id ?? null };
 }
 
-export async function rispondiConMotoreProprio(domanda: string): Promise<RispostaMotore> {
+/**
+ * Il contesto di conversazione: l'ultima domanda a cui si è risposto.
+ *
+ * "Perché?" da solo non è una domanda, è un seguito. "E ad agosto?" pure.
+ * Con l'ultima domanda in mano si completano: la prima diventa la
+ * spiegazione di ciò che si era appena misurato, la seconda la stessa
+ * misura su un altro mese.
+ */
+export interface ContestoConversazione {
+  domandaPrecedente?: string | null;
+}
+
+/**
+ * Una domanda è un seguito quando da sola non porta una misura ma
+ * porta un "perché" o un periodo.
+ */
+function completaSeguito(
+  domanda: string,
+  q: Interrogazione | null,
+  contesto: ContestoConversazione,
+  oggi: string,
+): Interrogazione | null {
+  if (q || !contesto.domandaPrecedente) return q;
+
+  const t = normalizzaDomanda(domanda);
+  const precedente = estraiInterrogazione(contesto.domandaPrecedente, oggi);
+  if (!precedente) return null;
+
+  if (/^(e )?(perch|come mai|per quale motivo)/.test(t)) {
+    return { ...precedente, spiegazione: true };
+  }
+
+  const periodo = periodoDellaDomanda(t, oggi);
+  if (periodo && t.split(" ").length <= 5) {
+    return { ...precedente, periodo, spiegazione: false };
+  }
+
+  return null;
+}
+
+export async function rispondiConMotoreProprio(
+  domanda: string,
+  contesto: ContestoConversazione = {},
+): Promise<RispostaMotore> {
   const oggi = ROMA.format(new Date());
   const intento = riconosciIntento(domanda, oggi);
   const tracce: TracciaStrumento[] = [];
@@ -88,7 +134,90 @@ export async function rispondiConMotoreProprio(domanda: string): Promise<Rispost
     tracce.push({ strumento, argomenti, esito: riga });
   };
 
+  /*
+   * Lo strato semantico ha la precedenza sulle domande componibili.
+   *
+   * Il catalogo di intenti risponde bene alle domande intere — "come sta
+   * andando" — che chiedono una fotografia. Appena la domanda raggruppa,
+   * filtra, ordina o chiede un perché, è una domanda su una misura, e
+   * l'interrogazione la serve meglio di qualunque intento scritto a mano.
+   */
+  const interrogazione = completaSeguito(
+    domanda,
+    estraiInterrogazione(domanda, oggi),
+    contesto,
+    oggi,
+  );
+
+  const componibile =
+    interrogazione &&
+    (interrogazione.raggruppa !== undefined ||
+      interrogazione.filtri.length > 0 ||
+      interrogazione.ordina !== undefined ||
+      interrogazione.spiegazione);
+
+  /*
+   * Gli intenti "fatturato", "membership" e "conversione" sono cassetti
+   * generici: "quante membership nuove il mese scorso" è una misura con
+   * un periodo, e l'interrogazione la serve con il numero e il confronto.
+   * Gli intenti restano padroni delle fotografie composte — andamento,
+   * marketing, pazienti fermi — dove una misura sola non basta.
+   */
+  const generico =
+    intento !== null && ["fatturato", "membership", "conversione"].includes(intento.id);
+
+  if (interrogazione && (componibile || !intento || generico)) {
+    const risultato = await risolvi(interrogazione);
+    if (risultato) {
+      traccia(
+        "interrogazione",
+        {
+          misura: interrogazione.misura,
+          raggruppa: interrogazione.raggruppa ?? null,
+          filtri: interrogazione.filtri,
+          periodo: risultato.periodo,
+        },
+        risultato.totale === null
+          ? "nessun valore"
+          : `${risultato.righe.length > 0 ? `${risultato.righe.length} righe, ` : ""}totale ${risultato.totale}`,
+      );
+      const composta = componiRisultato(interrogazione, risultato);
+      return esito(
+        { testo: composta.testo, fonti: composta.fonti },
+        intento ?? { id: "andamento", punteggio: 0, parametri: {} },
+        tracce,
+      );
+    }
+  }
+
   if (!intento) {
+    /*
+     * Prima di arrendersi: la knowledge base.
+     *
+     * Una domanda che non è né una misura né un intento può comunque
+     * avere una risposta scritta da qualcuno — una procedura, una FAQ.
+     * Si cerca con le parole della domanda, e solo se non esce niente si
+     * dice "non ho capito".
+     */
+    const voci = await cercaConoscenza(domanda, 3);
+    if (voci.length > 0) {
+      traccia("conoscenza", { ricerca: domanda }, voci.map((v) => v.slug).join(", "));
+      return esito(
+        componiConoscenza(
+          voci.map((v) => ({
+            titolo: v.title,
+            slug: v.slug,
+            provenienza: v.provenienza,
+            daRiconfermare: v.daRiconfermare,
+            estratto: v.body.slice(0, 700),
+          })),
+          domanda,
+        ),
+        null,
+        tracce,
+      );
+    }
+
     return esito(componiNonCapito(DOMANDE_ESEMPIO), null, tracce);
   }
 

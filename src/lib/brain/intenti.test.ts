@@ -8,6 +8,7 @@ import {
   normalizza,
   riconosciIntento,
 } from "./intenti.ts";
+import { estraiInterrogazione } from "./interrogazione.ts";
 
 const OGGI = "2026-09-04";
 
@@ -100,9 +101,14 @@ describe("riconoscere la domanda", () => {
     assert.ok(DOMANDE_ESEMPIO.length >= 8);
   });
 
-  it("ogni domanda di esempio è riconosciuta", () => {
+  it("ogni domanda di esempio è riconosciuta, da un intento o da un'interrogazione", () => {
+    // Le domande componibili — "qual è il servizio più redditizio" — non
+    // hanno un intento: le risponde lo strato semantico. Un esempio deve
+    // essere riconosciuto da almeno uno dei due, altrimenti la pagina
+    // suggerirebbe una domanda a cui il motore non sa rispondere.
     for (const domanda of DOMANDE_ESEMPIO) {
-      assert.notEqual(intento(domanda), null, `non riconosciuta: ${domanda}`);
+      const riconosciuta = intento(domanda) !== null || estraiInterrogazione(domanda, OGGI) !== null;
+      assert.ok(riconosciuta, `non riconosciuta: ${domanda}`);
     }
   });
 });

@@ -85,8 +85,11 @@ distinti.
   notifiche, audit log.
 - **Unique Brain, interfaccia founder** — si apre una chat e si chiede come sta
   andando Unique. **Il motore è di Unique e funziona senza modello, senza rete e
-  senza chiavi**: riconosce l'intento della domanda, interroga i motori di calcolo
-  che già esistono e compone la risposta in italiano. Con dati sanitari non è una
+  senza chiavi**: riconosce che cosa si misura, per cosa si raggruppa e con
+  quali filtri — fatturato per servizio ad agosto, il professionista che fattura
+  di più, quante visite di nutrizione — e compone la risposta dai motori di calcolo
+  che già esistono. Sa spiegare un "perché" scomponendo la variazione fra due
+  mesi, e capisce i seguiti: "perché?", "e ad agosto?". Con dati sanitari non è una
   preferenza tecnica — ogni domanda mandata a un'API esterna è un trasferimento di
   dati da giustificare. Sotto ogni risposta restano scritte le chiamate fatte, e
   quando non capisce lo dice invece di indovinare. Un modello linguistico si può
