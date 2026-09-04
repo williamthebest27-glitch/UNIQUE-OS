@@ -11,6 +11,9 @@ import { Badge, Card, CardHeader, EmptyState } from "@/components/ui/primitives"
 
 export const metadata: Metadata = { title: "Appuntamenti" };
 export const dynamic = "force-dynamic";
+// Dato clinico: mai riusato dalla cache del router, nemmeno per un istante.
+// Il perché, e cosa resta invece in cache, in docs/freschezza-dei-dati.md.
+export const unstable_dynamicStaleTime = 0;
 
 const ESITO_LABEL: Record<string, string> = {
   completed: "Svolta",

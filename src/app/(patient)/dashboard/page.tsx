@@ -16,6 +16,9 @@ export const metadata: Metadata = { title: "Home" };
 // La home è personale e cambia di giorno in giorno: non va mai
 // prerenderizzata a build time.
 export const dynamic = "force-dynamic";
+// Dato clinico: mai riusato dalla cache del router, nemmeno per un istante.
+// Il perché, e cosa resta invece in cache, in docs/freschezza-dei-dati.md.
+export const unstable_dynamicStaleTime = 0;
 
 /**
  * La home del paziente.

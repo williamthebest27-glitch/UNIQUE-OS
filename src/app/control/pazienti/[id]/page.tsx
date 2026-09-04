@@ -30,6 +30,9 @@ import { AzioniVisita } from "@/components/control/azioni-visita";
 
 export const metadata: Metadata = { title: "Scheda paziente" };
 export const dynamic = "force-dynamic";
+// Dato clinico: mai riusato dalla cache del router, nemmeno per un istante.
+// Il perché, e cosa resta invece in cache, in docs/freschezza-dei-dati.md.
+export const unstable_dynamicStaleTime = 0;
 
 /**
  * La scheda operativa di un paziente.

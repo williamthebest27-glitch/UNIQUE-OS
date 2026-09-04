@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { NavLink } from "@/components/shell/nav-link";
 import { usePathname } from "next/navigation";
 import { cx } from "@/components/ui/primitives";
 
@@ -19,7 +19,7 @@ export function ControlNav({ voci }: { voci: { href: string; label: string }[] }
       {voci.map(({ href, label }) => {
         const attivo = pathname === href;
         return (
-          <Link
+          <NavLink
             key={href}
             href={href}
             aria-current={attivo ? "page" : undefined}
@@ -31,7 +31,7 @@ export function ControlNav({ voci }: { voci: { href: string; label: string }[] }
             )}
           >
             {label}
-          </Link>
+          </NavLink>
         );
       })}
     </nav>

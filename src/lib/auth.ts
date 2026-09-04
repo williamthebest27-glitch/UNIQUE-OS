@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import type { AppRole, Profile } from "@/lib/domain/types";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -25,26 +26,83 @@ function toProfile(row: ProfileRow): Profile {
   };
 }
 
+/** Il minimo che serve sapere di chi sta chiedendo la pagina. */
+interface Identita {
+  id: string;
+  email: string | null;
+  fullName: string | null;
+}
+
 /**
- * Profilo dell’utente collegato, o null se non c’è sessione.
- * In modalità dimostrativa restituisce il paziente di esempio.
+ * Chi è collegato, verificato.
+ *
+ * `getClaims()` controlla la firma del token con la chiave pubblica del
+ * progetto, in locale: la stessa garanzia di `getUser()` — il cookie non
+ * viene creduto sulla parola — ma senza un viaggio di rete fino a
+ * Supabase a ogni richiesta. Era il costo fisso che rendeva lente le
+ * sezioni: prima che partisse una query sui dati, l’applicazione aveva
+ * già fatto tre o quattro di quei viaggi, uno in fila all’altro.
+ *
+ * Con le vecchie chiavi simmetriche la libreria ricade da sé su
+ * `getUser()`: nulla si rompe, nulla peggiora. Attivando le chiavi
+ * asimmetriche su Supabase, il controllo diventa gratuito ovunque.
  */
-export async function getCurrentProfile(): Promise<Profile | null> {
-  if (!isSupabaseConfigured()) {
-    return mockPatientDashboard.profile;
+async function identitaVerificata(): Promise<Identita | null> {
+  const supabase = await createSupabaseServerClient();
+
+  const { data, error } = await supabase.auth.getClaims();
+  const claims = data?.claims;
+
+  if (claims?.sub) {
+    return {
+      id: claims.sub,
+      email: claims.email ?? null,
+      fullName: (claims.user_metadata?.full_name as string | undefined) ?? null,
+    };
   }
 
-  const supabase = await createSupabaseServerClient();
+  // Nessun errore e nessun claim vuol dire una cosa sola: non c’è sessione.
+  if (!error) return null;
+
+  // Il token c’è ma non si è potuto verificare qui: l’ultima parola spetta
+  // al server di autenticazione, non al cookie.
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) return null;
 
+  return {
+    id: user.id,
+    email: user.email ?? null,
+    fullName: (user.user_metadata?.full_name as string | undefined) ?? null,
+  };
+}
+
+/**
+ * Profilo dell’utente collegato, o null se non c’è sessione.
+ * In modalità dimostrativa restituisce il paziente di esempio.
+ *
+ * Memoizzato per richiesta. Il layout lo chiede, la pagina lo chiede, e
+ * ogni funzione di lettura lo richiede per sapere chi sta guardando:
+ * erano altrettante coppie di andata e ritorno verso Supabase, in fila
+ * una dopo l’altra, prima che comparisse un solo dato. Adesso è una
+ * sola, e le altre cinquanta ricevono la stessa risposta.
+ */
+export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
+  if (!isSupabaseConfigured()) {
+    return mockPatientDashboard.profile;
+  }
+
+  const identita = await identitaVerificata();
+  if (!identita) return null;
+
+  const supabase = await createSupabaseServerClient();
+
   const { data } = await supabase
     .from("profiles")
     .select("id, role, full_name, first_name, email, avatar_url")
-    .eq("id", user.id)
+    .eq("id", identita.id)
     .maybeSingle();
 
   const row = data as ProfileRow | null;
@@ -55,17 +113,17 @@ export async function getCurrentProfile(): Promise<Profile | null> {
   // costruito dai dati dell’account.
   if (!row) {
     return {
-      id: user.id,
+      id: identita.id,
       role: "patient",
-      fullName: (user.user_metadata?.full_name as string) ?? user.email ?? "",
+      fullName: identita.fullName ?? identita.email ?? "",
       firstName: null,
-      email: user.email ?? null,
+      email: identita.email,
       avatarUrl: null,
     };
   }
 
   return toProfile(row);
-}
+});
 
 /** Come sopra, ma porta al login invece di restituire null. */
 export async function requireProfile(): Promise<Profile> {

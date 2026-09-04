@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { NavLink } from "@/components/shell/nav-link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import {
@@ -73,7 +73,7 @@ export function ProSidebarNav({ counts }: { counts: ProCounts }) {
         const n = conta(counts, voce);
 
         return (
-          <Link
+          <NavLink
             key={voce.href}
             href={voce.href}
             aria-current={active ? "page" : undefined}
@@ -95,7 +95,7 @@ export function ProSidebarNav({ counts }: { counts: ProCounts }) {
                 {n}
               </span>
             ) : null}
-          </Link>
+          </NavLink>
         );
       })}
     </nav>
@@ -119,7 +119,7 @@ export function ProTabBar({ counts }: { counts: ProCounts }) {
 
           return (
             <li key={voce.href}>
-              <Link
+              <NavLink
                 href={voce.href}
                 aria-current={active ? "page" : undefined}
                 className={cx(
@@ -138,7 +138,7 @@ export function ProTabBar({ counts }: { counts: ProCounts }) {
                   ) : null}
                 </span>
                 {voce.label}
-              </Link>
+              </NavLink>
             </li>
           );
         })}
