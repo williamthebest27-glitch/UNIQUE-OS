@@ -238,9 +238,9 @@ export function PatientClinicConnection() {
                     y1={dentro.y}
                     x2={fuori.x}
                     y2={fuori.y}
-                    stroke="var(--color-unique-300)"
+                    stroke="var(--os-dato)"
                     strokeWidth="1"
-                    strokeOpacity="0.34"
+                    strokeOpacity="0.45"
                     vectorEffect="non-scaling-stroke"
                   />
                 );
@@ -260,7 +260,7 @@ export function PatientClinicConnection() {
                 className="mx-auto mb-4 block h-2 w-2 rounded-full"
                 style={{
                   background: "var(--os-vuoto)",
-                  boxShadow: "inset 0 0 0 1.5px var(--os-dato), 0 0 16px 1px rgb(138 180 182 / 0.5)",
+                  boxShadow: "inset 0 0 0 1.5px var(--os-dato), 0 0 16px 1px var(--os-luce-dato)",
                 }}
               />
               <p className="os-mono text-[color:var(--os-dato)]">{v.chiave}</p>
@@ -322,7 +322,7 @@ function Nucleo({ compatto = false }: { compatto?: boolean }) {
         )}
         style={{
           background:
-            "radial-gradient(closest-side, rgb(255 111 133 / 0.40), rgb(51 116 130 / 0.10) 58%, transparent)",
+            "radial-gradient(closest-side, var(--os-alone-mente-forte), var(--os-alone-dato) 58%, transparent)",
         }}
       />
 
@@ -331,8 +331,9 @@ function Nucleo({ compatto = false }: { compatto?: boolean }) {
         className="relative flex flex-col items-center gap-3 px-8 py-7"
         style={{
           borderRadius: "999px",
-          background: "rgb(10 11 13 / 0.72)",
-          boxShadow: "inset 0 0 0 1px rgb(255 255 255 / 0.10)",
+          background: "var(--os-vuoto)",
+          boxShadow:
+            "inset 0 0 0 1px var(--os-riga-viva), 0 18px 44px -24px rgb(20 19 19 / 0.30)",
           backdropFilter: "blur(10px)",
           WebkitBackdropFilter: "blur(10px)",
         }}

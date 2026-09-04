@@ -209,7 +209,7 @@ export function DataIntelligence() {
                 data-acceso={i === 1 ? "" : undefined}
                 className="flex items-baseline gap-3 opacity-30 transition-opacity duration-700 data-[acceso]:opacity-100"
               >
-                <span className="os-mono text-[color:var(--os-appena)]">
+                <span className="os-mono text-[color:var(--os-segno)]">
                   {String(i + 1).padStart(2, "0")}
                 </span>
                 <span>
@@ -262,19 +262,17 @@ export function DataIntelligence() {
               className="pointer-events-none absolute inset-0 z-10"
               style={{ transform: "translateY(calc(var(--t) * 100%))" }}
             >
+              {/* Sul nero la linea era una luce, e sotto le serviva un
+                  secondo tratto sfocato per farla sbocciare. Sul bianco
+                  quel tratto è solo una sbavatura: qui la linea è un
+                  segno, e per essere un segno deve avere spessore, non
+                  bagliore. */}
               <div
-                className="h-px w-full"
+                className="h-[1.5px] w-full"
                 style={{
                   background:
-                    "linear-gradient(90deg, transparent, var(--os-mente-chiara) 12%, var(--os-mente-chiara) 88%, transparent)",
-                  boxShadow: "0 0 26px 2px rgb(255 111 133 / 0.45)",
-                }}
-              />
-              <div
-                className="mx-auto -mt-px h-px w-1/3"
-                style={{
-                  background: "var(--os-mente-chiara)",
-                  filter: "blur(2px)",
+                    "linear-gradient(90deg, transparent, var(--os-mente-chiara) 8%, var(--os-mente-chiara) 92%, transparent)",
+                  boxShadow: "var(--os-luce-linea)",
                 }}
               />
             </div>
@@ -290,8 +288,8 @@ export function DataIntelligence() {
               className="os-lastra relative overflow-hidden p-5 sm:p-7"
               style={{
                 background:
-                  "linear-gradient(120deg, rgb(220 193 145 / 0.10), rgb(220 193 145 / 0.02) 62%)",
-                boxShadow: "inset 0 0 0 1px rgb(220 193 145 / 0.20)",
+                  "linear-gradient(120deg, var(--os-oro-velo), var(--os-oro-velo-tenue) 62%)",
+                boxShadow: "inset 0 0 0 1px var(--os-oro-bordo)",
               }}
             >
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -299,7 +297,7 @@ export function DataIntelligence() {
                 <span
                   aria-hidden="true"
                   className="hidden h-px flex-1 sm:block"
-                  style={{ background: "rgb(220 193 145 / 0.22)" }}
+                  style={{ background: "var(--os-oro-bordo)" }}
                 />
                 <p className="os-mono text-[color:var(--os-appena)]">
                   Cardiovascular · priorità 01

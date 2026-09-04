@@ -242,7 +242,7 @@ function Centro({ compatto = false }: { compatto?: boolean }) {
         )}
         style={{
           background:
-            "radial-gradient(closest-side, rgb(255 111 133 / 0.42), rgb(255 111 133 / 0.06) 60%, transparent)",
+            "radial-gradient(closest-side, var(--os-alone-mente-forte), var(--os-alone-mente) 60%, transparent)",
         }}
       />
 
@@ -253,7 +253,7 @@ function Centro({ compatto = false }: { compatto?: boolean }) {
             "absolute rounded-full",
             compatto ? "-inset-6" : "-inset-9",
           )}
-          style={{ boxShadow: "inset 0 0 0 1px rgb(255 255 255 / 0.10)" }}
+          style={{ boxShadow: "inset 0 0 0 1px var(--os-riga)" }}
         />
         <Marchio className={compatto ? "h-11 w-auto" : "h-14 w-auto"} />
         <p className="os-mono text-[color:var(--os-piena)]">Unique OS</p>
@@ -282,9 +282,9 @@ function Radiale() {
               data-linea=""
               d={tracciato(s)}
               pathLength={1}
-              stroke="var(--color-unique-300)"
+              stroke="var(--os-dato)"
               strokeWidth="1"
-              strokeOpacity="0.24"
+              strokeOpacity="0.34"
               // Senza, il tratto si stirerebbe insieme al viewBox e le
               // linee orizzontali sarebbero più spesse delle verticali.
               vectorEffect="non-scaling-stroke"

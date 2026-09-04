@@ -50,7 +50,7 @@ export function Etichetta({
     <p className={cx("os-mono flex items-center gap-3", className)}>
       {indice ? (
         <>
-          <span className="text-[color:var(--os-appena)]">{indice}</span>
+          <span className="text-[color:var(--os-segno)]">{indice}</span>
           <span aria-hidden="true" className="h-px w-6 bg-[color:var(--os-riga-viva)]" />
         </>
       ) : null}

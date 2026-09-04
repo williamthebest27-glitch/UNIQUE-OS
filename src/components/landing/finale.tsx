@@ -117,13 +117,13 @@ export function FinalCTA({
           preserveAspectRatio="xMidYMid slice"
           className="h-full w-full"
         >
-          <g stroke="var(--color-unique-300)" fill="none" strokeWidth="0.7">
+          <g stroke="var(--os-dato)" fill="none" strokeWidth="0.7">
             {rete.map((l, i) => (
               <path
                 key={i}
                 data-legame=""
                 d={arco(nodi[l.a].x, nodi[l.a].y, nodi[l.b].x, nodi[l.b].y, 0.12)}
-                opacity={(0.04 + l.forza * 0.13).toFixed(3)}
+                opacity={(0.07 + l.forza * 0.20).toFixed(3)}
               />
             ))}
           </g>
@@ -135,8 +135,8 @@ export function FinalCTA({
                 cx={n.x}
                 cy={n.y}
                 r={(0.9 + n.peso * 1.6).toFixed(2)}
-                fill="var(--color-unique-300)"
-                opacity={(0.18 + n.peso * 0.34).toFixed(2)}
+                fill="var(--os-dato)"
+                opacity={(0.24 + n.peso * 0.40).toFixed(2)}
               />
             ))}
           </g>
@@ -148,7 +148,7 @@ export function FinalCTA({
         className="os-alone -z-10 left-1/2 top-1/2 h-[42vh] w-[72vw] max-w-[820px] -translate-x-1/2 -translate-y-1/2"
         style={{
           background:
-            "radial-gradient(closest-side, rgb(255 111 133 / 0.22), rgb(51 116 130 / 0.08) 58%, transparent)",
+            "radial-gradient(closest-side, var(--os-alone-mente), var(--os-alone-dato) 58%, transparent)",
         }}
       />
 

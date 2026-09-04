@@ -243,7 +243,7 @@ export function LivingSystem() {
                 style={{
                   background: "var(--os-vuoto)",
                   boxShadow: `inset 0 0 0 1.5px ${
-                    i === STADI.length - 1 ? "var(--os-azione)" : "var(--color-unique-300)"
+                    i === STADI.length - 1 ? "var(--os-azione)" : "var(--os-dato)"
                   }`,
                 }}
               />
@@ -279,7 +279,7 @@ function Scheda({
   return (
     <article className={compatta ? undefined : "os-lastra p-7"}>
       <div className="flex items-baseline gap-3">
-        <span className="os-mono text-[color:var(--os-appena)]">
+        <span className="os-mono text-[color:var(--os-segno)]">
           {String(indice + 1).padStart(2, "0")}
         </span>
         <span

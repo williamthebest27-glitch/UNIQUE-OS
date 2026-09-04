@@ -112,11 +112,11 @@ export function UniqueNavbar({
           style={
             condensata
               ? {
-                  background: "rgb(10 11 13 / 0.62)",
+                  background: "var(--os-vetro)",
                   backdropFilter: "blur(18px) saturate(140%)",
                   WebkitBackdropFilter: "blur(18px) saturate(140%)",
                   boxShadow:
-                    "inset 0 0 0 1px rgb(255 255 255 / 0.08), 0 20px 50px -30px rgb(0 0 0 / 0.9)",
+                    "inset 0 0 0 1px var(--os-vetro-bordo), var(--os-vetro-ombra)",
                 }
               : undefined
           }
@@ -359,7 +359,7 @@ function PannelloMobile({
                 )}
                 style={{ transitionDelay: `${60 + i * 65}ms` }}
               >
-                <span className="os-mono w-6 shrink-0 text-[color:var(--os-appena)]">
+                <span className="os-mono w-6 shrink-0 text-[color:var(--os-segno)]">
                   {String(i + 1).padStart(2, "0")}
                 </span>
                 <span className="os-display text-[clamp(2rem,10vw,2.9rem)]">

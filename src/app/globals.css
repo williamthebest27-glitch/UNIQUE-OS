@@ -467,46 +467,126 @@
    UNIQUE OS — La landing
    Il sistema visto da fuori.
 
-   L'applicazione è bianca e quieta perché chi ci lavora deve leggere.
-   La landing è scura perché chi arriva deve *vedere il sistema*: la
-   Signature, i dati che scorrono, la luce che passa da fredda a calda
-   non esistono sul bianco — si spengono. È la stessa scelta già presa
-   in docs/design.md per l'hero dello Score, portata alla sua scala.
+   **Bianca, come tutto il resto.** L'applicazione è bianca perché chi ci
+   lavora deve leggere per ore; la presentazione lo è per la ragione
+   opposta e complementare — su carta il rosso del marchio è tutto ciò che
+   serve, e lo spazio negativo fa il lavoro che sul nero facevano gli
+   aloni. Fra la copertina e il prodotto non c'è più uno stacco da
+   attraversare: è lo stesso foglio.
 
    Un solo racconto cromatico, e regge tutta la pagina:
 
         il dato è freddo   →   l'intelligenza è calda   →   l'esito è oro
 
-   Petrolio e salvia sono i colori del marchio; il lume è la luce che
-   emana la Signature; l'oro resta il colore del valore. Nessun colore
-   nuovo, nessun degradé viola: la tavolozza c'era già.
+   Sul bianco quei tre stati prendono le tinte piene invece di quelle
+   luminose: il **petrolio** della U per il dato, il **rosso del marchio**
+   per l'intelligenza — che è poi ciò che docs/design.md prescrive da
+   sempre come unico accento — e l'**oro profondo** per l'esito. Il lume
+   rosa esisteva solo perché il fondo era nero: tolto quel fondo, torna
+   al rosso da cui veniva.
+
+   Nessun colore fuori dai token qui sotto. Cambiare tema vuol dire
+   riscrivere quel blocco e nient'altro: è per questo che perfino i veli
+   e i vetri hanno un nome.
    ═══════════════════════════════════════════════════════════════════ */
 
 @layer components {
   .os {
     /* ── Fondali ─────────────────────────────────────────────────── */
-    --os-vuoto: #08090a;
-    --os-fondo: #0c0e10;
-    --os-alto: #14171a;
+    --os-vuoto: var(--color-bone-50);
+    --os-fondo: var(--color-bone-100);
+    --os-alto: var(--color-bone-200);
 
-    /* ── Inchiostri sul nero ─────────────────────────────────────── */
-    --os-piena: rgb(255 255 255 / 0.94);
-    --os-media: rgb(255 255 255 / 0.62);
-    --os-tenue: rgb(255 255 255 / 0.40);
-    --os-appena: rgb(255 255 255 / 0.22);
-    --os-riga: rgb(255 255 255 / 0.09);
-    --os-riga-viva: rgb(255 255 255 / 0.18);
+    /* ── Inchiostri sul bianco ───────────────────────────────────────
+       Sul nero la scala aveva quattro gradini perché il bianco al 22%
+       resta leggibile. Sul bianco quel gradino non esiste: sotto
+       `ink-500` un testo di undici pixel scende oltre il 4,5:1 e smette
+       di essere leggibile per chi ha una vista media, non solo per chi
+       ha un problema. Quindi **`tenue` e `appena` coincidono**, e la
+       gerarchia fra loro la fa la tipografia — corpo, spaziatura,
+       maiuscoletto — che è dove doveva stare fin dall'inizio.
+
+       `--os-segno` è l'unico tono davvero sotto la soglia, e porta solo
+       ciò che non è testo: i numeri d'ordine, che ripetono un'etichetta
+       già scritta accanto, e i filetti. */
+    --os-piena: var(--color-ink-900);   /* 18.6:1 — titoli, testo forte */
+    --os-media: var(--color-ink-700);   /* 11.6:1 — il corpo */
+    --os-tenue: var(--color-ink-500);   /*  5.6:1 — etichette e micro-testo */
+    --os-appena: var(--color-ink-500);  /*  5.6:1 — idem: vedi sopra */
+    --os-segno: var(--color-ink-400);   /*  3.6:1 — ornamento, mai parole */
+    --os-riga: rgb(20 19 19 / 0.10);
+    --os-riga-viva: rgb(20 19 19 / 0.20);
 
     /* ── I tre stati della materia ───────────────────────────────── */
-    /* Il dato grezzo: freddo, misurato, senza opinione. */
-    --os-dato: var(--color-unique-300);
-    --os-dato-cupo: var(--color-unique-500);
-    /* L'intelligenza: la luce della Signature, il momento in cui il
-       numero diventa significato. */
-    --os-mente: var(--color-lume-500);
-    --os-mente-chiara: var(--color-lume-300);
-    /* L'azione e l'esito: il colore del valore, usato con parsimonia. */
-    --os-azione: var(--color-gold-300);
+    /* Il dato grezzo: freddo, misurato, senza opinione. Il petrolio
+       della U, che sul bianco si legge (4,9:1) dove la salvia chiara
+       sarebbe sparita. */
+    --os-dato: var(--color-unique-500);
+    --os-dato-cupo: var(--color-unique-700);
+    /* L'intelligenza: il rosso del marchio. Sul nero serviva il lume —
+       il rosso pieno lì si spegne — ma sul bianco l'accento è quello, e
+       docs/design.md non ne ammette un secondo. */
+    --os-mente: var(--color-brand-600);
+    --os-mente-chiara: var(--color-brand-500);
+    /* L'azione e l'esito: il colore del valore, usato con parsimonia.
+       L'oro della tavolozza si ferma a 4,2:1 sul bianco, appena sotto la
+       soglia: qui è lo stesso oro spinto verso l'inchiostro finché non
+       la supera. Derivato, non inventato — resta l'oro del marchio. */
+    --os-azione: color-mix(in srgb, var(--color-gold-600) 84%, var(--color-ink-900));
+    /* Il verde resta l'unico modo di dire "va meglio": il rosso è il
+       marchio, e da solo non può voler dire che qualcosa va male. */
+    --os-positivo: color-mix(in srgb, var(--color-signal-positive) 90%, var(--color-ink-900));
+
+    /* ── Superfici ───────────────────────────────────────────────────
+       Sul nero una superficie si alzava schiarendo. Sul bianco non può:
+       si alza scurendo appena, e il bordo fa il resto. */
+    --os-lastra-alto: rgb(20 19 19 / 0.026);
+    --os-lastra-basso: rgb(20 19 19 / 0.008);
+    --os-reticolo: rgb(20 19 19 / 0.032);
+
+    /* Il vetro della barra condensata: abbastanza opaco da staccare la
+       navigazione dal contenuto che le scorre sotto. */
+    --os-vetro: rgb(255 255 255 / 0.78);
+    --os-vetro-bordo: rgb(20 19 19 / 0.09);
+    --os-vetro-ombra: 0 18px 44px -28px rgb(20 19 19 / 0.30);
+
+    /* ── Veli e aloni ────────────────────────────────────────────────
+       Su fondo scuro la luce si aggiunge; sul bianco si toglie. Sono gli
+       stessi tre colori, portati a un'alfa in cui tingono la carta
+       invece di illuminarla. */
+    --os-alone-mente: rgb(207 42 66 / 0.13);
+    --os-alone-mente-forte: rgb(207 42 66 / 0.20);
+    --os-alone-dato: rgb(51 116 130 / 0.09);
+    --os-luce-nodo: rgb(207 42 66 / 0.50);
+    /* Il velo appena rosato sotto una riga selezionata, e la luce che la
+       linea di trasformazione proietta oltre il proprio bordo. */
+    --os-velo-mente: rgb(207 42 66 / 0.075);
+    --os-luce-linea: 0 0 22px 1px rgb(207 42 66 / 0.26);
+    --os-luce-dato: rgb(51 116 130 / 0.22);
+
+    --os-oro-velo: rgb(154 118 60 / 0.07);
+    --os-oro-velo-tenue: rgb(154 118 60 / 0.02);
+    --os-oro-bordo: rgb(154 118 60 / 0.28);
+
+    --os-positivo-velo: rgb(31 138 76 / 0.10);
+
+    /* Il binario vuoto di una barra che si riempie. */
+    --os-traccia-vuota: rgb(20 19 19 / 0.08);
+
+    /* ── Il pannello di prodotto ─────────────────────────────────────
+       È la Patient App, e la Patient App è bianca: sul nero il pannello
+       era "la stessa struttura vestita per la scena", qui è la cosa. */
+    --os-pannello-alto: var(--color-bone-50);
+    --os-pannello-basso: var(--color-bone-100);
+    --os-pannello-ombra: 0 44px 90px -56px rgb(20 19 19 / 0.42);
+
+    /* ── Il comando pieno ────────────────────────────────────────────
+       Nero su bianco, non rosso: il rosso è l'accento semantico
+       dell'intelligenza, e usarlo anche per il pulsante ne farebbe due
+       cose diverse nella stessa pagina. */
+    --os-btn-fondo: var(--color-ink-900);
+    --os-btn-testo: var(--color-bone-50);
+    --os-btn-alone: 0 18px 40px -18px rgb(20 19 19 / 0.45);
 
     position: relative;
     background: var(--os-vuoto);
@@ -629,8 +709,8 @@
     border-radius: 18px;
     background: linear-gradient(
       180deg,
-      rgb(255 255 255 / 0.045),
-      rgb(255 255 255 / 0.015)
+      var(--os-lastra-alto),
+      var(--os-lastra-basso)
     );
     box-shadow: inset 0 0 0 1px var(--os-riga);
   }
@@ -645,8 +725,8 @@
     inset: 0;
     pointer-events: none;
     background-image:
-      linear-gradient(to right, rgb(255 255 255 / 0.028) 1px, transparent 1px),
-      linear-gradient(to bottom, rgb(255 255 255 / 0.028) 1px, transparent 1px);
+      linear-gradient(to right, var(--os-reticolo) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--os-reticolo) 1px, transparent 1px);
     background-size: 88px 88px;
     /* Sfuma ai bordi: una griglia che finisce di netto è una texture,
        una che si dissolve è spazio. */
@@ -658,12 +738,15 @@
      due sovrapposti: il glassmorphism a strati fa sembrare tutto
      molle. */
 
+  /* Sul nero l'alone era luce che si aggiunge; sul bianco è una tinta
+     che si posa, quindi va più sfocata e meno densa — altrimenti si
+     legge come una macchia invece che come un'atmosfera. */
   .os-alone {
     position: absolute;
     pointer-events: none;
     border-radius: 50%;
-    filter: blur(70px);
-    opacity: 0.5;
+    filter: blur(86px);
+    opacity: 0.9;
   }
 
   /* ── Comandi ────────────────────────────────────────────────────
@@ -693,14 +776,17 @@
   }
 
   .os-btn-pieno {
-    color: var(--color-ink-900);
-    background: var(--os-piena);
-    box-shadow: 0 0 0 0 rgb(255 111 133 / 0);
+    color: var(--os-btn-testo);
+    background: var(--os-btn-fondo);
+    box-shadow: 0 0 0 0 rgb(20 19 19 / 0);
   }
 
+  /* Sul nero il pulsante si accendeva; sul bianco si stacca dal foglio.
+     È lo stesso gesto — "questo oggetto viene avanti" — detto con
+     l'ombra invece che con la luce, perché è l'unico dei due che sulla
+     carta esiste. */
   .os-btn-pieno:hover {
-    background: #fff;
-    box-shadow: 0 0 42px -6px rgb(255 111 133 / 0.55);
+    box-shadow: var(--os-btn-alone);
   }
 
   .os-btn-vuoto {
@@ -709,8 +795,8 @@
   }
 
   .os-btn-vuoto:hover {
-    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.42);
-    background: rgb(255 255 255 / 0.05);
+    box-shadow: inset 0 0 0 1px rgb(20 19 19 / 0.42);
+    background: rgb(20 19 19 / 0.035);
   }
 
   /* Il magnetismo: lo scostamento lo scrive il puntatore, la molla è
@@ -751,12 +837,15 @@
     transform-origin: left;
   }
 
-  /* ── Il focus, sul nero ─────────────────────────────────────────
-     Il rosso del marchio sparisce contro il vuoto: qui l'anello è
-     bianco, e resta visibile su qualunque fondo della pagina. */
+  /* ── Il fuoco ────────────────────────────────────────────────────
+     Sul nero l'anello doveva essere bianco, perché il rosso del marchio
+     contro il vuoto spariva. Sul bianco torna a essere quello di tutta
+     l'applicazione: chi naviga da tastiera vede lo stesso segnale nella
+     presentazione e dentro il prodotto. Restano l'offset e il raggio
+     più larghi, tarati sugli oggetti grandi di questa pagina. */
 
   .os :focus-visible {
-    outline: 2px solid rgb(255 255 255 / 0.85);
+    outline: 2px solid var(--color-brand-500);
     outline-offset: 3px;
     border-radius: 6px;
   }

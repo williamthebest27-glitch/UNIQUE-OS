@@ -16,13 +16,14 @@ import { cx } from "@/components/ui/primitives";
  * quel punto un modulo si apre e mostra la sequenza che l'intera pagina
  * ha raccontato: un dato, ciò che significa, cosa fare.
  *
- * La superficie è la Patient App vera, in negativo: le stesse sezioni di
+ * La superficie è la Patient App vera: le stesse sezioni di
  * `lib/patient/sezioni.ts`, gli stessi sette pilastri di
- * `lib/score/pillars.ts`, lo stesso punteggio del paziente
- * dimostrativo. Non è uno screenshot — dentro il prodotto il fondo è
- * bianco, perché chi ci lavora deve leggere per ore — è la stessa
- * struttura vestita per la scena. Quello che si promette qui, si trova
- * dopo l'accesso.
+ * `lib/score/pillars.ts`, lo stesso punteggio del paziente dimostrativo,
+ * e — da quando la presentazione è bianca — anche lo stesso fondo. Sul
+ * nero questo pannello era «la stessa struttura vestita per la scena»,
+ * un compromesso onesto ma pur sempre un compromesso; qui non c'è più
+ * niente da tradurre. Quello che si promette in copertina è ciò che si
+ * trova dopo l'accesso, alla lettera.
  */
 
 /* I sette pilastri con i valori del paziente dimostrativo: gli stessi
@@ -135,9 +136,9 @@ export function ProductInterface() {
             className="os-lastra overflow-hidden will-change-transform"
             style={{
               transformStyle: "preserve-3d",
-              background: "linear-gradient(180deg, #101316, #0b0d0f)",
-              boxShadow:
-                "inset 0 0 0 1px rgb(255 255 255 / 0.09), 0 60px 120px -60px rgb(0 0 0 / 0.9)",
+              background:
+                "linear-gradient(180deg, var(--os-pannello-alto), var(--os-pannello-basso))",
+              boxShadow: "inset 0 0 0 1px var(--os-riga), var(--os-pannello-ombra)",
             }}
             aria-hidden="true"
           >
@@ -160,7 +161,10 @@ export function ProductInterface() {
               {/* ── La colonna ───────────────────────────────── */}
               <nav
                 className="hidden flex-col gap-1 border-r p-4 sm:flex"
-                style={{ borderColor: "var(--os-riga)" }}
+                style={{
+                  borderColor: "var(--os-riga)",
+                  background: "var(--os-pannello-basso)",
+                }}
               >
                 {VOCI.map((voce, i) => (
                   <span
@@ -173,7 +177,7 @@ export function ProductInterface() {
                     )}
                     style={
                       i === 1
-                        ? { background: "rgb(255 111 133 / 0.10)" }
+                        ? { background: "var(--os-velo-mente)" }
                         : undefined
                     }
                   >
@@ -202,9 +206,12 @@ export function ProductInterface() {
                       <span className="mb-2 flex flex-col gap-1.5">
                         <span
                           className="os-mono rounded-full px-2 py-1"
+                          // Il verde chiaro serviva sul nero, dove quello
+                          // pieno spariva. Sul bianco è l'opposto: torna il
+                          // verde neutro dell'applicazione.
                           style={{
-                            background: "rgb(134 217 166 / 0.12)",
-                            color: "var(--color-signal-positive-light)",
+                            background: "var(--os-positivo-velo)",
+                            color: "var(--os-positivo)",
                           }}
                         >
                           +4
@@ -245,7 +252,7 @@ export function ProductInterface() {
                       </span>
                       <span
                         className="h-[3px] min-w-0 flex-1 overflow-hidden rounded-full"
-                        style={{ background: "rgb(255 255 255 / 0.07)" }}
+                        style={{ background: "var(--os-traccia-vuota)" }}
                       >
                         <span
                           data-barra=""
@@ -294,8 +301,8 @@ export function ProductInterface() {
                       data-passo-modulo=""
                       className="flex items-center gap-3.5 rounded-xl p-3.5"
                       style={{
-                        background: "rgb(220 193 145 / 0.08)",
-                        boxShadow: "inset 0 0 0 1px rgb(220 193 145 / 0.18)",
+                        background: "var(--os-oro-velo)",
+                        boxShadow: "inset 0 0 0 1px var(--os-oro-bordo)",
                       }}
                     >
                       <span className="os-mono w-[62px] shrink-0 text-[color:var(--os-azione)]">

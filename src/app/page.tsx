@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import { getCurrentProfile, homePathForRole } from "@/lib/auth";
 import { appUrl } from "@/lib/supabase/config";
 import { UniqueLanding } from "@/components/landing/landing";
@@ -76,20 +76,6 @@ export function generateMetadata(): Metadata {
     },
   };
 }
-
-/**
- * Il colore della barra del browser.
- *
- * Il guscio dell'applicazione lo dichiara bianco, perché l'applicazione è
- * bianca. La presentazione è nera, e su telefono la barra degli indirizzi
- * prende quel colore: senza questa riga, sopra una pagina nera resterebbe
- * una striscia bianca che sembra un errore di caricamento.
- */
-export const viewport: Viewport = {
-  themeColor: "#08090a",
-  width: "device-width",
-  initialScale: 1,
-};
 
 export default async function RootPage() {
   const profile = await getCurrentProfile();

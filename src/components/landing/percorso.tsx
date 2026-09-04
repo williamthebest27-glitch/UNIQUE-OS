@@ -231,11 +231,11 @@ export function JourneyTimeline() {
             >
               <defs>
                 <linearGradient id="os-percorso-area" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--os-mente)" stopOpacity="0.28" />
+                  <stop offset="0%" stopColor="var(--os-mente)" stopOpacity="0.16" />
                   <stop offset="100%" stopColor="var(--os-mente)" stopOpacity="0" />
                 </linearGradient>
                 <linearGradient id="os-percorso-linea" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="var(--color-unique-300)" />
+                  <stop offset="0%" stopColor="var(--os-dato)" />
                   <stop offset="62%" stopColor="var(--os-mente)" />
                   <stop offset="100%" stopColor="var(--os-azione)" />
                 </linearGradient>
@@ -273,7 +273,7 @@ export function JourneyTimeline() {
                   background: "var(--os-vuoto)",
                   boxShadow: `inset 0 0 0 2px ${
                     i === TAPPE.length - 1 ? "var(--os-azione)" : "var(--os-mente)"
-                  }, 0 0 18px 1px rgb(255 111 133 / 0.5)`,
+                  }, 0 0 18px 2px var(--os-luce-nodo)`,
                 }}
               />
             ))}

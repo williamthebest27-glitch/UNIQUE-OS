@@ -166,7 +166,7 @@ export function IntelligenceEngine() {
                   className="flex gap-4 border-t py-5"
                   style={{ borderColor: "var(--os-riga)" }}
                 >
-                  <span className="os-mono w-6 shrink-0 pt-0.5 text-[color:var(--os-appena)]">
+                  <span className="os-mono w-6 shrink-0 pt-0.5 text-[color:var(--os-segno)]">
                     {String(i + 1).padStart(2, "0")}
                   </span>
                   <span>

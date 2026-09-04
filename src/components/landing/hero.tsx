@@ -193,17 +193,28 @@ export function HeroSystem({
       ref={rif}
       id="hero"
       className="relative isolate flex min-h-[100svh] flex-col justify-center overflow-hidden"
+      style={{ background: "var(--os-vuoto)" }}
     >
       {/* ── Il campo vivo: la Signature, quasi al nero ───────────── */}
       {/* La Signature sta *dietro* la scena, non dentro: raccolta attorno
           al marchio e già spenta dove comincia il titolo. A opacità piena
           e a tutto schermo è una bella figura che però compete con la
           tipografia, e in una gara fra uno shader e una frase deve
-          vincere la frase. */}
+          vincere la frase.
+
+          **Sul bianco lo shader va rovesciato.** Disegna un fondo quasi
+          nero con dentro una luce: messo su carta sarebbe un rettangolo
+          scuro. `invert(1)` porta il fondo a bianco e la luce a un
+          petrolio-salvia — gli stessi colori della U — e `multiply` fa
+          sparire il bianco lasciando solo la tinta: il risultato è una
+          macchia d'inchiostro sulla carta, non una finestra sul nero. È
+          la stessa figura, letta in negativo. */}
       <div
         data-campo=""
-        className="pointer-events-none absolute inset-0 -z-10 opacity-[0.24]"
+        className="pointer-events-none absolute inset-0 -z-10 opacity-[0.42]"
         style={{
+          filter: "invert(1)",
+          mixBlendMode: "multiply",
           maskImage:
             "radial-gradient(62% 46% at 50% 30%, #000 4%, rgb(0 0 0 / 0.42) 44%, transparent 74%)",
           WebkitMaskImage:
@@ -221,7 +232,7 @@ export function HeroSystem({
         className="os-alone -z-10 left-1/2 top-1/2 h-[46vh] w-[70vw] max-w-[900px] -translate-x-1/2 -translate-y-1/2"
         style={{
           background:
-            "radial-gradient(closest-side, rgb(255 111 133 / 0.20), rgb(51 116 130 / 0.10) 55%, transparent)",
+            "radial-gradient(closest-side, var(--os-alone-mente-forte), var(--os-alone-dato) 55%, transparent)",
         }}
       />
 
@@ -382,18 +393,18 @@ function Costellazione({
       >
         <defs>
           <radialGradient id="os-nodo-luce">
-            <stop offset="0%" stopColor="var(--os-mente-chiara)" stopOpacity="0.9" />
+            <stop offset="0%" stopColor="var(--os-mente-chiara)" stopOpacity="0.55" />
             <stop offset="100%" stopColor="var(--os-mente)" stopOpacity="0" />
           </radialGradient>
         </defs>
 
-        <g stroke="var(--color-unique-300)" fill="none" strokeWidth="0.7">
+        <g stroke="var(--os-dato)" fill="none" strokeWidth="0.7">
           {rete.map((l, i) => (
             <path
               key={i}
               data-legame=""
               d={arco(nodi[l.a].x, nodi[l.a].y, nodi[l.b].x, nodi[l.b].y, 0.1)}
-              opacity={(0.05 + l.forza * 0.16).toFixed(3)}
+              opacity={(0.08 + l.forza * 0.22).toFixed(3)}
             />
           ))}
         </g>
@@ -406,8 +417,8 @@ function Costellazione({
               cx={n.x}
               cy={n.y}
               r={(0.9 + n.peso * 1.7).toFixed(2)}
-              fill="var(--color-unique-300)"
-              opacity={(0.22 + n.peso * 0.42).toFixed(2)}
+              fill="var(--os-dato)"
+              opacity={(0.18 + n.peso * 0.34).toFixed(2)}
             />
           ))}
         </g>
@@ -433,7 +444,7 @@ function Costellazione({
                 y={n.y + 3.5}
                 className="os-mono"
                 fill="var(--os-mente)"
-                opacity="0.62"
+                opacity="0.85"
                 style={{ fontSize: "10.5px", letterSpacing: "0.14em" }}
               >
                 {misura.testo}
