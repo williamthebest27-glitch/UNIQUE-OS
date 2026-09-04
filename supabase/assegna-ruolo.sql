@@ -5,10 +5,17 @@
 -- stessa applicazione che mostra cose diverse a seconda del ruolo scritto
 -- qui. Un account nasce sempre come `patient`.
 --
---   patient       /dashboard   la persona e il suo percorso
---   professional  /pro         agenda clinica, cartelle, revisioni
---   admin         /control     centro di controllo
---   owner         /control     come admin, per la proprietà
+--   patient       /dashboard         la persona e il suo percorso
+--   professional  /pro               agenda clinica, cartelle, revisioni
+--   reception     /control/agenda    agenda, recapiti, incassi, CRM, task
+--   marketing     /control/marketing campagne, contenuti, lead, knowledge base
+--   admin         /control           centro di controllo, Brain, approvazioni
+--   owner         /control           come admin, per la proprietà
+--
+-- Reception e marketing non vedono dati sanitari: le policy elencano una
+-- per una le tabelle che possono leggere, così una tabella nuova nasce
+-- invisibile a entrambi. Non è una scelta dell'interfaccia — è il
+-- database a rifiutare le righe.
 --
 -- COME SI USA
 --   1. Authentication → Users → Add user: crea l'utente con la sua email.
@@ -31,7 +38,7 @@ do $$
 declare
   -- ── Da compilare ──────────────────────────────────────────────
   v_email      text := 'INSERISCI-EMAIL@esempio.it';
-  -- 'professional', 'admin' oppure 'owner'
+  -- 'professional', 'reception', 'marketing', 'admin' oppure 'owner'
   v_ruolo      app_role := 'professional';
 
   -- Solo per 'professional'. Discipline ammesse: physician, nutritionist,
@@ -60,8 +67,11 @@ begin
   update public.profiles
      set role = v_ruolo,
          full_name = coalesce(nullif(full_name, ''),
-                              case when v_ruolo = 'professional' then 'Professionista'
-                                   else 'Direzione' end)
+                              case v_ruolo
+                                when 'professional' then 'Professionista'
+                                when 'reception'    then 'Accoglienza'
+                                when 'marketing'    then 'Marketing'
+                                else 'Direzione' end)
    where id = v_profile;
 
   if v_ruolo = 'professional' then
@@ -90,6 +100,11 @@ begin
     else
       raise notice 'Professionista creato. Nessun paziente assegnato: assegnali dal team.';
     end if;
+  elsif v_ruolo::text in ('reception', 'marketing') then
+    -- Nessuna scheda da creare: il ruolo è tutto ciò che serve, e le
+    -- policy fanno il resto.
+    raise notice 'Ruolo % assegnato a %. Entra nel Control Center, senza dati sanitari.',
+      v_ruolo, v_email;
   else
     -- Amministrazione e direzione passano da is_staff(): vedono tutto
     -- senza bisogno di assegnazioni.

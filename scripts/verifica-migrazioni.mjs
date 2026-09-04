@@ -61,7 +61,7 @@ if (conSeed) {
   // Il trigger su auth.users crea il profilo, esattamente come in Supabase.
   await q("insert into auth.users (email) values ($1), ($2)", [EMAIL_PAZIENTE, EMAIL_PRO]);
 
-  for (const nome of ["demo-paziente.sql", "demo-clinica.sql"]) {
+  for (const nome of ["demo-paziente.sql", "demo-clinica.sql", "demo-marketing.sql"]) {
     const sql = readFileSync(join(SUPABASE, nome), "utf8")
       .replaceAll("'INSERISCI-LA-TUA-EMAIL@esempio.it'", `'${EMAIL_PAZIENTE}'`)
       .replace(/v_pro_email(\s+)text(\s*):=(\s*)''/, `v_pro_email$1text$2:=$3'${EMAIL_PRO}'`);
@@ -74,6 +74,60 @@ if (conSeed) {
       process.exit(1);
     }
   }
+}
+
+// ── La segregazione dei ruoli ───────────────────────────────────────
+/*
+ * Che la Row Level Security sia accesa non dice che sia giusta.
+ *
+ * Qui si verifica la promessa che conta davvero: marketing e reception
+ * non vedono dati sanitari. Serve il ruolo `authenticated` — con cui
+ * Supabase esegue le query — perché il proprietario delle tabelle
+ * scavalca la RLS e vedrebbe tutto anche se le policy fossero perfette.
+ */
+if (conSeed) {
+  console.log("\n── segregazione dei ruoli ──");
+
+  await db.exec("grant usage on schema public to authenticated");
+  await db.exec(
+    "grant select, insert, update, delete on all tables in schema public to authenticated",
+  );
+  await db.exec("grant execute on all functions in schema public to authenticated");
+
+  const CLINICO = [
+    ["misure cliniche", "select id from public.measurements"],
+    ["documenti", "select id from public.documents"],
+    ["note cliniche", "select id from public.clinical_notes"],
+    ["punteggi", "select id from public.longevity_scores"],
+  ];
+
+  const comeRuolo = async (ruolo, email) => {
+    const [{ id }] = await q("insert into auth.users (email) values ($1) returning id", [email]);
+    await q("update public.profiles set role = $1 where id = $2", [ruolo, id]);
+    await db.exec(`set request.jwt.claim.sub = '${id}'`);
+    await db.exec("set role authenticated");
+
+    const visti = [];
+    for (const [nome, sql] of CLINICO) {
+      try {
+        if ((await q(sql)).length > 0) visti.push(nome);
+      } catch {
+        // Permesso negato è il comportamento giusto: niente da segnalare.
+      }
+    }
+
+    await db.exec("reset role");
+
+    if (visti.length === 0) {
+      console.log(`✔ ${ruolo}: nessun dato sanitario`);
+    } else {
+      console.log(`✘ ${ruolo} vede dati sanitari: ${visti.join(", ")}`);
+      uscita = 1;
+    }
+  };
+
+  await comeRuolo("marketing", "verifica.marketing@esempio.it");
+  await comeRuolo("reception", "verifica.reception@esempio.it");
 }
 
 // ── I controlli che contano ─────────────────────────────────────────

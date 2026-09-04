@@ -37,6 +37,15 @@ Dal progetto, apri **SQL Editor** ed esegui i file di `supabase/migrations/`
    servizi, disponibilità, integrazione col gestionale
 9. `20260903160000_crm_economics_capacity.sql` — CRM, identità omnicanale,
    prezzi e regole di compenso, ambulatori e orari
+10. `20260904100000_organizations_locations_roles.sql` — organizzazione e sedi,
+    ruoli reception e marketing, perimetro di sede
+11. `20260904100100_domain_events.sql` — eventi di dominio e webhook in uscita
+12. `20260904110000_knowledge_base.sql` — knowledge base versionata, con i primi
+    contenuti di brand, listino e procedure
+13. `20260904120000_marketing.sql` — campagne, spesa, creatività, contenuti e
+    attribuzione
+14. `20260904130000_brain_approvals_tasks.sql` — conversazioni e memoria del
+    Brain, approvazioni, task unificati, notifiche con gravità
 
 In alternativa, con la Supabase CLI installata e il progetto collegato:
 
@@ -57,7 +66,11 @@ Applica tutte le migrazioni in ordine su un Postgres in WebAssembly — niente
 Docker, niente server — e poi controlla le tre cose che non possono
 sbagliare: che ogni tabella abbia la Row Level Security accesa, che abbia
 almeno una policy, e che ogni vista sia `security_invoker`. Con
-`npm run db:verifica -- seed` esegue anche i dati dimostrativi.
+`npm run db:verifica -- seed` esegue anche i dati dimostrativi e verifica la
+**segregazione dei ruoli**: entra come marketing e come reception con i permessi
+veri di `authenticated` e controlla che nessuno dei due veda misure, referti,
+note cliniche o punteggi. Che la Row Level Security sia accesa non dice che sia
+giusta.
 
 Serve a scoprire qui, e non a metà di una migrazione già in corso su
 Supabase, errori come quello di `create or replace view`, che in Postgres
@@ -195,7 +208,10 @@ Se vuoi vedere anche il medico di riferimento nella card della prossima visita, 
 un secondo utente e indica la sua email nella variabile `v_pro_email` dello script.
 
 Poi esegui `supabase/demo-clinica.sql`: crea i turni del professionista — senza,
-la capacità non è misurabile — e una manciata di lead per il CRM.
+la capacità non è misurabile — e una manciata di lead per il CRM. Infine
+`supabase/demo-marketing.sql`, che aggiunge campagne, spesa giornaliera,
+creatività e contenuti, e attacca i lead alla campagna che li ha prodotti: senza
+quest’ultimo passaggio la catena si spezza e CAC e ROAS restano non calcolabili.
 
 ## 7. Vedere l’area clinica e il Control Center
 
@@ -206,7 +222,13 @@ vogliono un ruolo diverso, ed è lo stesso applicativo a cambiare faccia:
 |---|---|---|
 | `patient` | `/dashboard` | il proprio percorso |
 | `professional` | `/pro` | agenda, cartelle dei pazienti assegnati, revisioni |
-| `admin` / `owner` | `/control` | KPI, CRM, economia, capacità |
+| `reception` | `/control/agenda` | agenda della sede, recapiti, incassi, CRM, task |
+| `marketing` | `/control/marketing` | campagne, contenuti, lead, knowledge base |
+| `admin` / `owner` | `/control` | tutto: Brain, KPI, CRM, economia, capacità |
+
+Reception e marketing non vedono dati sanitari, e non è una scelta
+dell’interfaccia: le policy elencano una per una le tabelle che possono leggere,
+così una tabella nuova nasce invisibile a entrambi.
 
 Crea un **secondo utente** in *Authentication → Users → Add user*, poi apri
 `supabase/assegna-ruolo.sql`, compila email e ruolo, ed eseguilo nella SQL Editor.

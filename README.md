@@ -19,8 +19,8 @@ Il principio che regge ogni scelta tecnica di questo repository:
 | --- | --- | --- |
 | **Patient App** | Il paziente | 🟢 Home completa, collegata al database |
 | **Professional App** | Medici e professionisti | 🟢 Agenda, pazienti, cartella unificata, permessi per disciplina |
-| **Unique Control Center** | Amministrazione e management | 🟢 Control room, economia, capacità, CRM |
-| **Unique Brain** | Layer AI trasversale | 🟡 Ingestione documenti, briefing e copilot clinico |
+| **Unique Control Center** | Direzione, reception, marketing | 🟢 Control room, economia, capacità, CRM, marketing, knowledge base |
+| **Unique Brain** | Layer AI trasversale | 🟢 Chat founder con strumenti, proposte e approvazioni, contenuti, copilot clinico |
 
 I quattro livelli non sono quattro prodotti: sono quattro interfacce sullo stesso
 database, con gli stessi tipi di dominio e lo stesso linguaggio visivo. Per questo
@@ -74,6 +74,34 @@ distinti.
 - **Schema completo** — identità, care team, Score e pilastri, biomarcatori,
   percorsi, appuntamenti, documenti, membership, registro crediti append-only,
   notifiche, audit log.
+- **Unique Brain, interfaccia founder** — si apre una chat e si chiede come sta
+  andando Unique. Il modello non conosce i numeri: li chiede, con otto strumenti
+  che passano tutti dalla Row Level Security. Sotto ogni risposta restano scritte
+  le chiamate, così si vede che il fatturato viene da una query e non da una stima.
+- **Dalle informazioni alle azioni** — il Brain propone, non esegue. Ogni azione
+  passa da anteprima, autorizzazione ed esecuzione, che sono tre gesti separati;
+  la classe dell’azione sta in un catalogo scritto a mano, non nei parametri che
+  il modello passa. Cambiare un prezzo aggiorna listino e knowledge base nella
+  stessa operazione.
+- **Knowledge base versionata** — la memoria aziendale con versione, date di
+  validità, proprietario e stato. Si legge da una vista sola, che restituisce ciò
+  che è vero **oggi**: il prezzo di ieri resta leggibile, ma non risponde più.
+- **Marketing intelligence** — campagne, spesa, creatività e contenuti collegati
+  a lead, pazienti, membership e incassi. CPL, CAC, ROAS e qualità dei pazienti
+  portati, con le medie pesate e i rapporti non calcolabili dichiarati tali.
+- **Content Brain** — caroselli, script, landing e campagne scritti sul brand
+  book e sul listino in vigore. Un prezzo che non trova nelle fonti non lo
+  inventa, e ogni bozza esce con le fonti e con ciò che un medico deve rileggere.
+- **Task e notifiche** — un elenco solo per tutta Unique, con incaricato,
+  priorità, scadenza e origine; tre livelli di notifica in cui l’informativo
+  finisce nel digest del mattino e non suona mai.
+- **Eventi di dominio** — ogni fatto rilevante lascia una riga append-only, e da
+  lì esce firmato verso i sistemi collegati. È ciò che rende possibili le
+  automazioni senza doverle prevedere una per una.
+- **Sedi e ruoli** — Organization → Location → Professional → Patient dal primo
+  giorno, e due ruoli operativi (reception, marketing) che non vedono dati
+  sanitari: le policy elencano ciò che possono leggere, così una tabella nuova
+  nasce invisibile a entrambi.
 - **La Signature** — il Longevity Score come organismo generativo in WebGL, unico
   per ogni paziente, la cui forma è derivata dai sette pilastri. Cambia mentre la
   salute cambia. Con l’anello come ripiego dove WebGL manca o il movimento è ridotto.
@@ -104,7 +132,11 @@ src/
     page.tsx              Smistamento per ruolo
     accedi/               Accesso con link via email
     auth/callback/        Atterraggio del link ricevuto
-    pro/                  Area professionale (segnaposto)
+    pro/                  Area professionale
+    control/              Control Center — oggi, brain, agenda, economia,
+                          capacità, crm, task, approvazioni, marketing,
+                          contenuti, conoscenza
+    api/integrazioni/     Prenotazioni dal gestionale, feed eventi e webhook
     (patient)/            Patient App — barra laterale e tab bar
       dashboard/          La home descritta nella visione
       percorso/  documenti/  appuntamenti/  crediti/
@@ -118,7 +150,13 @@ src/
   lib/
     domain/types.ts       Modello di dominio condiviso dai quattro livelli
     score/                Pilastri, catalogo metriche, motore di calcolo, test
-    brain/                Estrazione AI, validazione, approvazione, briefing
+    brain/                Estrazione AI, briefing, copilot, chat founder,
+                          strumenti, Content Brain
+    approvals/            Catalogo azioni, anteprime, esecuzione, ciclo delle
+                          proposte, con test
+    knowledge/            Knowledge base: validità nel tempo, ricerca, versioni
+    marketing/            CPL, CAC, ROAS, qualità dei contenuti, con test
+    events/               Catalogo eventi, emissione, webhook firmati, con test
     documents/            Caricamento e classificazione dei referti
     clinical/             Note, valutazioni, proposte di percorso, task
     professionals/        Discipline e ambiti di competenza
@@ -135,9 +173,12 @@ src/
     format.ts             Date, orari e numeri in italiano
 
 supabase/
-  migrations/             Schema, sicurezza, cataloghi
+  migrations/             Schema, sicurezza, cataloghi, knowledge base, eventi
   demo-paziente.sql       Popola un paziente di prova
-docs/                     Collegamento a Supabase, modello dello Score, GDPR
+  demo-clinica.sql        Turni e lead
+  demo-marketing.sql      Campagne, spesa, creatività, contenuti
+  assegna-ruolo.sql       Dà a un utente il suo ruolo
+docs/                     Collegamento a Supabase, Brain, knowledge base, GDPR
 ```
 
 ## Avvio locale
@@ -187,18 +228,34 @@ Postgres non restituirebbe comunque righe che l’utente non ha diritto di veder
   Health Timeline, cartella unificata e sintesi pre-visita.
 - [Il motore clinico AI](docs/motore-clinico-ai.md) — come un documento diventa
   misure, quali regole decidono cosa passa da un medico.
+- [Unique Brain](docs/unique-brain.md) — gli strumenti, la memoria, e il confine
+  fra dire e fare: proposta, anteprima, autorizzazione, esecuzione.
+- [La knowledge base e il tempo](docs/knowledge-base.md) — perché
+  un’informazione ha una versione, e come si sa quale è vera oggi.
+- [Marketing intelligence e Content Brain](docs/marketing-e-contenuti.md) —
+  attribuzione, CPL, CAC, ROAS, e come nasce un contenuto che rispetta il brand.
 - [Sicurezza e dati sanitari](docs/sicurezza-e-gdpr.md) — modello dei permessi,
-  tracciamento degli accessi e adempimenti aperti.
+  segregazione dei ruoli, tracciamento e adempimenti aperti.
 
 ## Prossimi passi
 
 1. **Validazione clinica dello Score** — pesi e curve di normalizzazione vanno
    confermati dal team medico. Le decisioni aperte sono in docs/longevity-score.md.
-2. **Anamnesi strutturata** — un questionario le cui risposte alimentino
+2. **Confermare la knowledge base** — listino, membership e procedure sono state
+   scritte dal brief del founder e portano la nota che lo dichiara. Vanno rilette
+   dall’amministrazione, e ogni voce vuole un proprietario: senza, invecchia
+   senza che nessuno se ne accorga.
+3. **Anamnesi strutturata** — un questionario le cui risposte alimentino
    direttamente le metriche di anamnesi e stile di vita.
-3. **AI sales agent e omnichannel** — WhatsApp, Meta ed email: servono le
-   credenziali dei canali, il modello dati è pronto.
-4. **Pagamenti** — collegare un gestore esterno: stato, rinnovo e incassi oggi
+4. **Canali di comunicazione** — WhatsApp, email e Meta. Oggi il Brain *prepara*
+   i contatti e non ne manda nessuno; l’invio sarà un’azione a sé, con la sua
+   classe e la sua approvazione.
+5. **Importare la spesa pubblicitaria** — `campaign_daily_stats` si popola a mano
+   o dall’endpoint di integrazione. Servono le credenziali Meta e Google.
+6. **Tracciare l’origine dei lead** — perché l’attribuzione sia completa, moduli
+   e landing devono passare i parametri di campagna. Finché non lo fanno, i
+   numeri di CAC e ROAS vanno letti sapendo che coprono solo una parte.
+7. **Pagamenti** — collegare un gestore esterno: stato, rinnovo e incassi oggi
    si compilano a mano, ma lo schema e gli avvisi sono già pronti.
-5. **Unique Brain** — interrogazione in linguaggio naturale su dati, documenti e
-   procedure, con gli stessi confini di accesso della Row Level Security.
+8. **Popolare `audit_log`** — gli eventi dicono cosa è cambiato; manca il
+   tracciamento di chi ha *guardato* un dato clinico.
