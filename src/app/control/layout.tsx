@@ -22,6 +22,7 @@ const SEZIONI = [
   { href: "/control/economia", label: "Economia" },
   { href: "/control/capacita", label: "Capacità" },
   { href: "/control/crm", label: "CRM" },
+  { href: "/control/conoscenza", label: "Conoscenza" },
 ] as const;
 
 export default async function ControlLayout({

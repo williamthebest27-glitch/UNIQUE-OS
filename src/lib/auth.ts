@@ -108,6 +108,7 @@ export const CONTROL_SECTIONS: Record<string, AppRole[]> = {
   "/control/crm": ["admin", "owner", "reception", "marketing"],
   "/control/agenda": ["admin", "owner", "reception"],
   "/control/marketing": ["admin", "owner", "marketing"],
+  "/control/conoscenza": ["admin", "owner", "marketing"],
 };
 
 export function canSeeControlSection(role: AppRole, path: string): boolean {
