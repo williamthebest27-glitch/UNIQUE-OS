@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { NavLink } from "@/components/shell/nav-link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { cx } from "@/components/ui/primitives";
@@ -44,7 +44,7 @@ function Voce({
   const qui = attiva(percorso, voce.href);
 
   return (
-    <Link
+    <NavLink
       href={voce.href}
       aria-current={qui ? "page" : undefined}
       title={stretta ? voce.etichetta : undefined}
@@ -76,7 +76,7 @@ function Voce({
           ) : null}
         </>
       )}
-    </Link>
+    </NavLink>
   );
 }
 
@@ -288,7 +288,7 @@ export function PatientTabBar({
                   voce.href === "/questionari" ? questionariDaFare : 0;
                 return (
                   <li key={voce.href}>
-                    <Link
+                    <NavLink
                       href={voce.href}
                       aria-current={qui ? "page" : undefined}
                       className={cx(
@@ -306,7 +306,7 @@ export function PatientTabBar({
                           {conta}
                         </span>
                       ) : null}
-                    </Link>
+                    </NavLink>
                   </li>
                 );
               })}
@@ -326,7 +326,7 @@ export function PatientTabBar({
             const conta = voce.href === "/messaggi" ? messaggiNonLetti : 0;
             return (
               <li key={voce.href}>
-                <Link
+                <NavLink
                   href={voce.href}
                   aria-current={qui ? "page" : undefined}
                   className={cx(
@@ -342,7 +342,7 @@ export function PatientTabBar({
                     ) : null}
                   </span>
                   {voce.etichetta}
-                </Link>
+                </NavLink>
               </li>
             );
           })}

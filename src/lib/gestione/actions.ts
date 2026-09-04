@@ -1,6 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import {
+  invalidaAgenda,
+  invalidaCrediti,
+  invalidaNumeriDirezione,
+} from "@/lib/cache/invalidazione";
 import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -56,11 +61,11 @@ function esitoDa(error: unknown): EsitoGestione {
 }
 
 function rinfrescaAgenda(patientId?: string) {
-  revalidatePath("/control");
-  revalidatePath("/control/agenda");
-  revalidatePath("/control/capacita");
+  // Un appuntamento tocca tre mondi che di solito non si parlano: chi
+  // lo ha prenotato dall’app, chi si trova l’ora occupata in agenda,
+  // chi governa la giornata dal banco. Qui si rinfrescava solo il terzo.
+  invalidaAgenda(patientId ?? null);
   revalidatePath("/control/pazienti");
-  if (patientId) revalidatePath(`/control/pazienti/${patientId}`);
 }
 
 /* ── Utenti: la parte privilegiata ──────────────────────────────── */
@@ -552,8 +557,7 @@ export async function generaDisponibilita(_prev: EsitoGestione, formData: FormDa
     if (error) throw new Error(`Disponibilità non salvate: ${error.message}`);
 
     revalidatePath("/control/professionisti");
-    revalidatePath("/control/capacita");
-    revalidatePath("/appuntamenti");
+    invalidaAgenda();
     return ok(`${nuovi.length} disponibilità pubblicate, da ${durata} minuti.`);
   } catch (error) {
     return esitoDa(error);
@@ -756,10 +760,8 @@ export async function registraIncasso(_prev: EsitoGestione, formData: FormData):
     const { data: riga } = await supabase.from("payments").select("receipt_no").eq("id", data as string).maybeSingle();
     const ricevuta = (riga as { receipt_no: string | null } | null)?.receipt_no;
 
-    revalidatePath("/control/incassi");
     revalidatePath(`/control/pazienti/${patientId}`);
-    revalidatePath("/control/economia");
-    revalidatePath("/control/crm");
+    invalidaNumeriDirezione();
     return ok(ricevuta ? `Incasso registrato. Ricevuta ${ricevuta}.` : "Incasso registrato.");
   } catch (error) {
     return esitoDa(error);
@@ -803,11 +805,8 @@ export async function attivaMembership(_prev: EsitoGestione, formData: FormData)
     });
     if (error) throw new Error(error.message);
 
-    revalidatePath(`/control/pazienti/${patientId}`);
-    revalidatePath("/control/pazienti");
-    revalidatePath("/control/incassi");
-    revalidatePath("/control/crm");
-    revalidatePath("/crediti");
+    invalidaCrediti(patientId);
+    invalidaNumeriDirezione();
     return ok(pagata ? "Membership attivata e incasso registrato." : "Membership attivata, da incassare.");
   } catch (error) {
     return esitoDa(error);

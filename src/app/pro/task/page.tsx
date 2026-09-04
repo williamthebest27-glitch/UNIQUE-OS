@@ -9,6 +9,9 @@ import { Badge, Card, CardHeader, EmptyState } from "@/components/ui/primitives"
 
 export const metadata: Metadata = { title: "Task" };
 export const dynamic = "force-dynamic";
+// Dato clinico: mai riusato dalla cache del router, nemmeno per un istante.
+// Il perché, e cosa resta invece in cache, in docs/freschezza-dei-dati.md.
+export const unstable_dynamicStaleTime = 0;
 
 /** Scaduto, oggi, o la data: la scadenza si legge senza fare il conto. */
 function Scadenza({ dueOn }: { dueOn: string | null }) {

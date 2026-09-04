@@ -8,6 +8,9 @@ import { sezioneDi } from "@/lib/patient/sezioni";
 
 export const metadata: Metadata = { title: "Chiedi a Unique" };
 export const dynamic = "force-dynamic";
+// Dato clinico: mai riusato dalla cache del router, nemmeno per un istante.
+// Il perché, e cosa resta invece in cache, in docs/freschezza-dei-dati.md.
+export const unstable_dynamicStaleTime = 0;
 
 /**
  * Chiedi a Unique.

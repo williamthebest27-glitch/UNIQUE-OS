@@ -1,6 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import {
+  invalidaCartellaClinica,
+  invalidaCrediti,
+  invalidaLavoro,
+} from "@/lib/cache/invalidazione";
 import { requireProfile } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { askCopilot } from "@/lib/brain/copilot";
@@ -167,7 +172,9 @@ export async function decidiStep(formData: FormData): Promise<void> {
     .eq("id", proposalId)
     .eq("status", "proposed");
 
-  if (patientId) revalidatePath(`/pro/pazienti/${patientId}`);
+  // Un passo accettato compare nel piano del paziente, non solo nella
+  // cartella di chi lo ha deciso.
+  invalidaCartellaClinica(patientId || null);
 }
 
 /* ── Correzioni manuali dei crediti ───────────────────────────────── */
@@ -212,8 +219,7 @@ export async function correggiCrediti(
 
     if (error) throw new Error(error.message);
 
-    revalidatePath(`/pro/pazienti/${patientId}`);
-    revalidatePath("/crediti");
+    invalidaCrediti(patientId);
     return {
       esito: "ok",
       messaggio: `Correzione di ${amount > 0 ? "+" : "−"}${Math.abs(amount)} registrata.`,
@@ -240,6 +246,6 @@ export async function chiudiTask(formData: FormData): Promise<void> {
     .eq("id", taskId)
     .eq("status", "open");
 
-  revalidatePath("/pro");
-  revalidatePath("/pro/task");
+  // La stessa tabella la legge anche la lista di lavoro del banco.
+  invalidaLavoro();
 }

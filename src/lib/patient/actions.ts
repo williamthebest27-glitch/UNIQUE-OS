@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { invalidaContatoriPaziente } from "@/lib/cache/invalidazione";
 import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -76,6 +77,7 @@ export async function segnaNotificheLette(): Promise<void> {
 
   revalidatePath("/notifiche");
   revalidatePath("/dashboard");
+  invalidaContatoriPaziente();
 }
 
 /* ── Questionari ──────────────────────────────────────────────────── */
@@ -133,6 +135,7 @@ export async function salvaQuestionario(
     revalidatePath("/questionari");
     revalidatePath(`/questionari/${id}`);
     revalidatePath("/dashboard");
+    invalidaContatoriPaziente();
 
     return ok(
       consegna
@@ -195,6 +198,7 @@ export async function inviaMessaggio(
 
     revalidatePath(`/messaggi/${threadId}`);
     revalidatePath("/messaggi");
+    invalidaContatoriPaziente();
     return ok("Messaggio inviato.");
   } catch (error) {
     return errore(messaggioLeggibile(error instanceof Error ? error.message : String(error)));
@@ -212,6 +216,10 @@ export async function segnaConversazioneLetta(threadId: string): Promise<void> {
     .eq("thread_id", threadId)
     .eq("from_patient", false)
     .is("read_by_patient_at", null);
+
+  revalidatePath(`/messaggi/${threadId}`);
+  revalidatePath("/messaggi");
+  invalidaContatoriPaziente();
 }
 
 /* ── Profilo, preferenze, consensi ────────────────────────────────── */

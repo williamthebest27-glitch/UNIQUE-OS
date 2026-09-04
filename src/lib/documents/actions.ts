@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { invalidaCartellaClinica } from "@/lib/cache/invalidazione";
 import { requireProfile } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isBrainConfigured } from "@/lib/brain/extraction";
@@ -172,10 +172,9 @@ export async function caricaDocumento(
     dettaglio = "Il documento sarà esaminato dalla clinica.";
   }
 
-  revalidatePath("/documenti");
-  revalidatePath("/dashboard");
-  revalidatePath(`/pro/pazienti/${patientId}`);
-  revalidatePath("/pro/revisioni");
+  // Un referto caricato si vede anche in «Risultati», che legge gli
+  // stessi documenti: mancava, e restava indietro di una versione.
+  invalidaCartellaClinica(patientId);
 
   return { esito: "ok", messaggio: `"${titolo}" è stato caricato.`, dettaglio };
 }

@@ -6,6 +6,10 @@ import { chiediAlBrain } from "@/lib/brain/founder";
 import { decidiProposta, eseguiProposta } from "@/lib/approvals/proposals";
 import { requireProfile } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  invalidaEsecuzioneBrain,
+  invalidaLavoro,
+} from "@/lib/cache/invalidazione";
 
 /**
  * Le azioni dell'interfaccia founder.
@@ -44,9 +48,11 @@ export async function esegui(formData: FormData): Promise<void> {
 
   await eseguiProposta(id);
 
-  revalidatePath("/control/approvazioni");
-  revalidatePath("/control/brain");
-  revalidatePath("/control");
+  // Eseguire vuol dire aver scritto qualcosa: un task, un prezzo di
+  // listino, una voce pubblicata. Invalidare le tre pagine del ciclo di
+  // approvazione lasciava indietro proprio le schermate su cui l'effetto
+  // si vede.
+  invalidaEsecuzioneBrain();
 }
 
 /** Chiude un task dal Control Center. */
@@ -62,8 +68,7 @@ export async function chiudiTaskControl(formData: FormData): Promise<void> {
     .eq("id", id)
     .eq("status", "open");
 
-  revalidatePath("/control/task");
-  revalidatePath("/control");
+  invalidaLavoro();
 }
 
 /** Segna come letta una notifica. */

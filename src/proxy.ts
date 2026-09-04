@@ -51,15 +51,24 @@ export async function proxy(request: NextRequest) {
     },
   });
 
-  // getUser() valida il token contro Supabase e, se serve, lo rinnova.
-  // getSession() leggerebbe soltanto il cookie, di cui non ci si può fidare.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Questo codice gira prima di ogni pagina, di ogni navigazione e di
+  // ogni prefetch: ciò che si spende qui è ritardo su tutto il resto.
+  //
+  // getClaims() verifica la firma del token con la chiave pubblica del
+  // progetto, senza chiedere nulla a nessuno. Il cookie non viene creduto
+  // sulla parola — sarebbe quello che fa getSession(), ed è il motivo per
+  // cui non si usa — ma nemmeno pagato con un viaggio di rete a ogni
+  // clic. Il rinnovo del token continua ad avvenire: getClaims legge la
+  // sessione, e la libreria la rinfresca da sé quando è scaduta.
+  //
+  // Se il progetto usa ancora le chiavi simmetriche, la libreria ricade
+  // internamente su getUser(): stessa sicurezza, stesso costo di prima.
+  const { data } = await supabase.auth.getClaims();
+  const autenticato = Boolean(data?.claims?.sub);
 
   const { pathname } = request.nextUrl;
 
-  if (!user && !isPublicPath(pathname)) {
+  if (!autenticato && !isPublicPath(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = "/accedi";
     url.search = "";
@@ -68,7 +77,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && pathname === "/accedi") {
+  if (autenticato && pathname === "/accedi") {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     url.search = "";

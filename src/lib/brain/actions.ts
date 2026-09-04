@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { invalidaCartellaClinica } from "@/lib/cache/invalidazione";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
 import { getMetric } from "@/lib/score/metrics";
@@ -40,6 +41,8 @@ export async function analizzaDocumento(formData: FormData): Promise<void> {
   const patientId = String(formData.get("patientId") ?? "");
   if (patientId) revalidatePath(`/pro/pazienti/${patientId}`);
   revalidatePath("/pro/revisioni");
+  // Il pallino accanto a «Revisioni» sta nel menu, non nella pagina.
+  revalidatePath("/pro");
 }
 
 /** "Riassumimi questo paziente prima della visita." */
@@ -142,7 +145,12 @@ export async function approvaProposta(formData: FormData): Promise<void> {
     .eq("id", proposalId);
 
   await recomputeAndStoreScore(supabase, proposal.patient_id);
-  revalidatePath("/pro/revisioni");
+
+  // Una misura approvata non resta in questa pagina: entra nei
+  // risultati del paziente, nel suo andamento, nel Longevity Score,
+  // nella cartella e nella scheda al banco. Invalidare la sola coda
+  // delle revisioni lasciava tutto il resto alla versione di prima.
+  invalidaCartellaClinica(proposal.patient_id);
 }
 
 /**
@@ -158,7 +166,7 @@ export async function ricalcolaPunteggio(formData: FormData): Promise<void> {
 
   const supabase = await createSupabaseServerClient();
   await recomputeAndStoreScore(supabase, patientId);
-  revalidatePath("/pro/revisioni");
+  invalidaCartellaClinica(patientId);
 }
 
 export async function rifiutaProposta(formData: FormData): Promise<void> {
@@ -181,4 +189,5 @@ export async function rifiutaProposta(formData: FormData): Promise<void> {
     .eq("status", "needs_review");
 
   revalidatePath("/pro/revisioni");
+  revalidatePath("/pro");
 }

@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { invalidaAgenda, invalidaCrediti } from "@/lib/cache/invalidazione";
 import { requireProfile } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { StatoPrenotazione } from "@/lib/appointments/state";
@@ -34,9 +34,10 @@ export async function prenotaSlot(
     const { error } = await supabase.rpc("book_slot", { p_slot: slotId });
     if (error) throw new Error(error.message);
 
-    revalidatePath("/appuntamenti");
-    revalidatePath("/crediti");
-    revalidatePath("/dashboard");
+    // Una prenotazione fatta dall’app occupa un’ora vera: l’agenda del
+    // professionista e quella del banco la devono vedere adesso.
+    invalidaAgenda();
+    invalidaCrediti();
     return { esito: "ok", messaggio: "Appuntamento prenotato." };
   } catch (error) {
     return {
@@ -68,9 +69,8 @@ export async function disdiciAppuntamento(
     });
     if (error) throw new Error(error.message);
 
-    revalidatePath("/appuntamenti");
-    revalidatePath("/crediti");
-    revalidatePath("/dashboard");
+    invalidaAgenda();
+    invalidaCrediti();
     return { esito: "ok", messaggio: "Appuntamento disdetto." };
   } catch (error) {
     return {
@@ -106,7 +106,9 @@ export async function registraEsito(formData: FormData): Promise<void> {
     .eq("id", appointmentId)
     .in("status", ["scheduled", "confirmed"]);
 
+  // L’esito muove i crediti — il trigger addebita il mancato arrivo —
+  // e cambia i numeri di giornata in control room.
   const patientId = String(formData.get("patientId") ?? "");
-  if (patientId) revalidatePath(`/pro/pazienti/${patientId}`);
-  revalidatePath("/pro");
+  invalidaAgenda(patientId || null);
+  invalidaCrediti(patientId || null);
 }
