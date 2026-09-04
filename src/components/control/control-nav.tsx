@@ -4,19 +4,19 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cx } from "@/components/ui/primitives";
 
-const VOCI = [
-  ["/control", "Oggi"],
-  ["/control/economia", "Economia"],
-  ["/control/capacita", "Capacità"],
-  ["/control/crm", "CRM"],
-] as const;
-
-export function ControlNav() {
+/**
+ * Le sezioni del Control Center.
+ *
+ * Quali voci compaiono lo decide il ruolo, e la decisione arriva dal
+ * server: un componente client non è il posto in cui stabilire chi vede
+ * cosa. Qui si disegnano soltanto le voci ricevute.
+ */
+export function ControlNav({ voci }: { voci: { href: string; label: string }[] }) {
   const pathname = usePathname();
 
   return (
     <nav aria-label="Sezioni del Control Center" className="flex flex-wrap gap-1">
-      {VOCI.map(([href, label]) => {
+      {voci.map(({ href, label }) => {
         const attivo = pathname === href;
         return (
           <Link

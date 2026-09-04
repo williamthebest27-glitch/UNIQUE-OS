@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { getControlCenter } from "@/lib/data/control";
+import { homePathForRole, requireProfile } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { formatEuro, formatPercent } from "@/lib/format";
 import { Kpi, KpiStrip, Panel, Riga, Vuoto } from "@/components/control/primitives";
@@ -18,6 +20,14 @@ function nomeMese(periodo: string): string {
 }
 
 export default async function ControlPage() {
+  // Reception e marketing entrano nel Control Center, ma non da qui: i
+  // numeri di direzione non sono roba loro, e mostrargli una schermata
+  // vuota sarebbe peggio che portarli dove hanno qualcosa da fare.
+  const profile = await requireProfile();
+  if (profile.role === "reception" || profile.role === "marketing") {
+    redirect(homePathForRole(profile.role));
+  }
+
   const dati = await getControlCenter();
 
   if (!dati) {

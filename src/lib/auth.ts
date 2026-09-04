@@ -81,9 +81,35 @@ export function homePathForRole(role: AppRole): string {
       return "/dashboard";
     case "professional":
       return "/pro";
+    case "reception":
+      // La reception apre la giornata dall’agenda, non dai numeri.
+      return "/control/agenda";
+    case "marketing":
+      return "/control/crm";
     case "admin":
     case "owner":
       // Chi dirige entra dalla control room, non dall agenda clinica.
       return "/control";
   }
+}
+
+/**
+ * Chi può entrare nel Control Center, e con quali sezioni.
+ *
+ * Il ruolo decide cosa si vede in pagina; la Row Level Security decide
+ * cosa si può leggere. Sono due strati diversi di proposito: se questa
+ * funzione avesse un errore, il database non restituirebbe comunque
+ * righe che l’utente non ha diritto di vedere.
+ */
+export const CONTROL_SECTIONS: Record<string, AppRole[]> = {
+  "/control": ["admin", "owner"],
+  "/control/economia": ["admin", "owner"],
+  "/control/capacita": ["admin", "owner"],
+  "/control/crm": ["admin", "owner", "reception", "marketing"],
+  "/control/agenda": ["admin", "owner", "reception"],
+  "/control/marketing": ["admin", "owner", "marketing"],
+};
+
+export function canSeeControlSection(role: AppRole, path: string): boolean {
+  return (CONTROL_SECTIONS[path] ?? ["admin", "owner"]).includes(role);
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { requireProfile } from "@/lib/auth";
+import { canSeeControlSection, homePathForRole, requireProfile } from "@/lib/auth";
 import { esci } from "@/lib/auth-actions";
 import { ControlNav } from "@/components/control/control-nav";
 
@@ -10,7 +10,20 @@ import { ControlNav } from "@/components/control/control-nav";
  * Deliberatamente diverso dall'app paziente: fondo scuro, numeri densi,
  * niente respiro. Sono due mestieri diversi — al paziente serve calma,
  * a chi dirige serve vedere tutto insieme.
+ *
+ * Ci entrano quattro ruoli e ciascuno ne vede una parte: la direzione
+ * tutto, la reception l'agenda e il CRM, il marketing le campagne. Il
+ * menu segue il ruolo; i dati li filtra comunque la Row Level Security.
  */
+
+const SEZIONI = [
+  { href: "/control", label: "Oggi" },
+  { href: "/control/agenda", label: "Agenda" },
+  { href: "/control/economia", label: "Economia" },
+  { href: "/control/capacita", label: "Capacità" },
+  { href: "/control/crm", label: "CRM" },
+] as const;
+
 export default async function ControlLayout({
   children,
 }: {
@@ -18,10 +31,12 @@ export default async function ControlLayout({
 }) {
   const profile = await requireProfile();
 
-  // Solo amministrazione e direzione. Un professionista ha la sua area.
-  if (!["admin", "owner"].includes(profile.role)) {
-    redirect(profile.role === "patient" ? "/dashboard" : "/pro");
+  // Paziente e professionista hanno la loro area.
+  if (!["admin", "owner", "reception", "marketing"].includes(profile.role)) {
+    redirect(homePathForRole(profile.role));
   }
+
+  const voci = SEZIONI.filter((s) => canSeeControlSection(profile.role, s.href));
 
   return (
     <div className="min-h-dvh bg-ink-900">
@@ -50,7 +65,7 @@ export default async function ControlLayout({
         </div>
 
         <div className="mx-auto max-w-[1240px] px-5 sm:px-8">
-          <ControlNav />
+          <ControlNav voci={voci} />
         </div>
       </header>
 

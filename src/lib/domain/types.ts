@@ -9,7 +9,37 @@
 
 import type { PillarKey } from "@/lib/score/pillars";
 
-export type AppRole = "patient" | "professional" | "admin" | "owner";
+export type AppRole =
+  | "patient"
+  | "professional"
+  | "admin"
+  | "owner"
+  /** Accoglienza e operations: agenda, recapiti, incassi, CRM. Nessun dato sanitario. */
+  | "reception"
+  /** Campagne, lead, contenuti e numeri aggregati. Nessun paziente. */
+  | "marketing";
+
+/** L’azienda. Oggi una sola, ma il confine esiste da subito. */
+export interface Organization {
+  id: string;
+  slug: string;
+  name: string;
+}
+
+/**
+ * Una sede.
+ *
+ * Ambulatori, agende, professionisti e pazienti appartengono a una sede;
+ * la direzione le vede tutte insieme. È la ragione per cui `Location`
+ * entra nel modello di dominio prima ancora che esista la seconda.
+ */
+export interface Location {
+  id: string;
+  slug: string;
+  name: string;
+  city: string | null;
+  isActive: boolean;
+}
 
 export type AppointmentStatus =
   | "scheduled"
