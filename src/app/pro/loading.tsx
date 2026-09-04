@@ -15,13 +15,22 @@ import { Blocco, CardScheletro, ListaScheletro } from "@/components/shell/skelet
  * porta il nome del paziente — resta un rettangolo. Un titolo sbagliato
  * per mezzo secondo si nota più dell'attesa che avrebbe risparmiato.
  */
+/**
+ * Le sezioni che si aprono su schede e non su un elenco.
+ *
+ * La differenza non è estetica: uno scheletro a righe dove poi compare
+ * una griglia di riquadri fa saltare il contenuto quando arriva, e il
+ * salto si nota più dell'attesa che lo scheletro voleva coprire.
+ */
+const A_RIQUADRI = ["/pro", "/pro/revisioni", "/pro/report", "/pro/team"];
+
 export default function CaricamentoPro() {
   const percorso = usePathname();
   const sezione = sezionePerPercorso(SEZIONI_PRO, percorso);
-  const lista = percorso !== "/pro" && percorso !== "/pro/revisioni";
+  const lista = !A_RIQUADRI.includes(percorso);
 
   return (
-    <div aria-busy="true" className="mx-auto max-w-[860px]">
+    <div aria-busy="true">
       <span className="sr-only" role="status">
         Caricamento in corso.
       </span>

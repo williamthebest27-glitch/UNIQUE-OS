@@ -82,7 +82,7 @@ export default async function ProLayout({
   const demo = !isSupabaseConfigured();
   // Senza database non c'è nulla da contare, e la query fallirebbe.
   const counts: ProCounts = demo
-    ? { revisioni: 0, task: 0 }
+    ? { revisioni: 0, task: 0, documenti: 0, messaggi: 0 }
     : await getProNavCounts();
 
   return (
