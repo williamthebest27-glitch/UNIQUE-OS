@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { reducedMotion } from "@/lib/motion/engine";
+import { ALZA, CALA } from "./sipario";
 
 /**
  * Il sipario d'avvio.
@@ -17,14 +18,22 @@ import { reducedMotion } from "@/lib/motion/engine";
  * che si alza. Qui il markup esce dal server, e il client si limita a
  * governare l'avanzamento e a togliere il nodo alla fine.
  *
- * **Si alza comunque, in tutti e tre i modi in cui potrebbe non farlo.**
- * Se il JavaScript non arriva, l'uscita parte da sola dopo 2,8 s per via
- * di un'animazione CSS. Se il motore c'è ma i fotogrammi non arrivano —
+ * **Si alza comunque, in tutti i modi in cui potrebbe non farlo.** Se il
+ * JavaScript non arriva, l'uscita parte da sola dopo 2,8 s per via di
+ * un'animazione CSS. Se il motore c'è ma i fotogrammi non arrivano —
  * scheda in secondo piano: `requestAnimationFrame` si ferma — un timer
- * chiude lo stesso, e i timer girano anche da nascosti. E se la pagina
- * nasce in una scheda che nessuno sta guardando, il sipario non compare
- * affatto: sarebbe una presentazione a sala vuota, e chi torna
- * troverebbe l'applicazione ancora coperta.
+ * chiude lo stesso, e i timer girano anche da nascosti.
+ *
+ * **Se la pagina nasce nascosta la presentazione si rimanda, non si
+ * butta.** Il primo avvio del sito è proprio il caso in cui questo
+ * capita: si scrive l'indirizzo, il browser pre-renderizza la pagina in
+ * un documento nascosto, e al primo Invio la porta a schermo già
+ * idratata — l'effetto è lo stesso di una scheda aperta in secondo piano
+ * o ripristinata all'avvio del browser. Smontare il sipario lì
+ * significherebbe non mostrarlo mai proprio la prima volta. Qui il
+ * motore aspetta il `visibilitychange` e parte da capo quando c'è
+ * qualcuno che guarda; la scorta in CSS viene disinnescata subito, così
+ * il sipario non si alza a sala vuota.
  *
  * Con `prefers-reduced-motion` non compare: lo nasconde il CSS al primo
  * fotogramma, e l'effetto qui sotto lo smonta.
@@ -40,6 +49,17 @@ const USCITA = 720;
 const CHIUSURA = 300;
 /** Oltre questo si chiude comunque, fotogrammi o non fotogrammi. */
 const SCORTA = LIMITE + CHIUSURA + 300;
+/**
+ * Quanto si aspetta prima di calare il sipario su richiesta.
+ *
+ * Una password rifiutata torna anche in due decimi di secondo. Calare il
+ * sipario appena si preme «Entra» darebbe, in quel caso, un lampo bianco
+ * al posto di un messaggio. Si concede questo margine: se la risposta è
+ * «no» il sipario non si vede affatto, e se è «sì» — o se il server ci
+ * mette il tempo che di solito ci mette — cala in tempo per coprire
+ * l'attesa vera.
+ */
+const GRAZIA = 200;
 
 function attesa(ms: number): Promise<void> {
   return new Promise((risolvi) => setTimeout(risolvi, ms));
@@ -55,40 +75,32 @@ function decodifica(src: string): Promise<unknown> {
 export function Avvio() {
   const [visibile, setVisibile] = useState(true);
   const [uscita, setUscita] = useState(false);
+  /** Cambia a ogni replica: rimonta il motore e lo fa ripartire da zero. */
+  const [giro, setGiro] = useState(0);
   const rif = useRef<HTMLDivElement>(null);
+  /** L'uscita immediata del giro in corso, per chi la chiede da fuori. */
+  const uscitaSubito = useRef(() => {});
 
   useEffect(() => {
     const nodo = rif.current;
     if (!nodo) return;
 
-    // Chi ha chiesto meno movimento non lo vede; e nemmeno chi ha aperto
-    // la pagina in una scheda in secondo piano, dove il sipario sarebbe
-    // solo una coperta da togliere al ritorno.
-    if (reducedMotion() || document.hidden) {
+    // Chi ha chiesto meno movimento non lo vede.
+    if (reducedMotion()) {
       setVisibile(false);
       return;
     }
 
     // Da qui in poi l'avanzamento lo scrive il motore: la scorta in CSS
-    // servirebbe solo a litigare con lui.
+    // servirebbe solo a litigare con lui. Va tolta subito, anche quando
+    // la partenza è rimandata — altrimenti il sipario si alzerebbe da
+    // solo mentre nessuno guarda, e chi arriva troverebbe la festa già
+    // finita.
     nodo.dataset.motore = "";
 
-    const t0 = performance.now();
-    let prontoDa = Infinity;
-    let chiusuraDa = 0;
-    let pAllaChiusura = 0;
     let raf = 0;
     let timer = 0;
-
-    const caricato = Promise.all([
-      document.fonts?.ready ?? Promise.resolve(),
-      decodifica("/marchio-unique.png"),
-    ]);
-
-    Promise.race([caricato, attesa(LIMITE)]).then(() => {
-      prontoDa = Math.max(performance.now(), t0 + DURATA_MINIMA);
-    });
-
+    let scorta = 0;
     let finito = false;
 
     const chiudi = () => {
@@ -102,39 +114,114 @@ export function Avvio() {
       timer = window.setTimeout(() => setVisibile(false), USCITA);
     };
 
-    const passo = (ora: number) => {
-      // Finché non si è pronti la barra si avvicina al novanta per cento
-      // senza arrivarci: è l'unica promessa che il codice può mantenere
-      // quando non sa ancora quanto manca.
-      const base = 0.9 * (1 - Math.exp(-(ora - t0) / 620));
-      let p = base;
+    // Chi cala il sipario sulla soglia deve poterlo rialzare prima del
+    // tempo: l'accesso può anche non riuscire.
+    uscitaSubito.current = chiudi;
 
-      if (ora >= prontoDa) {
-        if (!chiusuraDa) {
-          chiusuraDa = ora;
-          pAllaChiusura = base;
+    const avvia = () => {
+      const t0 = performance.now();
+      let prontoDa = Infinity;
+      let chiusuraDa = 0;
+      let pAllaChiusura = 0;
+
+      const caricato = Promise.all([
+        document.fonts?.ready ?? Promise.resolve(),
+        decodifica("/marchio-unique.png"),
+      ]);
+
+      Promise.race([caricato, attesa(LIMITE)]).then(() => {
+        prontoDa = Math.max(performance.now(), t0 + DURATA_MINIMA);
+      });
+
+      const passo = (ora: number) => {
+        // Finché non si è pronti la barra si avvicina al novanta per cento
+        // senza arrivarci: è l'unica promessa che il codice può mantenere
+        // quando non sa ancora quanto manca.
+        const base = 0.9 * (1 - Math.exp(-(ora - t0) / 620));
+        let p = base;
+
+        if (ora >= prontoDa) {
+          if (!chiusuraDa) {
+            chiusuraDa = ora;
+            pAllaChiusura = base;
+          }
+          const q = Math.min(1, (ora - chiusuraDa) / CHIUSURA);
+          p = pAllaChiusura + (1 - pAllaChiusura) * q;
         }
-        const q = Math.min(1, (ora - chiusuraDa) / CHIUSURA);
-        p = pAllaChiusura + (1 - pAllaChiusura) * q;
-      }
 
-      nodo.style.setProperty("--p", p.toFixed(4));
+        nodo.style.setProperty("--p", p.toFixed(4));
 
-      if (p >= 1) {
-        chiudi();
-        return;
-      }
+        if (p >= 1) {
+          chiudi();
+          return;
+        }
+        raf = requestAnimationFrame(passo);
+      };
+
       raf = requestAnimationFrame(passo);
+      scorta = window.setTimeout(chiudi, SCORTA);
     };
 
-    raf = requestAnimationFrame(passo);
-    const scorta = window.setTimeout(chiudi, SCORTA);
+    const alRitorno = () => {
+      if (document.hidden) return;
+      document.removeEventListener("visibilitychange", alRitorno);
+
+      // Il dondolio e l'arrivo del testo sono animazioni CSS: nascoste o
+      // no, il tempo per loro è passato lo stesso, e la scena
+      // comparirebbe a metà. Si riavvolgono. Se il browser non sa
+      // riavvolgerle, pazienza — il motore parte comunque.
+      nodo.getAnimations?.({ subtree: true }).forEach((animazione) => {
+        animazione.cancel();
+        animazione.play();
+      });
+
+      avvia();
+    };
+
+    if (document.hidden) {
+      document.addEventListener("visibilitychange", alRitorno);
+    } else {
+      avvia();
+    }
 
     return () => {
       finito = true;
+      document.removeEventListener("visibilitychange", alRitorno);
       cancelAnimationFrame(raf);
       clearTimeout(timer);
       clearTimeout(scorta);
+    };
+  }, [giro]);
+
+  // Il sipario a richiesta, per chi sta sulla soglia. Cambiare `giro`
+  // rimonta il motore qui sopra: stessa scena, stesso conto alla
+  // rovescia, e nessun percorso separato da tenere allineato.
+  useEffect(() => {
+    let attesa = 0;
+
+    const cala = () => {
+      if (reducedMotion()) return;
+      clearTimeout(attesa);
+      attesa = window.setTimeout(() => {
+        setUscita(false);
+        setVisibile(true);
+        setGiro((n) => n + 1);
+      }, GRAZIA);
+    };
+
+    // Chi si è pentito in tempo non lo fa nemmeno comparire; agli altri
+    // resta l'uscita anticipata del giro in corso.
+    const alza = () => {
+      clearTimeout(attesa);
+      uscitaSubito.current();
+    };
+
+    window.addEventListener(CALA, cala);
+    window.addEventListener(ALZA, alza);
+    return () => {
+      clearTimeout(attesa);
+      window.removeEventListener(CALA, cala);
+      window.removeEventListener(ALZA, alza);
     };
   }, []);
 
