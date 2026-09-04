@@ -70,6 +70,16 @@ Su un database che ha già le prime migrazioni, includi solo quelle nuove:
 npm run db:pacchetto -- --da 10
 ```
 
+Per sapere da quale numero ripartire, esegui `supabase/stato-migrazioni.sql` nella
+SQL Editor: è di sola lettura, elenca le quattordici migrazioni una per una e
+dice qual è la prima che manca. Supabase non tiene un registro delle migrazioni
+incollate a mano — lo tiene solo quando si usa la CLI — quindi l'unico modo di
+saperlo è guardare quali oggetti esistono.
+
+> `ERROR: 42710: type "app_role" already exists` significa esattamente questo: il
+> pacchetto conteneva migrazioni già applicate. Essendo una transazione sola,
+> non è stato applicato niente e lo schema è rimasto com'era.
+
 `create table` non è ripetibile: rieseguire una migrazione già applicata
 fallisce, e siccome il pacchetto è una transazione sola, fallisce tutto.
 
