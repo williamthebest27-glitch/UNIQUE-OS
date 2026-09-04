@@ -103,9 +103,21 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Senza matcher il proxy girerebbe anche su CSS, immagini e font,
-  // bloccandoli dietro l’autenticazione.
+  /*
+   * Senza matcher il proxy girerebbe anche su CSS, immagini e font,
+   * bloccandoli dietro l’autenticazione.
+   *
+   * L’elenco delle estensioni non è una comodità: è la lista di ciò che
+   * la pagina pubblica può chiedere senza avere una sessione. Quando ne
+   * manca una il guasto è muto e sconcertante — il file risponde 307, il
+   * browser segue il rinvio, riceve l’HTML della pagina d’accesso al posto
+   * del contenuto, e l’elemento resta lì senza dire perché. È successo con
+   * il filmato della landing: la posa si vedeva, perché è un .jpg ed era
+   * esclusa, e il video restava fermo perché il .mp4 non lo era.
+   *
+   * Regola pratica: tutto ciò che sta in `public/` va elencato qui.
+   */
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|mp4|webm|mov|m4v|ogv|mp3|wav|woff2?)$).*)",
   ],
 };

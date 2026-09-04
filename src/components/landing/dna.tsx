@@ -1,224 +1,159 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Entra, Etichetta, Lettura, Titolo } from "@/components/landing/primitive";
+import { useRef } from "react";
+import { Etichetta } from "@/components/landing/primitive";
 import { useScena } from "@/lib/landing/scena";
-import { livello } from "@/lib/landing/capacita";
 
 /**
- * Il film.
+ * Il film, mosso dallo scorrimento.
  *
- * Otto secondi che rifanno da capo la strada delle otto sezioni sopra:
- * l'elica si legge, si disfa in particelle, e le particelle si
- * ricompongono in un referto con un numero dentro. È la stessa frase che
- * la pagina ha appena finito di argomentare, detta un'ultima volta senza
- * parole — e per questo sta **dopo** l'argomento e prima della porta.
- * Metterlo in cima avrebbe raccontato il finale alla prima riga.
+ * Otto secondi che dicono senza parole la stessa cosa della sezione
+ * sopra: l'elica si legge, si disfa nei suoi dati, e i dati si
+ * ricompongono in un referto con un punteggio dentro. Sta subito dopo
+ * «The system» perché ne è la dimostrazione — prima si afferma che il
+ * corpo produce dati e che il sistema li trasforma in direzione, poi lo
+ * si guarda succedere.
  *
- * **La pagina resta bianca, il film è l'unica cosa scura.** La landing è
- * passata dal nero al bianco per una ragione, e una banda nera qui
- * l'avrebbe rimessa in discussione per un effetto. Il contrasto ce l'ha
- * già il filmato: un rettangolo profondo su un foglio chiaro, con un
- * alone freddo che gli impedisce di sembrare un buco.
+ * **Non si riproduce: si scorre.** La pagina si ferma, il film avanza di
+ * pari passo con la rotellina, e quando arriva in fondo la pagina
+ * riprende a scendere. È anche il motivo per cui adesso parte sempre:
+ * non dipende più da `play()`, e quindi non dipende più dal permesso che
+ * il browser dà o nega all'avvio automatico — che è la ragione per cui
+ * prima restava fermo sul primo fotogramma. Qui non c'è nessun avvio da
+ * concedere, solo un fotogramma scelto da quanto si è scorso.
  *
- * **Non scarica niente finché non serve.** `preload="none"` e una posa
- * al posto del primo fotogramma: il file parte quando la sezione si
- * avvicina, e si ferma appena esce di campo — su un telefono in
- * roaming la differenza è tutta la sezione. E sotto i 768 pixel il
- * browser prende un taglio da 1,4 MB invece che da 3,2.
+ * **Il file è codificato per essere scrubbato.** Un MP4 normale porta un
+ * fotogramma chiave ogni due secondi, e per mostrare l'istante 3,4 il
+ * browser deve decodificare tutto quello che sta in mezzo: sotto il dito
+ * si impunta. Questo ne ha uno ogni sei fotogrammi, un quarto di
+ * secondo, così ogni salto è corto. È il vero motivo per cui pesa un po'
+ * più di un filmato che si guarda e basta.
  *
- * **Si può fermare.** Un filmato che si muove da solo per più di cinque
- * secondi deve avere un comando per stare zitto — è una regola
- * d'accessibilità, non una gentilezza — e chi ha chiesto meno movimento
- * riceve la posa ferma, con il comando per farlo partire se lo vuole.
+ * **Senza movimento resta un video normale.** Con `prefers-reduced-motion`
+ * la scena non viene costruita: niente pagina che si ferma, niente
+ * fotogrammi legati al dito. Restano la posa e un comando per guardarlo
+ * — la stessa cosa, senza muovere nulla che non sia stato chiesto.
  */
 
-/**
- * Le sorgenti, nell'ordine in cui il browser le prova: prende la prima
- * che sa leggere e la cui `media` è vera.
- *
- * Sotto i 768 pixel c'è solo l'MP4 a 720p — 1,4 MB contro i 3,2 del
- * taglio grande. Il WebM del taglio piccolo non c'è apposta: a quella
- * risoluzione VP9 usciva più pesante di H.264, e una sorgente che pesa
- * di più non è un'alternativa, è un peggioramento servito per primo.
- * Sul taglio grande il rapporto si ribalta e il WebM torna davanti.
- *
- * Il filmato non ha traccia audio: non c'è niente da silenziare.
- */
-const SORGENTI = [
-  { src: "/dna-unique-720.mp4", type: "video/mp4", media: "(max-width: 768px)" },
-  { src: "/dna-unique.webm", type: "video/webm" },
-  { src: "/dna-unique.mp4", type: "video/mp4" },
-];
+/** Un salto più corto di mezzo fotogramma è lavoro buttato. */
+const SOGLIA = 1 / 48;
 
 export function DnaFilm() {
   const video = useRef<HTMLVideoElement>(null);
-  /** Lo stato segue l'elemento, non il contrario: così non mente mai. */
-  const [inPausa, setInPausa] = useState(false);
-  /** Una pausa chiesta a mano non deve essere annullata dallo scroll. */
-  const scelto = useRef<"parte" | "ferma" | null>(null);
 
   const rif = useScena<HTMLElement>(({ gsap, radice, ridotta }) => {
-    const q = gsap.utils.selector(radice);
+    const palco = radice.querySelector<HTMLElement>("[data-palco]");
+    const nastro = radice.querySelector<HTMLElement>("[data-nastro]");
+    const nodo = video.current;
+    if (!palco || !nodo) return;
 
-    gsap.from(q("[data-lastra]"), {
-      y: ridotta ? 24 : 60,
-      scale: ridotta ? 1 : 0.968,
-      opacity: 0,
-      duration: ridotta ? 0.85 : 1.3,
-      ease: "expo.out",
-      scrollTrigger: { trigger: radice, start: "top 82%", once: true },
+    /* Da qui il film lo muove lo scorrimento, e il comando di
+       riproduzione non ha più niente da fare: lo toglie il CSS. */
+    radice.dataset.scorre = "";
+
+    /* Servono i dati, non i soli metadati: un fotogramma si mostra solo
+       se è stato scaricato. Il caricamento parte qui e non nel markup,
+       così chi ha meno movimento non se lo trova addosso comunque. */
+    nodo.preload = "auto";
+    nodo.muted = true;
+    nodo.load();
+
+    let durata = 0;
+    let ultimo = -1;
+    const misura = () => {
+      durata = Number.isFinite(nodo.duration) ? nodo.duration : 0;
+    };
+    nodo.addEventListener("loadedmetadata", misura);
+    if (nodo.readyState >= 1) misura();
+
+    const stato = { t: 0 };
+
+    const scena = gsap.to(stato, {
+      t: 1,
+      ease: "none",
+      scrollTrigger: {
+        trigger: palco,
+        start: "top top",
+        /* Quanta rotellina vale il film. Due schermate e mezza danno agli
+           otto secondi un passo leggibile; sul telefono si accorcia, o
+           per arrivare in fondo servirebbe un pollice paziente. */
+        end: () => `+=${Math.round(innerHeight * (ridotta ? 1.5 : 2.4))}`,
+        pin: true,
+        anticipatePin: 1,
+        /* Lo scrub smorza: il fotogramma insegue il dito invece di
+           incollarcisi, e uno strappo non diventa una raffica di salti. */
+        scrub: ridotta ? 0.4 : 0.7,
+        invalidateOnRefresh: true,
+      },
+      onUpdate: () => {
+        if (nastro) nastro.style.transform = `scaleX(${stato.t})`;
+        if (!durata || nodo.readyState < 2) return;
+
+        /* L'ultimo istante non si tocca: un `currentTime` esattamente
+           pari alla durata manda il filmato in `ended`, e il fotogramma
+           sparisce proprio mentre lo si sta guardando. */
+        const istante = stato.t * (durata - 0.05);
+        if (Math.abs(istante - ultimo) < SOGLIA) return;
+        ultimo = istante;
+        nodo.currentTime = istante;
+      },
     });
 
-    // L'alone è scenografia: dove la materia costa, non si disegna.
-    if (ridotta) return;
-
-    gsap.from(q("[data-alone]"), {
-      opacity: 0,
-      scale: 0.82,
-      duration: 1.7,
-      ease: "expo.out",
-      scrollTrigger: { trigger: radice, start: "top 82%", once: true },
-    });
+    return () => {
+      nodo.removeEventListener("loadedmetadata", misura);
+      scena.scrollTrigger?.kill();
+      scena.kill();
+    };
   });
 
-  useEffect(() => {
+  /** Il ripiego: senza scena, il film si guarda come un film. */
+  const guarda = () => {
     const nodo = video.current;
     if (!nodo) return;
-
-    // Il livello si legge dopo il montaggio: leggerlo mentre si compone
-    // il markup darebbe al server e al browser due alberi diversi.
-    if (livello() === "ferma") {
-      scelto.current = "ferma";
-      setInPausa(true);
-      return;
-    }
-
-    const osservatore = new IntersectionObserver(
-      ([voce]) => {
-        if (!voce) return;
-        if (voce.isIntersecting) {
-          if (scelto.current === "ferma") return;
-          // Un rifiuto del browser — risparmio energia, dati ridotti —
-          // non è un guasto: resta la posa, e il comando per insistere.
-          void nodo.play().catch(() => setInPausa(true));
-        } else {
-          nodo.pause();
-        }
-      },
-      // Un margine largo: il file comincia ad arrivare prima che la
-      // sezione sia in campo, e quando ci arriva sta già andando.
-      { rootMargin: "300px 0px", threshold: 0.01 },
-    );
-
-    osservatore.observe(nodo);
-    return () => osservatore.disconnect();
-  }, []);
-
-  const commuta = () => {
-    const nodo = video.current;
-    if (!nodo) return;
-    if (nodo.paused) {
-      scelto.current = "parte";
-      void nodo.play().catch(() => undefined);
-    } else {
-      scelto.current = "ferma";
-      nodo.pause();
-    }
+    nodo.muted = true;
+    if (nodo.paused) void nodo.play().catch(() => undefined);
+    else nodo.pause();
   };
 
   return (
-    <section ref={rif} id="dna" className="os-sezione">
-      <div className="os-gabbia">
-        <header>
-          <Etichetta indice="09" tono="dato">
-            The film
-          </Etichetta>
-          <Titolo
-            testo={"Intelligence\nin your DNA."}
-            className="mt-7 text-[clamp(2.05rem,5.4vw,4.4rem)]"
-          />
-          <Entra tag="p" className="os-corpo mt-7 max-w-[52ch]">
-            Tutto quello che hai letto fin qui, in otto secondi. L&rsquo;elica
-            viene letta, si disfa nei suoi dati, e i dati si rimettono insieme
-            in una cosa sola: cosa fare adesso. È lo stesso percorso delle
-            sezioni qui sopra — dal dato grezzo alla decisione — con la
-            differenza che qui non serve leggerlo.
-          </Entra>
-        </header>
+    <section ref={rif} id="dna" className="os-film">
+      <div data-palco="" className="os-film-palco">
+        <video
+          ref={video}
+          className="os-film-video"
+          src="/dna-unique-scrub.mp4"
+          poster="/dna-unique.jpg"
+          preload="none"
+          muted
+          playsInline
+          width={1280}
+          height={720}
+          aria-label="Il sistema in otto secondi: l'elica del DNA si legge, si disfa nei suoi dati e si ricompone in un referto con un punteggio di longevità."
+        />
 
-        {/* ── Il film ──────────────────────────────────────────── */}
-        <figure className="os-film mt-14 sm:mt-20">
-          {/* Un alone freddo dietro la lastra: senza, il rettangolo scuro
-              sembra un buco ritagliato nel foglio. */}
-          <div data-alone="" className="os-film-alone" aria-hidden="true" />
+        {/* Il velo tiene leggibile la scritta sopra un filmato che cambia
+            luminosità di continuo. */}
+        <div className="os-film-velo" aria-hidden="true" />
 
-          <div data-lastra="" className="os-film-lastra">
-            <video
-              ref={video}
-              className="os-film-video"
-              poster="/dna-unique.jpg"
-              preload="none"
-              muted
-              loop
-              playsInline
-              width={1920}
-              height={1080}
-              onPlay={() => setInPausa(false)}
-              onPause={() => setInPausa(true)}
-              aria-label="Il sistema in otto secondi: l'elica del DNA si legge, si disfa nei suoi dati e si ricompone in un referto con un punteggio di longevità."
-            >
-              {SORGENTI.map((s) => (
-                <source key={s.src} src={s.src} type={s.type} media={s.media} />
-              ))}
-            </video>
+        <div className="os-film-testo">
+          <Etichetta tono="dato">The film</Etichetta>
+          <h2 className="os-film-titolo">Intelligence in your DNA.</h2>
+          <p className="os-film-riga">
+            Scorri: il filmato avanza con te. Dal dato grezzo alla decisione,
+            negli stessi otto secondi che al sistema servono per arrivarci.
+          </p>
 
-            {/* Il nome accessibile cambia con lo stato: è il modo giusto
-                di dire a chi non vede il segno che cosa fa il comando ora.
-                Su telefono la parola sparisce e resta il segno — il nome
-                però no, e viene dall'`aria-label`. */}
-            <button
-              type="button"
-              onClick={commuta}
-              className="os-film-comando"
-              aria-label={inPausa ? "Riprendi il filmato" : "Ferma il filmato"}
-            >
-              <span aria-hidden="true">{inPausa ? <Play /> : <Pausa />}</span>
-              <span aria-hidden="true" className="os-film-parola">
-                {inPausa ? "Riprendi" : "Ferma"}
-              </span>
-            </button>
-          </div>
+          <button type="button" onClick={guarda} className="os-film-avvia">
+            Guarda il filmato
+          </button>
+        </div>
 
-          <figcaption className="os-film-didascalia">
-            <Lettura chiave="00:00" valore="L'elica" tono="dato" />
-            <Lettura chiave="00:04" valore="I dati" tono="mente" />
-            <Lettura chiave="00:08" valore="La decisione" tono="azione" />
-            <span className="os-mono text-[color:var(--os-appena)]">
-              Senza audio
-            </span>
-          </figcaption>
-        </figure>
+        {/* Il nastro dice a che punto è il film, e quindi quanto manca
+            prima che la pagina riprenda a scendere. */}
+        <div className="os-film-nastro" aria-hidden="true">
+          <span data-nastro="" />
+        </div>
       </div>
     </section>
-  );
-}
-
-/* ── I due segni del comando ──────────────────────────────────────── */
-
-function Pausa() {
-  return (
-    <svg viewBox="0 0 12 12" className="h-3 w-3" fill="currentColor">
-      <rect x="2" y="1.5" width="2.6" height="9" rx="0.6" />
-      <rect x="7.4" y="1.5" width="2.6" height="9" rx="0.6" />
-    </svg>
-  );
-}
-
-function Play() {
-  return (
-    <svg viewBox="0 0 12 12" className="h-3 w-3" fill="currentColor">
-      <path d="M3.2 1.7v8.6a.5.5 0 0 0 .77.42l6.3-4.3a.5.5 0 0 0 0-.84L3.97 1.28a.5.5 0 0 0-.77.42Z" />
-    </svg>
   );
 }

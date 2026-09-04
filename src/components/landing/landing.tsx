@@ -18,9 +18,10 @@ import { UniqueFooter } from "@/components/landing/footer";
  *
  * Non un elenco di sezioni: un percorso, e l'ordine è l'argomento.
  *
- *   accensione → cosa entra → cosa ne esce → come pensa → cosa decide →
+ *   accensione → cosa entra → lo stesso in otto secondi → cosa ne esce →
+ *   come pensa → cosa decide →
  *   come evolve → cosa succede in novanta giorni → chi ci sta dentro →
- *   che cosa si usa davvero → tutto da capo in otto secondi → la porta
+ *   che cosa si usa davvero → la porta
  *
  * Le destinazioni arrivano da fuori, decise una volta sola in
  * `app/page.tsx` a partire dal routing e dalla sessione vere. Nessun
@@ -61,7 +62,10 @@ export function UniqueLanding({
           />
 
           <SystemVisualization />
-          <hr className="os-filo" />
+
+          {/* Nessun filo attorno al film: la banda scura separa da sé,
+              e una riga sottile prima del buio sarebbe un inciampo. */}
+          <DnaFilm />
 
           <DataIntelligence />
           <hr className="os-filo" />
@@ -82,9 +86,6 @@ export function UniqueLanding({
           <hr className="os-filo" />
 
           <ProductInterface />
-          <hr className="os-filo" />
-
-          <DnaFilm />
           <hr className="os-filo" />
 
           <FinalCTA
