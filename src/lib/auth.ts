@@ -85,7 +85,7 @@ export function homePathForRole(role: AppRole): string {
       // La reception apre la giornata dall’agenda, non dai numeri.
       return "/control/agenda";
     case "marketing":
-      return "/control/crm";
+      return "/control/marketing";
     case "admin":
     case "owner":
       // Chi dirige entra dalla control room, non dall agenda clinica.
@@ -108,6 +108,7 @@ export const CONTROL_SECTIONS: Record<string, AppRole[]> = {
   "/control/crm": ["admin", "owner", "reception", "marketing"],
   "/control/agenda": ["admin", "owner", "reception"],
   "/control/marketing": ["admin", "owner", "marketing"],
+  "/control/contenuti": ["admin", "owner", "marketing"],
   "/control/conoscenza": ["admin", "owner", "marketing"],
 };
 
