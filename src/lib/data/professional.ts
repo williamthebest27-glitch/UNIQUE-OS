@@ -124,7 +124,7 @@ export async function getProfessionalDashboard(): Promise<ProfessionalDashboard 
         .limit(8),
 
       supabase
-        .from("professional_tasks")
+        .from("tasks")
         .select("id, title, detail, due_on, patient:patients(id, profile:profiles(full_name))")
         .eq("status", "open")
         .order("due_on", { ascending: true, nullsFirst: false })
@@ -273,7 +273,7 @@ export async function getProNavCounts(): Promise<{ revisioni: number; task: numb
       .select("id", { count: "exact", head: true })
       .eq("status", "needs_review"),
     supabase
-      .from("professional_tasks")
+      .from("tasks")
       .select("id", { count: "exact", head: true })
       .eq("status", "open"),
   ]);
@@ -395,7 +395,7 @@ export async function getTask(): Promise<{ aperti: TaskCompleto[]; chiusi: TaskC
 
   const [apertiRes, chiusiRes] = await Promise.all([
     supabase
-      .from("professional_tasks")
+      .from("tasks")
       .select(
         "id, title, detail, due_on, status, completed_at, patient:patients(id, profile:profiles(full_name))",
       )
@@ -403,7 +403,7 @@ export async function getTask(): Promise<{ aperti: TaskCompleto[]; chiusi: TaskC
       .order("due_on", { ascending: true, nullsFirst: false })
       .limit(60),
     supabase
-      .from("professional_tasks")
+      .from("tasks")
       .select(
         "id, title, detail, due_on, status, completed_at, patient:patients(id, profile:profiles(full_name))",
       )

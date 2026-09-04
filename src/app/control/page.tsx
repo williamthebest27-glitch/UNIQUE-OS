@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getControlCenter } from "@/lib/data/control";
+import { getBriefMattutino } from "@/lib/data/morning";
 import { homePathForRole, requireProfile } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { MorningBrief } from "@/components/control/morning-brief";
 import { formatEuro, formatPercent } from "@/lib/format";
 import { Kpi, KpiStrip, Panel, Riga, Vuoto } from "@/components/control/primitives";
 
@@ -28,7 +30,7 @@ export default async function ControlPage() {
     redirect(homePathForRole(profile.role));
   }
 
-  const dati = await getControlCenter();
+  const [dati, brief] = await Promise.all([getControlCenter(), getBriefMattutino()]);
 
   if (!dati) {
     return (
@@ -46,6 +48,8 @@ export default async function ControlPage() {
 
   return (
     <div className="space-y-8">
+      {brief ? <MorningBrief brief={brief} /> : null}
+
       {/* ── Oggi ────────────────────────────────────────────────── */}
       <section>
         <h1 className="font-display text-[28px] leading-tight text-bone-50">Oggi</h1>

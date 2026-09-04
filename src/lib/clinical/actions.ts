@@ -235,7 +235,7 @@ export async function chiudiTask(formData: FormData): Promise<void> {
 
   const supabase = await createSupabaseServerClient();
   await supabase
-    .from("professional_tasks")
+    .from("tasks")
     .update({ status: "done", completed_at: new Date().toISOString() })
     .eq("id", taskId)
     .eq("status", "open");

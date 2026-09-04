@@ -18,10 +18,13 @@ import { ControlNav } from "@/components/control/control-nav";
 
 const SEZIONI = [
   { href: "/control", label: "Oggi" },
+  { href: "/control/brain", label: "Brain" },
   { href: "/control/agenda", label: "Agenda" },
   { href: "/control/economia", label: "Economia" },
   { href: "/control/capacita", label: "Capacità" },
   { href: "/control/crm", label: "CRM" },
+  { href: "/control/task", label: "Task" },
+  { href: "/control/approvazioni", label: "Approvazioni" },
   { href: "/control/marketing", label: "Marketing" },
   { href: "/control/contenuti", label: "Contenuti" },
   { href: "/control/conoscenza", label: "Conoscenza" },
