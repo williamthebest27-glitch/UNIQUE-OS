@@ -47,6 +47,32 @@ Dal progetto, apri **SQL Editor** ed esegui i file di `supabase/migrations/`
 14. `20260904130000_brain_approvals_tasks.sql` — conversazioni e memoria del
     Brain, approvazioni, task unificati, notifiche con gravità
 
+### Oppure tutte insieme, in un incollaggio solo
+
+Quattordici file uno alla volta sono quattordici occasioni per saltarne uno.
+
+```bash
+npm run db:pacchetto
+```
+
+Unisce tutte le migrazioni in `supabase/locale/migrazioni-da-applicare.sql`
+— cartella ignorata da Git — **dopo** averle eseguite per intero, in una
+transazione sola, su un Postgres vero. Se il pacchetto viene scritto, regge;
+se non regge, non viene scritto e ti dice dove si è fermato.
+
+Poi: *SQL Editor → New query*, incolla, Run. L'ultima riga del file è un
+controllo che restituisce quante tabelle, viste e policy sono in piedi, e
+quante tabelle sono rimaste senza Row Level Security — che devono essere zero.
+
+Su un database che ha già le prime migrazioni, includi solo quelle nuove:
+
+```bash
+npm run db:pacchetto -- --da 10
+```
+
+`create table` non è ripetibile: rieseguire una migrazione già applicata
+fallisce, e siccome il pacchetto è una transazione sola, fallisce tutto.
+
 In alternativa, con la Supabase CLI installata e il progetto collegato:
 
 ```bash

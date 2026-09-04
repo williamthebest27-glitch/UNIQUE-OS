@@ -204,6 +204,17 @@ Procedura completa in **[docs/collegare-supabase.md](docs/collegare-supabase.md)
 creazione del progetto in regione UE, migrazioni, configurazione dell’accesso,
 chiavi, primo utente e dati di prova.
 
+Le quattordici migrazioni si applicano in un incollaggio solo:
+
+```bash
+npm run db:pacchetto
+```
+
+Le unisce in `supabase/locale/migrazioni-da-applicare.sql` **dopo** averle
+eseguite per intero, in una transazione sola, su un Postgres vero. Se il file
+viene scritto, regge. Su un database che ne ha già una parte,
+`npm run db:pacchetto -- --da 10` include solo quelle nuove.
+
 Un punto che vale la pena ripetere qui: le query dell’applicazione **non filtrano
 per paziente**. Ci pensa la Row Level Security. Se una query fosse sbagliata,
 Postgres non restituirebbe comunque righe che l’utente non ha diritto di vedere.
