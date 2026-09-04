@@ -3,6 +3,7 @@ import { requirePatientDashboard } from "@/lib/data/patient";
 import { getOpenSlots, getPatientAppointments } from "@/lib/data/appointments";
 import { SchedaInAttesa } from "@/components/patient/scheda-in-attesa";
 import { PageHeading } from "@/components/shell/page-heading";
+import { SEZIONI_PAZIENTE } from "@/lib/sezioni";
 import { BookButton, CancelButton } from "@/components/appointments/booking";
 import { formatCredits, formatShortDate, formatTime, formatWeekdayDayMonth } from "@/lib/format";
 import { CANCELLATION_HOURS } from "@/lib/credits/rules";
@@ -30,10 +31,7 @@ export default async function AppuntamentiPage() {
 
   return (
     <div className="space-y-6 lg:space-y-8">
-      <PageHeading
-        title="Appuntamenti"
-        subtitle={`Le tue visite e le disponibilità in clinica. Disdicendo con almeno ${CANCELLATION_HOURS} ore di anticipo il credito torna disponibile.`}
-      />
+      <PageHeading {...SEZIONI_PAZIENTE.appuntamenti} />
 
       {/* ── In programma ─────────────────────────────────────── */}
       <Card>

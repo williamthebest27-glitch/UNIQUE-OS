@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { requirePatientDashboard } from "@/lib/data/patient";
 import { SchedaInAttesa } from "@/components/patient/scheda-in-attesa";
 import { PageHeading } from "@/components/shell/page-heading";
+import { SEZIONI_PAZIENTE } from "@/lib/sezioni";
 import { ScoreHero } from "@/components/patient/score-hero";
 import { ProgramCard } from "@/components/patient/cards";
 import { ActionsCard, HighlightsCard } from "@/components/patient/lists";
@@ -17,10 +18,7 @@ export default async function PercorsoPage() {
 
   return (
     <div className="space-y-6 lg:space-y-8">
-      <PageHeading
-        title="Il tuo percorso"
-        subtitle="Lo Score nel tempo, il protocollo in corso e le azioni che lo fanno avanzare."
-      />
+      <PageHeading {...SEZIONI_PAZIENTE.percorso} />
 
       <ScoreHero score={data.score} history={data.scoreHistory} seed={data.profile.id} />
 

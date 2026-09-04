@@ -138,6 +138,61 @@
     transform: none;
   }
 
+  /*
+   * Dopo la prima navigazione l'ingresso cambia natura, non solo durata.
+   *
+   * **Durata.** La presentazione vale la prima volta. Al terzo passaggio
+   * fra Home e Percorso, novecento millisecondi di dissolvenza non sono
+   * più cura: sono attesa. Restano poco meno di trecento.
+   *
+   * **Natura.** Al primo caricamento il contenuto parte invisibile e un
+   * osservatore lo rivela quando entra nel viewport: è ciò che rende lo
+   * scorrimento vivo. Ma "invisibile finché il JavaScript non interviene"
+   * è una scommessa, e con la scheda in secondo piano si perde —
+   * `requestAnimationFrame` non gira, l'osservatore non parte, e chi
+   * torna sulla scheda trova una pagina vuota per quattro secondi, fino
+   * alla rete di sicurezza.
+   *
+   * Qui lo stato di riposo è **visibile**, e l'entrata è un'animazione
+   * CSS che parte da sola. Se il JavaScript non gira, se l'osservatore
+   * non si accende, se la scheda è nascosta: il contenuto c'è comunque.
+   */
+  /*
+   * L'entrata non tocca l'opacità. Solo la posizione.
+   *
+   * Sembra un dettaglio ed è la differenza fra una pagina che a volte è
+   * vuota e una che non lo è mai. Un'animazione che parte da `opacity: 0`
+   * lascia il contenuto invisibile per tutto il tempo in cui è ferma — e
+   * i browser le fermano, per esempio quando la scheda va in secondo
+   * piano. Chi torna a guardare trova il bianco.
+   *
+   * Muovendo di otto pixel e basta, il caso peggiore è un contenuto
+   * leggermente fuori posto: leggibile, cliccabile, presente. Su otto
+   * pixel in 280 millisecondi lo scaglionamento non si vedrebbe, quindi
+   * non c'è.
+   */
+  [data-navigato] [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+    animation: entra-breve 0.28s var(--ease-out-expo);
+  }
+
+  [data-navigato] [data-reveal] .wm > span {
+    transform: none;
+    opacity: 1;
+    transition: none;
+  }
+
+  @keyframes entra-breve {
+    from {
+      transform: translateY(8px);
+    }
+    to {
+      transform: none;
+    }
+  }
+
   /* ── Parole da dietro una maschera ────────────────────────────── */
   .wm {
     display: inline-block;
@@ -171,6 +226,7 @@
       opacity: 1;
       transform: none;
       transition: none;
+      animation: none;
     }
   }
 
