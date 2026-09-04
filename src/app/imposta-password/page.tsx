@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { requireProfile } from "@/lib/auth";
 import { PasswordForm } from "./password-form";
+import { Logotipo } from "@/components/brand/marchio";
 
 export const metadata: Metadata = { title: "Scegli la password" };
 export const dynamic = "force-dynamic";
@@ -24,12 +25,7 @@ export default async function ImpostaPasswordPage() {
     <main className="flex min-h-dvh items-center justify-center px-5 py-12">
       <div className="w-full max-w-[400px]">
         <div className="text-center">
-          <span className="block font-display text-[26px] leading-none tracking-[0.18em] text-ink-900">
-            UNIQUE
-          </span>
-          <span className="mt-2 block text-[9px] font-medium uppercase tracking-[0.28em] text-ink-400">
-            Longevity Clinic
-          </span>
+          <Logotipo className="mx-auto w-[224px]" />
         </div>
 
         <div className="mt-9 rounded-card bg-white p-7 shadow-card ring-1 ring-bone-200/70 sm:p-8">

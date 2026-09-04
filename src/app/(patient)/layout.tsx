@@ -5,6 +5,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { contatoriNav } from "@/lib/data/paziente-sezioni";
 import { ColonnaPaziente, PatientTabBar } from "@/components/shell/patient-nav";
 import { BellIcon } from "@/components/ui/primitives";
+import { Marchio } from "@/components/brand/marchio";
 
 /**
  * Il guscio della Patient App.
@@ -16,12 +17,15 @@ import { BellIcon } from "@/components/ui/primitives";
 
 function Wordmark() {
   return (
-    <Link href="/dashboard" className="block">
-      <span className="block font-display text-[22px] leading-none tracking-[0.18em] text-ink-900">
-        UNIQUE
-      </span>
-      <span className="mt-1.5 block text-[9px] font-medium uppercase tracking-[0.28em] text-ink-400">
-        Longevity Clinic
+    <Link href="/dashboard" className="flex items-center gap-3">
+      <Marchio className="h-9 w-auto shrink-0" />
+      <span className="min-w-0">
+        <span className="block font-display text-[22px] leading-none tracking-[0.18em] text-ink-900">
+          UNIQUE
+        </span>
+        <span className="mt-1.5 block text-[9px] font-medium uppercase tracking-[0.28em] text-ink-400">
+          Longevity Clinic
+        </span>
       </span>
     </Link>
   );
@@ -98,9 +102,9 @@ export default async function PatientLayout({
           <Link
             href="/dashboard"
             aria-label="Unique — vai alla home"
-            className="font-display text-[26px] leading-none text-ink-900"
+            className="flex justify-center"
           >
-            U
+            <Marchio className="h-8 w-auto" />
           </Link>
         }
         messaggiNonLetti={contatori.messaggiNonLetti}

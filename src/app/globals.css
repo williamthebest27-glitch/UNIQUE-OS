@@ -44,6 +44,16 @@
   --color-gold-300: #dcc191;
   --color-gold-100: #f3e9d6;
 
+  /* I colori del marchio: il petrolio della U, la salvia della foglia.
+     Vivono dove il logo si presenta — il sipario d'avvio, la barra che si
+     riempie — e non sostituiscono il rosso, che resta l'accento
+     dell'interfaccia. */
+  --color-unique-900: #123742;
+  --color-unique-700: #1d4f5a;
+  --color-unique-500: #337482;
+  --color-unique-300: #8ab4b6;
+  --color-unique-100: #c1d3c0;
+
   /* Semantici. Il rosso è il marchio, quindi da solo non può voler dire
      "va male": un miglioramento resta verde — un verde neutro, calmo — e
      l'allarme è il rosso profondo del marchio, che si riconosce dal
@@ -114,6 +124,15 @@
       transition-duration: 0.01ms !important;
     }
   }
+}
+
+/* L'avanzamento del sipario d'avvio, da 0 a 1. Registrato perché il CSS
+   possa animarlo da solo quando il JavaScript non c'è: un numero non
+   registrato non si interpola, resta un testo. */
+@property --p {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -216,53 +235,150 @@
     }
   }
 
-  /* ── Il sipario ───────────────────────────────────────────────── */
-  .intro {
+  /* ── Il sipario d'avvio ───────────────────────────────────────── */
+  /*
+   * Un numero solo governa tutto: `--p`, l'avanzamento da 0 a 1. Lo
+   * scrive il motore in `components/brand/avvio.tsx`, e da lì scendono
+   * la larghezza della barra e l'altezza del livello dentro il marchio:
+   * due cose che dicono la stessa attesa non possono andare fuori
+   * sincrono se leggono lo stesso numero.
+   */
+  .avvio {
     position: fixed;
     inset: 0;
     z-index: 100;
     display: grid;
     place-items: center;
-    background: var(--color-ink-900);
-    animation: intro-lift 0.9s var(--ease-out-expo) 1.35s forwards;
+    /* Il marchio è disegnato sul bianco, e sul bianco resta. */
+    background: var(--color-bone-50);
+    /* La scorta: se il JavaScript non arriva, il sipario si alza lo
+       stesso. Nessuno resta chiuso fuori per un bundle mancante. */
+    animation: avvio-sipario 0.72s var(--ease-out-expo) 2.8s forwards;
   }
 
-  .intro-mark {
+  /* Col motore acceso il momento dell'uscita lo decide il caricamento
+     vero, non un ritardo scritto a mano. Il cambio di nome annulla
+     l'animazione di scorta e fa ripartire questa da zero. */
+  .avvio[data-motore] {
+    animation: none;
+  }
+
+  .avvio[data-uscita] {
+    animation: avvio-sipario 0.72s var(--ease-out-expo) forwards;
+  }
+
+  /* Senza motore l'avanzamento lo anima il CSS, o la barra resterebbe
+     ferma a zero per tutto il tempo del sipario. */
+  .avvio:not([data-motore]) .avvio-scena {
+    animation: avvio-avanzamento 2.6s var(--ease-out-expo) forwards;
+  }
+
+  .avvio-scena {
     display: grid;
-    gap: 14px;
     justify-items: center;
+    gap: 26px;
+    padding: 24px;
   }
 
-  .intro-word {
-    font-family: var(--font-display);
-    font-variation-settings: "opsz" 144, "SOFT" 40;
-    font-size: clamp(28px, 4vw, 44px);
-    letter-spacing: 0.28em;
-    color: var(--color-bone-50);
-    animation: intro-word 1s var(--ease-out-expo) 0.1s both;
+  .avvio-marchio {
+    height: clamp(104px, 15vh, 148px);
+    width: auto;
+    aspect-ratio: 441 / 494;
+    /* Il galleggiamento: il marchio sta sull'acqua che lo riempie. */
+    animation: avvio-dondolo 4.6s ease-in-out infinite;
+    will-change: transform;
   }
 
-  .intro-line {
-    width: 120px;
-    height: 1px;
-    background: var(--color-lume-500);
-    transform-origin: left;
-    animation: intro-line 1.1s var(--ease-out-expo) 0.35s both;
+  /* Il marchio spento, sotto quello che si riempie: senza, la parte non
+     ancora raggiunta sparirebbe e il logo si leggerebbe monco. */
+  .avvio-spento {
+    opacity: 0.18;
   }
 
-  @keyframes intro-word {
-    from { opacity: 0; transform: translateY(14px); letter-spacing: 0.45em; }
-    to   { opacity: 1; transform: none; letter-spacing: 0.28em; }
+  /* Il livello sale con l'avanzamento: fuori dal riquadro a zero, oltre
+     il bordo alto a uno, così anche le creste finiscono sopra. */
+  .avvio-livello {
+    transform: translateY(calc((1 - var(--p, 0)) * 545px - 34px));
   }
 
-  @keyframes intro-line {
-    from { transform: scaleX(0); }
-    to   { transform: scaleX(1); }
+  .avvio-onda {
+    will-change: transform;
   }
 
-  @keyframes intro-lift {
+  /* Il tracciato è largo il doppio del riquadro e scorre di esattamente
+     metà: l'anello si chiude senza salto. */
+  .avvio-onda-a {
+    animation: avvio-scorre 2.9s linear infinite;
+  }
+
+  /* La seconda onda va più piano e in senso opposto: l'unione delle due
+     creste non si ripete a occhio. */
+  .avvio-onda-b {
+    animation: avvio-scorre 4.3s linear infinite reverse;
+    opacity: 0.9;
+  }
+
+  .avvio-testo {
+    width: clamp(186px, 27vw, 244px);
+    height: auto;
+    opacity: 0;
+    animation: avvio-arrivo 0.9s var(--ease-out-expo) 0.25s forwards;
+  }
+
+  .avvio-barra {
+    width: clamp(160px, 24vw, 208px);
+    height: 2px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-unique-700) 14%, transparent);
+  }
+
+  .avvio-barra > span {
+    display: block;
+    height: 100%;
+    width: calc(var(--p, 0) * 100%);
+    border-radius: inherit;
+    background: linear-gradient(
+      90deg,
+      var(--color-unique-900),
+      var(--color-unique-500) 62%,
+      var(--color-unique-300)
+    );
+  }
+
+  @keyframes avvio-scorre {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-441px); }
+  }
+
+  @keyframes avvio-dondolo {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    25%      { transform: translateY(-5px) rotate(-1.3deg); }
+    50%      { transform: translateY(0) rotate(0deg); }
+    75%      { transform: translateY(5px) rotate(1.3deg); }
+  }
+
+  @keyframes avvio-arrivo {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  @keyframes avvio-avanzamento {
+    from { --p: 0; }
+    to   { --p: 1; }
+  }
+
+  @keyframes avvio-sipario {
     from { clip-path: inset(0 0 0 0); }
     to   { clip-path: inset(0 0 100% 0); }
+  }
+
+  /* Chi ha chiesto meno movimento non vede il sipario: lo toglie il
+     primo fotogramma, prima ancora che il motore possa smontarlo. */
+  @media (prefers-reduced-motion: reduce) {
+    .avvio {
+      display: none;
+    }
   }
 
   /* ── L'hero dello Score ───────────────────────────────────────── */
