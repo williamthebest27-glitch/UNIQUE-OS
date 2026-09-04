@@ -597,13 +597,18 @@
     overflow-x: clip;
   }
 
-  /* Il sipario d'avvio è la porta dell'applicazione, non della landing:
-     qui la porta è l'accensione dell'hero, e due accensioni di fila sono
-     un'attesa. Lo toglie il CSS al primo fotogramma, prima che il suo
-     motore possa anche solo partire. */
-  body:has(.os) .avvio {
-    display: none;
-  }
+  /* Qui c'era una regola che toglieva il sipario d'avvio sulla landing:
+     il ragionamento era che la porta, sulla pagina pubblica, fosse
+     l'accensione dell'hero, e che due accensioni di fila facessero
+     attesa.
+
+     La decisione è stata ribaltata, e per un motivo che vale più del
+     ritmo: la landing è il primo indirizzo che si scrive, e per quasi
+     tutti è l'unica pagina che vedranno. Nascondere lì il marchio che si
+     riempie significava non mostrarlo mai a chi arriva da fuori — e
+     quello è esattamente il pubblico per cui il marchio esiste.
+     L'accensione dell'hero comincia quando il sipario si è alzato: si
+     leggono come un gesto solo, non come due attese. */
 
   /* ── Tipografia ─────────────────────────────────────────────────
      Tre registri, e il contrasto fra loro è metà del disegno:
