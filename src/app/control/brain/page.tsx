@@ -3,7 +3,8 @@ import Link from "next/link";
 import { conversazioni, leggiConversazione } from "@/lib/brain/founder";
 import { propostePerConversazione } from "@/lib/approvals/proposals";
 import { chiedi } from "@/lib/brain/founder-actions";
-import { isBrainConfigured } from "@/lib/brain/extraction";
+import { ETICHETTA_MOTORE, capacitaAttive, motoreConversazione } from "@/lib/brain/fornitore";
+import { DOMANDE_ESEMPIO } from "@/lib/brain/intenti";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { formatShortDate, formatTime } from "@/lib/format";
 import { ETICHETTE_CLASSE, ETICHETTE_STATO } from "@/lib/approvals/policy";
@@ -43,6 +44,9 @@ export default async function BrainPage({
     c ? propostePerConversazione(c) : Promise.resolve([]),
   ]);
 
+  const motore = motoreConversazione();
+  const capacita = capacitaAttive();
+
   return (
     <div className="space-y-8">
       <div>
@@ -51,16 +55,22 @@ export default async function BrainPage({
           Chiedi come sta andando, e poi chiedi perché. Il Brain propone azioni;
           a eseguirle sei tu, dopo aver visto cosa cambia.
         </p>
-      </div>
 
-      {!isBrainConfigured() ? (
-        <Panel title="Modello non configurato">
-          <Vuoto>
-            ANTHROPIC_API_KEY non è impostata: la conversazione è spenta. I dati e
-            le proposte già registrate restano leggibili.
-          </Vuoto>
-        </Panel>
-      ) : null}
+        {/* Chi ha risposto non è un dettaglio: cambia cosa è uscito da qui. */}
+        <p className="mt-3 flex flex-wrap items-center gap-2 text-xs text-bone-50/35">
+          <Stato tono={motore === "proprio" ? "buono" : "neutro"}>
+            {ETICHETTA_MOTORE[motore]}
+          </Stato>
+          {motore === "proprio"
+            ? "Risponde leggendo il database. Nessun dato esce dall’infrastruttura, nessun costo per domanda."
+            : "Conversazione libera con un modello linguistico. I numeri restano quelli degli strumenti."}
+          {!capacita.redazione ? (
+            <span className="text-bone-50/25">
+              · lettura documenti e Content Brain richiedono un modello
+            </span>
+          ) : null}
+        </p>
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_260px]">
         {/* ── La conversazione ─────────────────────────────────── */}
@@ -101,10 +111,9 @@ export default async function BrainPage({
               <div className="px-5 pb-5 pt-1 text-sm text-bone-50/45">
                 <p>Qualche domanda con cui cominciare:</p>
                 <ul className="mt-2 space-y-1 text-bone-50/60">
-                  <li>Come sta andando Unique questo mese?</li>
-                  <li>Quale campagna sta portando i pazienti migliori?</li>
-                  <li>Ci sono membri che non usano i crediti da più di 60 giorni?</li>
-                  <li>Quanto costa il Longevity Score e da quando?</li>
+                  {DOMANDE_ESEMPIO.slice(0, 6).map((d) => (
+                    <li key={d}>{d}</li>
+                  ))}
                 </ul>
               </div>
             </Panel>

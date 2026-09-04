@@ -4,6 +4,8 @@ import { requireProfile } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { BRAIN_MODEL, BrainNotConfiguredError, isBrainConfigured } from "@/lib/brain/extraction";
 import { strumentiDelBrain, type TracciaStrumento } from "@/lib/brain/tools";
+import { motoreConversazione } from "@/lib/brain/fornitore";
+import { rispondiConMotoreProprio } from "@/lib/brain/motore-proprio";
 
 /**
  * L'interfaccia founder.
@@ -144,8 +146,6 @@ export async function chiediAlBrain(input: {
   domanda: string;
   conversationId?: string | null;
 }): Promise<{ conversationId: string; risposta: string; tracce: TracciaStrumento[] }> {
-  if (!isBrainConfigured()) throw new BrainNotConfiguredError();
-
   const profile = await requireProfile();
   if (!["admin", "owner"].includes(profile.role)) {
     throw new Error("L'interfaccia founder è riservata alla direzione.");
@@ -162,6 +162,39 @@ export async function chiediAlBrain(input: {
     role: "user",
     content: domanda,
   });
+
+  /*
+   * Il motore proprietario è la strada normale, non il ripiego.
+   *
+   * Risponde senza rete, senza costo per domanda e senza far uscire un
+   * numero dall'infrastruttura — che con dati sanitari è un fatto
+   * giuridico prima che tecnico. Il modello linguistico si accende di
+   * proposito, con `UNIQUE_BRAIN=anthropic`, e serve a una cosa sola che
+   * il motore non sa fare: la conversazione davvero libera.
+   */
+  if (motoreConversazione() === "proprio") {
+    const esito = await rispondiConMotoreProprio(domanda);
+
+    await supabase.from("brain_messages").insert({
+      conversation_id: id,
+      role: "assistant",
+      content: esito.risposta,
+      tool_calls: esito.tracce,
+      model: `motore-unique${esito.intento ? `:${esito.intento}` : ""}`,
+    });
+
+    await supabase
+      .from("brain_conversations")
+      .update({
+        last_message_at: new Date().toISOString(),
+        ...(storia.length === 0 ? { title: domanda.slice(0, 80) } : {}),
+      })
+      .eq("id", id);
+
+    return { conversationId: id, risposta: esito.risposta, tracce: esito.tracce };
+  }
+
+  if (!isBrainConfigured()) throw new BrainNotConfiguredError();
 
   const tracce: TracciaStrumento[] = [];
   const strumenti = strumentiDelBrain({ conversationId: id, tracce });

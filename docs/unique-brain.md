@@ -9,6 +9,67 @@ Perché la seconda domanda funzioni servono tre cose che una chat non ha.
 
 ---
 
+## Il motore è di Unique, e funziona da solo
+
+**Il Brain risponde senza modello linguistico, senza rete e senza chiavi.** È la
+configurazione predefinita: si apre `/control/brain` e funziona.
+
+Non è un ripiego in attesa di un'API. È l'applicazione di ciò che la visione
+chiedeva — *"il Brain non dovrebbe essere semplicemente ChatGPT con i documenti di
+Unique caricati"*. I numeri li sa già il database, le regole le sa già il codice,
+e la lingua italiana si può scrivere una volta sola.
+
+Con dati sanitari questa non è una preferenza tecnica. Ogni domanda mandata a
+un'API esterna è un trasferimento di dati che vuole un accordo sul trattamento,
+una base giuridica e una riga nel registro. Un motore che gira dentro
+l'infrastruttura non ha niente di tutto questo da giustificare.
+
+### Come fa
+
+L'intuizione: **in una control room le domande non sono infinite.** Sono venti
+domande poste in cento modi diversi, ed è la seconda parte a essere difficile.
+
+```
+domanda  →  intento + parametri  →  motori di calcolo  →  frasi
+```
+
+1. [`intenti.ts`](../src/lib/brain/intenti.ts) normalizza (accenti compresi: chi
+   scrive di fretta scrive "capacita") e riconosce l'intento con gruppi di
+   sinonimi. Tutti i gruppi devono trovare una parola: "campagne" da solo non è
+   "quale campagna porta i pazienti migliori", e non deve diventarlo.
+2. Il periodo e i giorni si estraggono dalla domanda: "il mese scorso", "ad
+   agosto", "da tre mesi". A settembre, "dicembre" è quello dell'anno prima —
+   non si chiedono i numeri di un mese che deve ancora arrivare.
+3. I dati arrivano dai motori che già esistono: unit economics, capacità,
+   marketing, knowledge base. Passano tutti dal client di sessione, quindi dalla
+   Row Level Security.
+4. [`narrativa.ts`](../src/lib/brain/narrativa.ts) compone la risposta: prima il
+   numero, poi il senso; `null` non diventa mai zero; ciò che manca si dichiara.
+
+**Quando non capisce lo dice**, e mostra cosa sa rispondere. Un motore che
+indovina è un motore di cui non ci si fida al terzo errore.
+
+E può anche *fare*: "preparami i contatti per chi non usa i crediti da 90 giorni"
+crea una proposta, con anteprima e autorizzazione. Lo stesso ciclo di sempre.
+
+### Il pregio che un modello non ha
+
+**Si può testare.** 47 casi di prova coprono il riconoscimento e la composizione:
+un intento sbagliato è un caso di prova che fallisce, non una supposizione sul
+comportamento di un modello. Quando la risposta cambia, si sa perché.
+
+### Il modello, quando serve
+
+`UNIQUE_BRAIN=anthropic` (con `ANTHROPIC_API_KEY`) accende il modello linguistico
+per la conversazione libera. Si attiva **di proposito**: una chiave dimenticata in
+un file di ambiente non è un consenso a mandare fuori i numeri dell'azienda.
+
+Tre cose restano lavoro di lingua e vogliono un modello, e il sistema lo dichiara
+invece di fingere: leggere un referto ed estrarne i valori, il copilot clinico
+dentro la cartella, e il Content Brain.
+
+---
+
 ## 1. Gli strumenti
 
 Il modello non conosce i numeri di Unique. Li chiede, e le chiamate restano
