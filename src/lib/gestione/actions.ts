@@ -5,6 +5,7 @@ import {
   invalidaAgenda,
   invalidaCrediti,
   invalidaNumeriDirezione,
+  invalidaTeamClinico,
 } from "@/lib/cache/invalidazione";
 import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
@@ -727,6 +728,78 @@ export async function attivaDisattivaProfessionista(formData: FormData): Promise
   const supabase = await createSupabaseServerClient();
   await supabase.from("professionals").update({ is_active: attivo }).eq("id", id);
   revalidatePath("/control/professionisti");
+}
+
+/* ── Care team ──────────────────────────────────────────────────── */
+
+/**
+ * Mette un professionista nel team di un paziente.
+ *
+ * È l'atto che apre una cartella clinica a una persona, ed è per questo
+ * che sta qui e non fra le impostazioni: la Row Level Security non
+ * guarda il ruolo, guarda il team. Un medico appena creato ha il
+ * permesso di entrare in area clinica e non vede nessuno finché non
+ * compare in questa tabella.
+ *
+ * Riservato alla direzione perché è `is_staff()` a governare la
+ * scrittura nel database: reception e marketing riceverebbero comunque
+ * un rifiuto, e una frase è più utile di un errore di Postgres.
+ */
+export async function assegnaAlTeam(_prev: EsitoGestione, formData: FormData): Promise<EsitoGestione> {
+  try {
+    await richiedi(DIREZIONE, "Care team");
+    const patientId = testo(formData, "patientId");
+    const professionalId = testo(formData, "professionalId");
+    if (!patientId || !professionalId) return errore("Servono il paziente e il professionista.");
+
+    const supabase = await createSupabaseServerClient();
+
+    // La chiave è la coppia, quindi riassegnare qualcuno che era uscito
+    // riapre la sua riga invece di crearne una seconda. `assigned_at`
+    // torna a oggi: la riga racconta l'assegnazione in corso, non la
+    // prima di sempre.
+    const { error } = await supabase.from("care_team_members").upsert(
+      {
+        patient_id: patientId,
+        professional_id: professionalId,
+        role_in_team: opzionale(formData, "ruolo"),
+        assigned_at: new Date().toISOString(),
+        ended_at: null,
+      },
+      { onConflict: "patient_id,professional_id" },
+    );
+    if (error) throw new Error(`Assegnazione non riuscita: ${error.message}`);
+
+    invalidaTeamClinico(patientId);
+    return ok("Assegnato: da adesso la cartella si apre dall'area clinica.");
+  } catch (error) {
+    return esitoDa(error);
+  }
+}
+
+/**
+ * Toglie un professionista dal team.
+ *
+ * Non cancella la riga: le scrive una data di fine. Chi ha seguito una
+ * persona per un anno resta scritto nella sua storia, e l'accesso si
+ * chiude lo stesso — le funzioni della Row Level Security guardano
+ * `ended_at is null`, non l'esistenza della riga.
+ */
+export async function chiudiAssegnazione(formData: FormData): Promise<void> {
+  await richiedi(DIREZIONE, "Care team");
+  const patientId = testo(formData, "patientId");
+  const professionalId = testo(formData, "professionalId");
+  if (!patientId || !professionalId) return;
+
+  const supabase = await createSupabaseServerClient();
+  await supabase
+    .from("care_team_members")
+    .update({ ended_at: new Date().toISOString() })
+    .eq("patient_id", patientId)
+    .eq("professional_id", professionalId)
+    .is("ended_at", null);
+
+  invalidaTeamClinico(patientId);
 }
 
 /* ── Incassi e membership ───────────────────────────────────────── */

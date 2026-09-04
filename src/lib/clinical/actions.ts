@@ -9,6 +9,13 @@ import {
 import { requireProfile } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { askCopilot } from "@/lib/brain/copilot";
+import { getMetric } from "@/lib/score/metrics";
+import { recomputeAndStoreScore } from "@/lib/score/service";
+import {
+  canWriteMetric,
+  DISCIPLINE_LABELS,
+  type Discipline,
+} from "@/lib/professionals/disciplines";
 import type { StatoCopilot, StatoTesto } from "@/lib/clinical/state";
 
 /**
@@ -248,4 +255,119 @@ export async function chiudiTask(formData: FormData): Promise<void> {
 
   // La stessa tabella la legge anche la lista di lavoro del banco.
   invalidaLavoro();
+}
+
+/* ── Misure prese in visita ───────────────────────────────────────── */
+
+/**
+ * Una misura rilevata durante la visita.
+ *
+ * È l'altra strada per cui un valore entra in cartella: la prima passa
+ * da un referto, dalla lettura automatica e dalla coda di revisione;
+ * questa da una persona che ha in mano uno strumento. Non ha bisogno di
+ * approvazione perché **l'approvazione è il gesto stesso** — chi la
+ * scrive la sta firmando, e la riga registra chi è.
+ *
+ * Le due regole che valgono comunque:
+ *
+ *   **La competenza per disciplina.** Un osteopata non scrive un
+ *   pannello lipidico. La regola vive in `professionals/disciplines.ts`
+ *   perché dipende dal catalogo delle metriche, che è versionato con
+ *   l'algoritmo dello Score.
+ *
+ *   **La plausibilità.** Un valore fuori dall'intervallo fisiologico non
+ *   è un paziente messo male: è quasi sempre un errore di unità o una
+ *   cifra in più, e va fermato prima di entrare — dove costerebbe un
+ *   punteggio sbagliato e una segnalazione che nessuno capisce.
+ *
+ * Il punteggio si ricalcola subito: una misura presa in visita deve
+ * poter cambiare lo Score mentre il paziente è ancora lì.
+ */
+export async function registraMisura(
+  _prev: StatoTesto,
+  formData: FormData,
+): Promise<StatoTesto> {
+  const patientId = String(formData.get("patientId") ?? "").trim();
+  const codice = String(formData.get("metricCode") ?? "").trim();
+  const grezzo = String(formData.get("valore") ?? "").replace(",", ".").trim();
+  const quando = String(formData.get("misurataIl") ?? "").trim();
+
+  if (!patientId) return { esito: "errore", messaggio: "Paziente non indicato." };
+  if (!codice) return { esito: "errore", messaggio: "Scegli il parametro da registrare." };
+
+  const metrica = getMetric(codice);
+  if (!metrica) {
+    return { esito: "errore", messaggio: "Parametro non presente nel catalogo." };
+  }
+
+  const valore = Number(grezzo);
+  if (!Number.isFinite(valore)) {
+    return { esito: "errore", messaggio: "Il valore non è un numero." };
+  }
+
+  const [minimo, massimo] = metrica.plausible;
+  if (valore < minimo || valore > massimo) {
+    return {
+      esito: "errore",
+      messaggio: `${valore} ${metrica.unit} è fuori dall'intervallo fisiologicamente plausibile (${minimo}–${massimo}). Controlla l'unità di misura.`,
+    };
+  }
+
+  try {
+    const profile = await requireStaff();
+    const supabase = await createSupabaseServerClient();
+
+    if (profile.role === "professional") {
+      const { data: proRow } = await supabase
+        .from("professionals")
+        .select("discipline")
+        .eq("profile_id", profile.id)
+        .maybeSingle();
+
+      const disciplina =
+        (proRow as { discipline: Discipline } | null)?.discipline ?? "other";
+
+      if (!canWriteMetric(disciplina, codice)) {
+        return {
+          esito: "errore",
+          messaggio: `${DISCIPLINE_LABELS[disciplina]}: questo parametro è fuori dal tuo ambito di competenza.`,
+        };
+      }
+    }
+
+    const data = quando || new Date().toISOString().slice(0, 10);
+
+    const { error } = await supabase.from("measurements").upsert(
+      {
+        patient_id: patientId,
+        metric_code: codice,
+        label: metrica.label,
+        value: valore,
+        unit: metrica.unit,
+        measured_on: data,
+        source: "professional",
+        entered_by: profile.id,
+      },
+      { onConflict: "patient_id,metric_code,measured_on,source" },
+    );
+
+    if (error) throw new Error(error.message);
+
+    await recomputeAndStoreScore(supabase, patientId);
+    invalidaCartellaClinica(patientId);
+
+    const fuoriSoglia = metrica.clinicalAlert?.(valore) ?? false;
+
+    return {
+      esito: "ok",
+      messaggio: fuoriSoglia
+        ? `${metrica.label}: ${valore} ${metrica.unit} registrato. È oltre la soglia clinica.`
+        : `${metrica.label}: ${valore} ${metrica.unit} registrato. Punteggio ricalcolato.`,
+    };
+  } catch (error) {
+    return {
+      esito: "errore",
+      messaggio: error instanceof Error ? error.message : "Misura non registrata.",
+    };
+  }
 }

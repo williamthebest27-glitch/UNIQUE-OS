@@ -5,6 +5,7 @@ import { esci } from "@/lib/auth-actions";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getProNavCounts } from "@/lib/data/professional";
 import { ProSidebarNav, ProTabBar, type ProCounts } from "@/components/shell/pro-nav";
+import { Marchio } from "@/components/brand/marchio";
 
 /**
  * L'area clinica.
@@ -17,12 +18,15 @@ import { ProSidebarNav, ProTabBar, type ProCounts } from "@/components/shell/pro
 
 function Wordmark() {
   return (
-    <Link href="/pro" className="block">
-      <span className="block font-display text-[22px] leading-none tracking-[0.18em] text-ink-900">
-        UNIQUE
-      </span>
-      <span className="mt-1.5 block text-[9px] font-medium uppercase tracking-[0.28em] text-ink-400">
-        Area clinica
+    <Link href="/pro" className="flex items-center gap-3">
+      <Marchio className="h-9 w-auto shrink-0" />
+      <span className="min-w-0">
+        <span className="block font-display text-[22px] leading-none tracking-[0.18em] text-ink-900">
+          UNIQUE
+        </span>
+        <span className="mt-1.5 block text-[9px] font-medium uppercase tracking-[0.28em] text-ink-400">
+          Area clinica
+        </span>
       </span>
     </Link>
   );
@@ -78,7 +82,7 @@ export default async function ProLayout({
   const demo = !isSupabaseConfigured();
   // Senza database non c'è nulla da contare, e la query fallirebbe.
   const counts: ProCounts = demo
-    ? { revisioni: 0, task: 0 }
+    ? { revisioni: 0, task: 0, documenti: 0, messaggi: 0 }
     : await getProNavCounts();
 
   return (

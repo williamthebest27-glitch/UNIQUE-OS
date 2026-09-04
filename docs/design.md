@@ -107,6 +107,27 @@ L’hero dello Score resta scuro. Sul bianco la Signature perderebbe la sua
 luce; sul nero l’organismo in rosso e rosa è la mossa audace che il resto
 della pagina, bianca e quieta, lascia parlare.
 
+## Il marchio
+
+La U con la foglia, in degradé dal petrolio alla salvia. Sta in `public/`
+in tre ritagli — il solo simbolo, il lockup intero, la sola parte scritta —
+perché servono in posti diversi: il simbolo accanto alla parola "Unique"
+nelle quattro barre laterali, il lockup sulle pagine che si presentano
+(accesso, scelta della password), il testo sotto il marchio che si riempie
+nel sipario.
+
+**Il fondo bianco dell'originale è diventato trasparenza**, una volta per
+tutte: l'alfa ricavata dalla distanza dal bianco e il colore riportato al
+valore pieno sui bordi antialiasati. Senza, il Control Center avrebbe un
+rettangolo bianco in testata; con un alone chiaro, il marchio sul nero
+sembrerebbe ritagliato male. Il simbolo serve anche da favicon e da icona
+iOS, dalla convenzione a file di Next (`src/app/icon.png`,
+`src/app/apple-icon.png`).
+
+I colori del logo vivono come `--color-unique-*` e restano dove il marchio
+si presenta. **Non sostituiscono il rosso**: l'accento dell'interfaccia è
+quello, e due accenti sarebbero nessun accento.
+
 ## Tipografia
 
 **Fraunces** per il display: variabile, con l’asse ottico che cambia il disegno
@@ -135,9 +156,20 @@ Un motore senza dipendenze, in `src/lib/motion/engine.ts`:
 - **un unico ciclo rAF** a cui la Signature si aggancia, che pubblica la
   velocità di scroll come variabile CSS.
 
-Il sipario iniziale dura un secondo e mezzo, una volta per sessione, solo sulla
-home del paziente. Il tempo serve a caricare i font; la partenza è vincolata a
-`document.fonts` con un limite, così un CDN lento non intrappola nessuno.
+Il sipario d'avvio sta nel guscio, non in una pagina: a ogni apertura
+dell'applicazione il marchio si riempie da sotto con la cresta di un'onda, e
+una barra sotto di esso dice quanto manca. Le due cose leggono lo stesso
+numero — `--p`, scritto fotogramma per fotogramma dal motore in
+`components/brand/avvio.tsx` — e non possono raccontare attese diverse. Il
+momento dell'uscita lo decide il caricamento vero, font e marchio, con un
+limite: un CDN lento non intrappola nessuno.
+
+**Esce comunque, nei tre modi in cui potrebbe non farlo.** Il markup parte dal
+server, così non c'è il lampo di contenuto scoperto che ha ogni sipario montato
+dopo l'idratazione — ma un markup che arriva prima del JavaScript deve saper
+sparire da solo: senza JavaScript lo alza un'animazione CSS dopo 2,8 s, senza
+fotogrammi — scheda in secondo piano, dove `requestAnimationFrame` si ferma —
+lo alza un timer, e in una scheda nata nascosta non compare affatto.
 
 ## Reduced motion
 
@@ -149,9 +181,13 @@ cortesia.
 ## Dove il movimento non va
 
 L’area professionale e il Control Center ereditano tipografia e palette, non
-la Signature né il sipario. Un medico fra due pazienti non ha bisogno di uno
-shader; chi dirige ha bisogno di numeri densi su fondo scuro. Sono mestieri
-diversi, e l’interfaccia lo rispetta.
+la Signature. Un medico fra due pazienti non ha bisogno di uno shader; chi
+dirige ha bisogno di numeri densi su fondo scuro. Sono mestieri diversi, e
+l’interfaccia lo rispetta.
+
+Il sipario invece è di tutti: è la porta d’ingresso dell’applicazione, non un
+effetto della Patient App, e dura meno di due secondi una volta sola —
+all’apertura, non a ogni navigazione, perché il guscio non si rimonta.
 
 ## Da fare
 

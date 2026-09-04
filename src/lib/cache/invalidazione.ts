@@ -65,11 +65,94 @@ export function invalidaCartellaClinica(patientId?: string | null): void {
   revalidatePath("/pro/pazienti");
   revalidatePath("/pro/revisioni");
   revalidatePath("/pro/documenti");
+  // Il centro di attenzione e i report leggono le stesse righe da cui
+  // nascono i segnali: una misura approvata ne spegne uno.
+  revalidatePath("/pro/attenzione");
+  revalidatePath("/pro/report");
 
   if (patientId) {
-    revalidatePath(`/pro/pazienti/${patientId}`);
+    // `"layout"` e non la pagina soltanto: la cartella è un workspace
+    // con sezioni annidate — clinico, score, documenti, piano, percorso,
+    // visita — e invalidare la sola pagina ne lascerebbe fresche alcune.
+    // Due sezioni della stessa cartella che non concordano sono peggio
+    // di due pagine vecchie: sembrano un dato contraddittorio invece di
+    // un dato da ricaricare.
+    revalidatePath(`/pro/pazienti/${patientId}`, "layout");
     revalidatePath(`/control/pazienti/${patientId}`);
   }
+}
+
+/**
+ * È cambiato il care team di un paziente: qualcuno è entrato, qualcuno
+ * è uscito.
+ *
+ * Non è un dato clinico — nessuna misura cambia — ma è **chi lo può
+ * leggere**, e cioè la sola cosa da cui dipendono tutte le pagine
+ * dell'area clinica: la Row Level Security filtra i pazienti sul team,
+ * non sul ruolo. Un'assegnazione che non invalida queste pagine è un
+ * medico che ha il permesso e continua a vedere una lista vuota, o che
+ * l'ha perso e continua a vedere una cartella.
+ */
+export function invalidaTeamClinico(patientId?: string | null): void {
+  revalidatePath("/pro");
+  revalidatePath("/pro/pazienti");
+  revalidatePath("/pro/agenda");
+  revalidatePath("/pro/documenti");
+
+  // Il conteggio dei pazienti seguiti sta accanto a ogni professionista.
+  revalidatePath("/control/professionisti");
+
+  if (patientId) {
+    revalidatePath(`/pro/pazienti/${patientId}`, "layout");
+    revalidatePath(`/control/pazienti/${patientId}`);
+  }
+}
+
+/**
+ * È cambiato lo stato di revisione di un referto.
+ *
+ * Non tocca il corpo di nessuno — nessuna misura, nessun punteggio — e
+ * per questo non passa da `invalidaCartellaClinica`: sarebbe una
+ * rilettura di sette sezioni della Patient App per un pallino che il
+ * paziente non vede nemmeno. Cambia soltanto **cosa resta da fare**,
+ * ed è quello che si invalida.
+ */
+export function invalidaRevisioneDocumenti(patientId?: string | null): void {
+  revalidatePath("/pro");
+  revalidatePath("/pro/documenti");
+  revalidatePath("/pro/attenzione");
+
+  if (patientId) revalidatePath(`/pro/pazienti/${patientId}`, "layout");
+}
+
+/**
+ * È cambiato qualcosa che accende o spegne un segnale, senza cambiare
+ * un dato clinico: un task preso in carico, un messaggio letto, una
+ * proposta del Brain accettata.
+ */
+export function invalidaAttenzione(): void {
+  revalidatePath("/pro");
+  revalidatePath("/pro/attenzione");
+}
+
+/**
+ * È cambiata una conversazione clinica.
+ *
+ * I due capi del filo stanno in due applicazioni diverse, e la parte
+ * più facile da dimenticare è quella dall'altra parte: un medico che
+ * risponde deve far sparire il pallino dal telefono del paziente, non
+ * solo dalla propria coda.
+ */
+export function invalidaMessaggiClinici(patientId?: string | null): void {
+  revalidatePath("/pro/messaggi");
+  revalidatePath("/pro/messaggi/[id]", "page");
+  revalidatePath("/pro");
+  revalidatePath("/pro/attenzione");
+
+  revalidatePath("/messaggi");
+  revalidatePath("/messaggi/[id]", "page");
+
+  if (patientId) revalidatePath(`/pro/pazienti/${patientId}`, "layout");
 }
 
 /**
@@ -87,13 +170,16 @@ export function invalidaAgenda(patientId?: string | null): void {
 
   revalidatePath("/pro");
   revalidatePath("/pro/agenda");
+  // Una visita conclusa spegne il segnale «esito non registrato»; una
+  // fissata per oggi ne accende uno «da preparare».
+  revalidatePath("/pro/attenzione");
 
   revalidatePath("/control/agenda");
   revalidatePath("/control");
   revalidatePath("/control/capacita");
 
   if (patientId) {
-    revalidatePath(`/pro/pazienti/${patientId}`);
+    revalidatePath(`/pro/pazienti/${patientId}`, "layout");
     revalidatePath(`/control/pazienti/${patientId}`);
   }
 }
@@ -142,6 +228,8 @@ export function invalidaLavoro(): void {
   revalidatePath("/control");
   revalidatePath("/pro/task");
   revalidatePath("/pro");
+  // Un task aperto è un segnale, e chiuderlo lo spegne.
+  revalidatePath("/pro/attenzione");
 }
 
 /**

@@ -109,6 +109,47 @@ export async function elencoPazienti(ricerca?: string): Promise<PazienteInElenco
   );
 }
 
+export interface NomePaziente {
+  id: string;
+  nome: string;
+  codice: string | null;
+}
+
+/**
+ * I nomi dei pazienti, per le tendine in cui si sceglie una persona.
+ *
+ * `elencoPazienti` si porta dietro saldi, piani e ultima visita: quattro
+ * query giuste per l'anagrafica e sprecate per un menu a tendina.
+ */
+export async function nomiPazienti(): Promise<NomePaziente[]> {
+  if (!isSupabaseConfigured()) return [];
+  const supabase = await createSupabaseServerClient();
+
+  const { data } = await supabase
+    .from("patients")
+    .select("id, patient_code, profile:profiles!patients_profile_id_fkey(full_name)")
+    .order("created_at", { ascending: false })
+    .limit(500);
+
+  return ((data ?? []) as unknown as {
+    id: string;
+    patient_code: string | null;
+    profile: { full_name: string } | null;
+  }[])
+    .map((r) => ({ id: r.id, nome: r.profile?.full_name || "Senza nome", codice: r.patient_code }))
+    .sort((a, b) => a.nome.localeCompare(b.nome, "it"));
+}
+
+export interface MembroCareTeam {
+  professionalId: string;
+  nome: string;
+  titolo: string | null;
+  specialita: string | null;
+  disciplina: string;
+  ruolo: string | null;
+  assegnatoIl: string;
+}
+
 export interface SchedaOperativa {
   id: string;
   profileId: string;
@@ -128,6 +169,8 @@ export interface SchedaOperativa {
     endsOn: string | null;
   } | null;
   crediti: { assegnati: number; usati: number; prenotati: number; disponibili: number };
+  /** Chi può aprire la cartella di questa persona. Solo assegnazioni aperte. */
+  team: MembroCareTeam[];
   appuntamenti: {
     id: string;
     servizio: string;
@@ -155,7 +198,7 @@ export async function schedaOperativa(patientId: string): Promise<SchedaOperativ
   if (!isSupabaseConfigured()) return null;
   const supabase = await createSupabaseServerClient();
 
-  const [pazienteRes, saldoRes, membershipRes, appuntamentiRes, incassiRes] = await Promise.all([
+  const [pazienteRes, saldoRes, membershipRes, appuntamentiRes, incassiRes, teamRes] = await Promise.all([
     supabase
       .from("patients")
       .select(
@@ -185,6 +228,17 @@ export async function schedaOperativa(patientId: string): Promise<SchedaOperativ
       .eq("patient_id", patientId)
       .order("created_at", { ascending: false })
       .limit(30),
+    // Solo le assegnazioni aperte. `ended_at` non è un cestino: è il
+    // giorno in cui quel professionista ha smesso di seguire questa
+    // persona, e resta scritto perché la cartella dica anche chi c'era.
+    supabase
+      .from("care_team_members")
+      .select(
+        "professional_id, role_in_team, assigned_at, professional:professionals(title, specialty, discipline, profile:profiles!professionals_profile_id_fkey(full_name))",
+      )
+      .eq("patient_id", patientId)
+      .is("ended_at", null)
+      .order("assigned_at", { ascending: true }),
   ]);
 
   const p = pazienteRes.data as unknown as {
@@ -234,6 +288,25 @@ export async function schedaOperativa(patientId: string): Promise<SchedaOperativ
       prenotati: Number(saldo?.total_reserved ?? 0),
       disponibili: Number(saldo?.available ?? 0),
     },
+    team: ((teamRes.data ?? []) as unknown as {
+      professional_id: string;
+      role_in_team: string | null;
+      assigned_at: string;
+      professional: {
+        title: string | null;
+        specialty: string | null;
+        discipline: string;
+        profile: { full_name: string } | null;
+      } | null;
+    }[]).map((m) => ({
+      professionalId: m.professional_id,
+      nome: m.professional?.profile?.full_name || "Senza nome",
+      titolo: m.professional?.title ?? null,
+      specialita: m.professional?.specialty ?? null,
+      disciplina: m.professional?.discipline ?? "other",
+      ruolo: m.role_in_team,
+      assegnatoIl: m.assigned_at,
+    })),
     appuntamenti: ((appuntamentiRes.data ?? []) as unknown as {
       id: string;
       service_name: string;
@@ -404,6 +477,56 @@ export async function elencoProfessionisti(): Promise<ProfessionistaInCatalogo[]
     turni: (turni.get(p.id) ?? []).sort((a, b) => a.weekday - b.weekday || a.startsAt.localeCompare(b.startsAt)),
     slotFuturi: slot.get(p.id) ?? 0,
   }));
+}
+
+export interface PazienteSeguito {
+  patientId: string;
+  nome: string;
+  ruolo: string | null;
+}
+
+/**
+ * Chi segue chi, per professionista.
+ *
+ * Una query per tutta la squadra invece di una per riga: la pagina li
+ * mostra tutti insieme. Il conteggio serve anche a chi non apre
+ * l'elenco — un professionista senza pazienti assegnati entra in area
+ * clinica e non trova nessuno, e da fuori sembra un guasto.
+ */
+export async function teamPerProfessionista(): Promise<Map<string, PazienteSeguito[]>> {
+  const mappa = new Map<string, PazienteSeguito[]>();
+  if (!isSupabaseConfigured()) return mappa;
+  const supabase = await createSupabaseServerClient();
+
+  const { data } = await supabase
+    .from("care_team_members")
+    .select(
+      "patient_id, professional_id, role_in_team, patient:patients(profile:profiles!patients_profile_id_fkey(full_name))",
+    )
+    .is("ended_at", null)
+    .limit(5000);
+
+  for (const r of (data ?? []) as unknown as {
+    patient_id: string;
+    professional_id: string;
+    role_in_team: string | null;
+    patient: { profile: { full_name: string } | null } | null;
+  }[]) {
+    mappa.set(r.professional_id, [
+      ...(mappa.get(r.professional_id) ?? []),
+      {
+        patientId: r.patient_id,
+        nome: r.patient?.profile?.full_name || "Senza nome",
+        ruolo: r.role_in_team,
+      },
+    ]);
+  }
+
+  for (const [id, righe] of mappa) {
+    mappa.set(id, righe.sort((a, b) => a.nome.localeCompare(b.nome, "it")));
+  }
+
+  return mappa;
 }
 
 export interface StanzaInCatalogo {

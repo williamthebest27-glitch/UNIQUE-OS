@@ -1,6 +1,9 @@
 "use server";
 
-import { invalidaCartellaClinica } from "@/lib/cache/invalidazione";
+import {
+  invalidaCartellaClinica,
+  invalidaRevisioneDocumenti,
+} from "@/lib/cache/invalidazione";
 import { requireProfile } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isBrainConfigured } from "@/lib/brain/extraction";
@@ -8,6 +11,7 @@ import { ServiceRoleRequiredError, analyzeDocument } from "@/lib/brain/analyze";
 import {
   DIMENSIONE_MASSIMA_BYTE,
   TIPI_ACCETTATI,
+  type StatoRevisioneDocumento,
   type StatoUpload,
 } from "@/lib/documents/state";
 
@@ -177,4 +181,67 @@ export async function caricaDocumento(
   invalidaCartellaClinica(patientId);
 
   return { esito: "ok", messaggio: `"${titolo}" è stato caricato.`, dettaglio };
+}
+
+/* ── Revisione ────────────────────────────────────────────────────── */
+
+/**
+ * Segnare un referto letto, o approvarlo.
+ *
+ * Non fa un `update`: chiama `review_document`, che è security definer.
+ * Tre regole devono valere insieme e una policy da sola non le esprime —
+ * approvare richiede il titolo clinico, l'autore e l'istante li scrive
+ * il database e non il chiamante, e il passaggio lascia sia un evento
+ * sia una riga nel registro degli accessi.
+ *
+ * L'errore del database si mostra così com'è. «Approvare un referto
+ * richiede un medico» è esattamente ciò che va detto a chi ha premuto un
+ * pulsante che non doveva vedere — e nasconderlo dietro un generico
+ * «operazione non riuscita» lascerebbe pensare a un guasto.
+ */
+export async function revisionaDocumento(
+  _prev: StatoRevisioneDocumento,
+  formData: FormData,
+): Promise<StatoRevisioneDocumento> {
+  const documentId = String(formData.get("documentId") ?? "").trim();
+  const stato = String(formData.get("stato") ?? "").trim();
+  const nota = String(formData.get("nota") ?? "").trim();
+  const patientId = String(formData.get("patientId") ?? "").trim();
+
+  if (!documentId) return { esito: "errore", messaggio: "Documento non indicato." };
+  if (!["pending", "reviewed", "approved"].includes(stato)) {
+    return { esito: "errore", messaggio: "Stato di revisione non valido." };
+  }
+
+  try {
+    await requireProfile();
+    const supabase = await createSupabaseServerClient();
+
+    const { error } = await supabase.rpc("review_document", {
+      p_document: documentId,
+      p_state: stato,
+      p_note: nota || null,
+    });
+
+    if (error) throw new Error(error.message);
+
+    invalidaRevisioneDocumenti(patientId || null);
+
+    return {
+      esito: "ok",
+      stato: stato as "pending" | "reviewed" | "approved",
+      messaggio:
+        stato === "approved"
+          ? "Approvato: ha valore clinico."
+          : stato === "reviewed"
+            ? "Segnato come letto."
+            : "Rimesso in coda.",
+    };
+  } catch (error) {
+    return {
+      esito: "errore",
+      messaggio:
+        error instanceof Error ? error.message : "La revisione non è stata registrata.",
+    };
+  }
 }

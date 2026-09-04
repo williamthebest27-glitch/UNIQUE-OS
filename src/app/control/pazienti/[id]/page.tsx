@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { requireProfile } from "@/lib/auth";
 import {
   elencoPiani,
   elencoProfessionisti,
@@ -10,13 +11,16 @@ import {
 } from "@/lib/data/gestione";
 import {
   aggiornaAnagrafica,
+  assegnaAlTeam,
   attivaMembership,
+  chiudiAssegnazione,
   creaAppuntamento,
   registraIncasso,
   spostaAppuntamento,
 } from "@/lib/gestione/actions";
 import {
   CANALI_INCASSO,
+  DISCIPLINE,
   STATI_MEMBERSHIP,
   STATI_VISITA,
   TIPI_INCASSO,
@@ -53,7 +57,8 @@ export default async function SchedaPazientePage({ params }: { params: Promise<{
     );
   }
 
-  const [scheda, servizi, professionisti, stanze, piani] = await Promise.all([
+  const [profile, scheda, servizi, professionisti, stanze, piani] = await Promise.all([
+    requireProfile(),
     schedaOperativa(id),
     elencoServizi(false),
     elencoProfessionisti(),
@@ -68,6 +73,13 @@ export default async function SchedaPazientePage({ params }: { params: Promise<{
     (a) => ["scheduled", "confirmed"].includes(a.status) && a.startsAt >= adesso,
   );
   const passate = scheda.appuntamenti.filter((a) => !prossime.includes(a));
+
+  // Il care team lo scrive `is_staff()`, e lo legge solo chi vi ha una
+  // ragione di cura: la reception non vedrebbe righe nemmeno chiedendole,
+  // e un pannello vuoto direbbe una cosa falsa invece di niente.
+  const direzione = ["admin", "owner"].includes(profile.role);
+  const nelTeam = new Set(scheda.team.map((m) => m.professionalId));
+  const assegnabili = professionisti.filter((p) => p.attivo && !nelTeam.has(p.id));
 
   return (
     <div className="space-y-8">
@@ -352,6 +364,78 @@ export default async function SchedaPazientePage({ params }: { params: Promise<{
           </ul>
         )}
       </Panel>
+
+      {direzione ? (
+        <Panel
+          title="Team clinico"
+          hint="Chi può aprire questa cartella. Non lo decide il ruolo: lo decide il team."
+        >
+          {scheda.team.length === 0 ? (
+            <Vuoto>Nessun professionista assegnato: in area clinica questa cartella non compare.</Vuoto>
+          ) : (
+            <ul className="pb-2">
+              {scheda.team.map((m) => (
+                <li
+                  key={m.professionalId}
+                  className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-t border-white/[0.07] px-5 py-3 first:border-t-0"
+                >
+                  <span className="text-[15px] text-bone-50">
+                    {[m.titolo, m.nome].filter(Boolean).join(" ")}
+                  </span>
+                  <span className="min-w-0 flex-1 text-sm text-bone-50/50">
+                    {[m.ruolo, etichetta(DISCIPLINE, m.disciplina), m.specialita]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
+                  <span className="text-xs text-bone-50/40 tnum">dal {formatShortDate(m.assegnatoIl)}</span>
+                  <form action={chiudiAssegnazione}>
+                    <input type="hidden" name="patientId" value={scheda.id} />
+                    <input type="hidden" name="professionalId" value={m.professionalId} />
+                    <button
+                      type="submit"
+                      className="text-xs text-bone-50/50 transition-colors hover:text-gold-300"
+                    >
+                      Togli dal team
+                    </button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {assegnabili.length === 0 ? (
+            <p className="border-t border-white/[0.07] px-5 py-4 text-xs text-bone-50/35">
+              Tutti i professionisti in servizio sono già nel team.
+            </p>
+          ) : (
+            <div className="border-t border-white/[0.07]">
+              <ModuloAzione
+                action={assegnaAlTeam}
+                invio="Assegna al team"
+                variante="quieto"
+                className="grid gap-4 px-5 pb-5 pt-4 sm:grid-cols-2"
+              >
+                <input type="hidden" name="patientId" value={scheda.id} />
+                <Campo label="Professionista">
+                  <Scelta name="professionalId" required defaultValue="">
+                    <option value="" disabled>
+                      Scegli…
+                    </option>
+                    {assegnabili.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {[p.titolo, p.nome].filter(Boolean).join(" ")} · {etichetta(DISCIPLINE, p.disciplina)}
+                      </option>
+                    ))}
+                  </Scelta>
+                </Campo>
+                <Campo label="Ruolo nel team" hint="Facoltativo: è come compare in cartella.">
+                  <Testo name="ruolo" placeholder="Referente clinico" autoComplete="off" />
+                </Campo>
+              </ModuloAzione>
+            </div>
+          )}
+        </Panel>
+      ) : null}
 
       <Panel title="Anagrafica">
         <ModuloAzione action={aggiornaAnagrafica} invio="Salva" variante="quieto" className="grid gap-4 px-5 pb-5 pt-2 sm:grid-cols-2">

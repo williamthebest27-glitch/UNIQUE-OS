@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { canSeeControlSection, homePathForRole, requireProfile } from "@/lib/auth";
 import { esci } from "@/lib/auth-actions";
 import { ControlNav } from "@/components/control/control-nav";
+import { Marchio } from "@/components/brand/marchio";
 
 /**
  * Il Control Center.
@@ -52,12 +53,17 @@ export default async function ControlLayout({
     <div className="min-h-dvh bg-ink-900">
       <header className="border-b border-white/10">
         <div className="mx-auto flex max-w-[1240px] flex-wrap items-center justify-between gap-4 px-5 py-4 sm:px-8">
-          <Link href="/control" className="block">
-            <span className="block font-display text-[20px] leading-none tracking-[0.18em] text-bone-50">
-              UNIQUE
-            </span>
-            <span className="mt-1 block text-[9px] font-medium uppercase tracking-[0.28em] text-bone-50/50">
-              Control Center
+          <Link href="/control" className="flex items-center gap-3">
+            {/* Il marchio ha la foglia chiara e la U in petrolio: sul nero
+                si legge senza bisogno di una versione a parte. */}
+            <Marchio className="h-8 w-auto shrink-0" />
+            <span className="min-w-0">
+              <span className="block font-display text-[20px] leading-none tracking-[0.18em] text-bone-50">
+                UNIQUE
+              </span>
+              <span className="mt-1 block text-[9px] font-medium uppercase tracking-[0.28em] text-bone-50/50">
+                Control Center
+              </span>
             </span>
           </Link>
 

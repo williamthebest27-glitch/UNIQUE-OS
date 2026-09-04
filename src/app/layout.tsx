@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
+import { preload } from "react-dom";
 import { MotionProvider } from "@/components/motion/motion-provider";
+import { Avvio } from "@/components/brand/avvio";
 import "./globals.css";
 
 /**
@@ -45,9 +47,14 @@ export const viewport: Viewport = {
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // Il marchio del sipario è la prima cosa che si vede: va chiesto
+  // insieme all'HTML, non quando il browser incontra l'<image> nell'SVG.
+  preload("/marchio-unique.png", { as: "image", fetchPriority: "high" });
+
   return (
     <html lang="it" className={`${fraunces.variable} ${inter.variable}`}>
       <body className="min-h-dvh">
+        <Avvio />
         <MotionProvider>{children}</MotionProvider>
       </body>
     </html>

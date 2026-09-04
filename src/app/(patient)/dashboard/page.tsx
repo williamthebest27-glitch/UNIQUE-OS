@@ -4,7 +4,6 @@ import { requirePatientDashboard } from "@/lib/data/patient";
 import { situazione } from "@/lib/data/percorso-paziente";
 import { SchedaInAttesa } from "@/components/patient/scheda-in-attesa";
 import { ScoreHero } from "@/components/patient/score-hero";
-import { Intro } from "@/components/patient/intro";
 import { Reveal, SplitText } from "@/components/motion/reveal";
 import { ProssimoPasso } from "@/components/patient/prossimo-passo";
 import { CreditsCard, NextVisitCard, ProgramCard } from "@/components/patient/cards";
@@ -46,78 +45,74 @@ export default async function PatientHomePage() {
   const firstName = data.profile.firstName ?? data.profile.fullName.split(" ")[0];
 
   return (
-    <>
-      <Intro />
+    <div className="space-y-6 lg:space-y-8">
+      {/* ── Saluto ─────────────────────────────────────────────── */}
+      <header>
+        <h1 className="font-display text-[34px] leading-[1.05] text-ink-900 sm:text-[44px]">
+          <SplitText text={`Ciao ${firstName}.`} />
+        </h1>
+        <p
+          className="mt-2 text-sm text-ink-400 first-letter:uppercase"
+          data-reveal=""
+          style={{ "--i": 3 } as React.CSSProperties}
+        >
+          {oggiFormatter.format(new Date())} · {stato.fase.reason}
+        </p>
+      </header>
 
-      <div className="space-y-6 lg:space-y-8">
-        {/* ── Saluto ─────────────────────────────────────────────── */}
-        <header>
-          <h1 className="font-display text-[34px] leading-[1.05] text-ink-900 sm:text-[44px]">
-            <SplitText text={`Ciao ${firstName}.`} />
-          </h1>
-          <p
-            className="mt-2 text-sm text-ink-400 first-letter:uppercase"
-            data-reveal=""
-            style={{ "--i": 3 } as React.CSSProperties}
-          >
-            {oggiFormatter.format(new Date())} · {stato.fase.reason}
-          </p>
-        </header>
+      {/* ── Cosa fare adesso ───────────────────────────────────── */}
+      <Reveal index={0}>
+        <ProssimoPasso passi={stato.passi} />
+      </Reveal>
 
-        {/* ── Cosa fare adesso ───────────────────────────────────── */}
+      {/* ── Come sto ───────────────────────────────────────────── */}
+      <Reveal index={1}>
+        <ScoreHero score={data.score} history={data.scoreHistory} seed={data.profile.id} />
+      </Reveal>
+
+      {/* ── Il momento presente ────────────────────────────────── */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Reveal index={0}>
-          <ProssimoPasso passi={stato.passi} />
+          <NextVisitCard appointment={data.nextAppointment} />
         </Reveal>
-
-        {/* ── Come sto ───────────────────────────────────────────── */}
         <Reveal index={1}>
-          <ScoreHero score={data.score} history={data.scoreHistory} seed={data.profile.id} />
+          <ProgramCard enrollment={data.enrollment} />
         </Reveal>
-
-        {/* ── Il momento presente ────────────────────────────────── */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <Reveal index={0}>
-            <NextVisitCard appointment={data.nextAppointment} />
-          </Reveal>
-          <Reveal index={1}>
-            <ProgramCard enrollment={data.enrollment} />
-          </Reveal>
-          <Reveal index={2}>
-            <CreditsCard membership={data.membership} />
-          </Reveal>
-        </div>
-
-        {/* ── Cosa fare, cosa è arrivato ─────────────────────────── */}
-        <div className="grid gap-6 lg:grid-cols-3">
-          <Reveal className="lg:col-span-2" index={0}>
-            <ActionsCard actions={data.actions} />
-          </Reveal>
-          <Reveal index={1}>
-            <DocumentsCard documents={data.newDocuments} />
-          </Reveal>
-        </div>
-
-        {/* ── La prova che il percorso funziona ──────────────────── */}
-        <Reveal>
-          <HighlightsCard highlights={data.highlights} />
-        </Reveal>
-
-        <Reveal>
-          <Link
-            href="/assistente"
-            className="group flex items-center gap-4 rounded-card bg-ink-900 px-6 py-5 text-bone-50 transition-colors hover:bg-ink-800"
-          >
-            <span className="min-w-0 flex-1">
-              <span className="block font-display text-[20px] leading-tight">Chiedi a Unique</span>
-              <span className="mt-1 block text-sm text-bone-50/55">
-                Come sto andando, cosa è cambiato, cosa mi conviene fare. Risponde con i tuoi dati,
-                senza mandarli da nessuna parte.
-              </span>
-            </span>
-            <ChevronIcon className="h-5 w-5 shrink-0 text-bone-50/50 transition-transform group-hover:translate-x-0.5" />
-          </Link>
+        <Reveal index={2}>
+          <CreditsCard membership={data.membership} />
         </Reveal>
       </div>
-    </>
+
+      {/* ── Cosa fare, cosa è arrivato ─────────────────────────── */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Reveal className="lg:col-span-2" index={0}>
+          <ActionsCard actions={data.actions} />
+        </Reveal>
+        <Reveal index={1}>
+          <DocumentsCard documents={data.newDocuments} />
+        </Reveal>
+      </div>
+
+      {/* ── La prova che il percorso funziona ──────────────────── */}
+      <Reveal>
+        <HighlightsCard highlights={data.highlights} />
+      </Reveal>
+
+      <Reveal>
+        <Link
+          href="/assistente"
+          className="group flex items-center gap-4 rounded-card bg-ink-900 px-6 py-5 text-bone-50 transition-colors hover:bg-ink-800"
+        >
+          <span className="min-w-0 flex-1">
+            <span className="block font-display text-[20px] leading-tight">Chiedi a Unique</span>
+            <span className="mt-1 block text-sm text-bone-50/55">
+              Come sto andando, cosa è cambiato, cosa mi conviene fare. Risponde con i tuoi dati,
+              senza mandarli da nessuna parte.
+            </span>
+          </span>
+          <ChevronIcon className="h-5 w-5 shrink-0 text-bone-50/50 transition-transform group-hover:translate-x-0.5" />
+        </Link>
+      </Reveal>
+    </div>
   );
 }
