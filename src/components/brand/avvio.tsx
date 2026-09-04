@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { reducedMotion } from "@/lib/motion/engine";
-import { ALZA, CALA } from "./sipario";
+import { ALZA, CALA, calaSipario } from "./sipario";
 
 /**
  * Il sipario d'avvio.
@@ -73,6 +74,7 @@ function decodifica(src: string): Promise<unknown> {
 }
 
 export function Avvio() {
+  const percorso = usePathname();
   const [visibile, setVisibile] = useState(true);
   const [uscita, setUscita] = useState(false);
   /** Cambia a ogni replica: rimonta il motore e lo fa ripartire da zero. */
@@ -224,6 +226,45 @@ export function Avvio() {
       window.removeEventListener(ALZA, alza);
     };
   }, []);
+
+  /*
+   * Uscire dalla landing è entrare nel prodotto, e si entra col sipario.
+   *
+   * Un ascoltatore solo, qui, invece di una prop su ogni comando: i
+   * richiami all'accesso sulla pagina pubblica sono otto fra la barra,
+   * le sezioni e il piede — «Accedi», «Registrati», «Entra in Unique
+   * OS», «Attiva il tuo accesso» — e il nono, quello che qualcuno
+   * aggiungerà il mese prossimo, si dimenticherebbe di calarlo.
+   *
+   * Il criterio è grezzo apposta: dalla landing, qualunque collegamento
+   * interno che porti altrove. Le ancore alle sezioni restano su «/» e
+   * non contano; ciò che esce da «/» è il prodotto, e non c'è altro
+   * posto dove andare.
+   */
+  useEffect(() => {
+    if (percorso !== "/") return;
+
+    const alClic = (ev: MouseEvent) => {
+      // Un clic col tasto centrale, o con un modificatore, apre altrove:
+      // questa pagina non si muove e il sipario non c'entra.
+      if (ev.defaultPrevented || ev.button !== 0) return;
+      if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return;
+
+      const ancora = (ev.target as Element | null)?.closest?.("a");
+      if (!(ancora instanceof HTMLAnchorElement)) return;
+      if (ancora.target && ancora.target !== "_self") return;
+      if (ancora.hasAttribute("download")) return;
+
+      const destinazione = new URL(ancora.href, location.href);
+      if (destinazione.origin !== location.origin) return;
+      if (destinazione.pathname === "/") return;
+
+      calaSipario();
+    };
+
+    document.addEventListener("click", alClic);
+    return () => document.removeEventListener("click", alClic);
+  }, [percorso]);
 
   if (!visibile) return null;
 
