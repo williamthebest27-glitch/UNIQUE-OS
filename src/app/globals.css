@@ -158,39 +158,25 @@
    * non si accende, se la scheda è nascosta: il contenuto c'è comunque.
    */
   /*
-   * L'entrata non tocca l'opacità. Solo la posizione.
+   * Dalla prima navigazione in poi: niente.
    *
-   * Sembra un dettaglio ed è la differenza fra una pagina che a volte è
-   * vuota e una che non lo è mai. Un'animazione che parte da `opacity: 0`
-   * lascia il contenuto invisibile per tutto il tempo in cui è ferma — e
-   * i browser le fermano, per esempio quando la scheda va in secondo
-   * piano. Chi torna a guardare trova il bianco.
+   * L'ingresso a scaglioni è la presentazione del prodotto, e una
+   * presentazione si fa una volta. Al passaggio fra due sezioni chi
+   * clicca ha già deciso dove vuole andare: qualunque cosa stia fra il
+   * clic e il contenuto — fossero anche duecento millisecondi di
+   * dissolvenza — è tempo tolto, non cura.
    *
-   * Muovendo di otto pixel e basta, il caso peggiore è un contenuto
-   * leggermente fuori posto: leggibile, cliccabile, presente. Su otto
-   * pixel in 280 millisecondi lo scaglionamento non si vedrebbe, quindi
-   * non c'è.
+   * Zero animazione ha anche una proprietà che nessuna animazione breve
+   * può avere: il contenuto non può restare nascosto. Niente opacità da
+   * portare a uno, niente fotogramma iniziale che un browser possa
+   * mettere in pausa quando la scheda passa in secondo piano.
    */
-  [data-navigato] [data-reveal] {
-    opacity: 1;
-    transform: none;
-    transition: none;
-    animation: entra-breve 0.28s var(--ease-out-expo);
-  }
-
+  [data-navigato] [data-reveal],
   [data-navigato] [data-reveal] .wm > span {
-    transform: none;
     opacity: 1;
+    transform: none;
     transition: none;
-  }
-
-  @keyframes entra-breve {
-    from {
-      transform: translateY(8px);
-    }
-    to {
-      transform: none;
-    }
+    animation: none;
   }
 
   /* ── Parole da dietro una maschera ────────────────────────────── */
