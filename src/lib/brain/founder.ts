@@ -6,6 +6,7 @@ import { BRAIN_MODEL, BrainNotConfiguredError, isBrainConfigured } from "@/lib/b
 import { strumentiDelBrain, type TracciaStrumento } from "@/lib/brain/tools";
 import { motoreConversazione } from "@/lib/brain/fornitore";
 import { rispondiConMotoreProprio } from "@/lib/brain/motore-proprio";
+import { chatConStrumenti, modelloOllama, ollamaRaggiungibile } from "@/lib/brain/ollama";
 
 /**
  * L'interfaccia founder.
@@ -194,6 +195,67 @@ export async function chiediAlBrain(input: {
       .eq("id", id);
 
     return { conversationId: id, risposta: esito.risposta, tracce: esito.tracce };
+  }
+
+  /*
+   * Il modello locale: stessi strumenti, stesso prompt, nessuna rete.
+   *
+   * Il ciclo degli strumenti e' scritto a mano in `chatConStrumenti`,
+   * perche' l'SDK di Anthropic non parla con Ollama. Ma gli strumenti
+   * sono gli stessi oggetti — nome, schema, `run` — quindi i numeri
+   * restano quelli dei motori di calcolo, e la Row Level Security sotto
+   * e' la stessa. Cambia chi mette insieme le frasi, non chi sa i fatti.
+   */
+  if (motoreConversazione() === "ollama") {
+    const stato = await ollamaRaggiungibile();
+    if (!stato.ok) throw new Error(stato.motivo ?? "Ollama non raggiungibile.");
+
+    const tracceLocali: TracciaStrumento[] = [];
+    const strumentiLocali = strumentiDelBrain({ conversationId: id, tracce: tracceLocali });
+    const memoriaLocale = await memoriaAttiva();
+
+    try {
+      const { testo } = await chatConStrumenti({
+        sistema: `${SYSTEM_PROMPT}
+
+Oggi e' ${new Date().toISOString().slice(0, 10)}.
+
+Decisioni e preferenze gia' registrate:
+${memoriaLocale}`,
+        messaggi: [...storia, { role: "user" as const, content: domanda }],
+        strumenti: strumentiLocali,
+        maxIterazioni: 8,
+        tracce: tracceLocali,
+      });
+
+      await supabase.from("brain_messages").insert({
+        conversation_id: id,
+        role: "assistant",
+        content: testo,
+        tool_calls: tracceLocali,
+        model: `ollama:${modelloOllama()}`,
+      });
+
+      await supabase
+        .from("brain_conversations")
+        .update({
+          last_message_at: new Date().toISOString(),
+          ...(storia.length === 0 ? { title: domanda.slice(0, 80) } : {}),
+        })
+        .eq("id", id);
+
+      return { conversationId: id, risposta: testo, tracce: tracceLocali };
+    } catch (errore) {
+      const messaggio = errore instanceof Error ? errore.message : String(errore);
+      await supabase.from("brain_messages").insert({
+        conversation_id: id,
+        role: "assistant",
+        content: `Non sono riuscito a rispondere con il modello locale: ${messaggio}`,
+        tool_calls: tracceLocali,
+        model: `ollama:${modelloOllama()}`,
+      });
+      throw errore;
+    }
   }
 
   if (!isBrainConfigured()) throw new BrainNotConfiguredError();

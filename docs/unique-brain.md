@@ -108,9 +108,53 @@ perché. E una batteria di domande poste come le porrebbe una persona è il modo
 in cui si trovano gli errori — "quanto costa la visita nutrizionale" finiva fra
 le visite invece che nel listino, ed è diventata un caso di prova.
 
-### Il modello, quando serve
+### Un modello in casa: Ollama
 
-`UNIQUE_BRAIN=anthropic` (con `ANTHROPIC_API_KEY`) accende il modello linguistico.
+`UNIQUE_BRAIN=ollama` accende un modello aperto — Llama, Qwen, Mistral — servito
+da [Ollama](https://ollama.com) su una macchina di Unique. È la risposta a una
+domanda precisa: come si ha la conversazione libera senza che una parola esca
+dalla clinica. I dati sanitari restano dove sono, e la bolletta è la corrente.
+
+Sul server:
+
+```bash
+ollama pull qwen2.5:14b
+```
+
+In `.env.local`: `UNIQUE_BRAIN=ollama`, e se Ollama non è sulla stessa macchina
+`OLLAMA_URL=http://<server>:11434`. `OLLAMA_MODEL` sceglie il modello; il
+predefinito è prudente, non ambizioso.
+
+Quattro cose passano dal modello locale, e in nessuna il modello inventa numeri:
+
+- **la chat del founder**, con **gli stessi strumenti** del percorso esterno —
+  stessi oggetti, stesso `run`, stessa Row Level Security sotto. Il ciclo degli
+  strumenti è scritto a mano in [`ollama.ts`](../src/lib/brain/ollama.ts),
+  perché l'SDK di Anthropic non parla con Ollama; ciò che il modello sa dei
+  fatti resta ciò che gli strumenti gli danno;
+- **il copilot clinico** su domande libere, con lo stesso schema di risposta e
+  le fonti obbligatorie;
+- **il Content Brain**, che qui scrive copy finito invece dell'impalcatura;
+- **la lettura dei referti** che il lettore proprietario non copre: un'immagine,
+  con un modello che sappia guardarla (`llama3.2-vision`, `llava`). Un PDF con
+  il testo viene prima convertito in testo, che è più affidabile di un'immagine
+  per qualunque modello. Un PDF scansionato — pagine e niente testo — resta
+  fuori: andrebbe rasterizzato, e senza una libreria per farlo è meglio dirlo.
+
+L'uscita strutturata usa lo schema JSON che Ollama accetta; la validazione con lo
+stesso schema Zod a valle è la rete. Un modello vincolato produce JSON valido,
+non necessariamente JSON sensato — e ogni valore passa comunque da
+`validateExtraction` e da un medico.
+
+**La qualità dipende dal modello e dalla macchina.** Un modello piccolo su una
+CPU risponde in un minuto e sbaglia più di uno grande su una GPU. Il motore
+proprietario resta la strada predefinita, perché su ciò che sa fare è più
+affidabile di qualunque modello: risponde sempre allo stesso modo, e i suoi
+errori sono test.
+
+### Il modello esterno, quando serve
+
+`UNIQUE_BRAIN=anthropic` (con `ANTHROPIC_API_KEY`) accende un modello esterno.
 Si attiva **di proposito**: una chiave dimenticata in un file di ambiente non è
 un consenso a mandare fuori i numeri dell'azienda.
 

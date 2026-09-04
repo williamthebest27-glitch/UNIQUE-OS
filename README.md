@@ -89,7 +89,9 @@ distinti.
   quali filtri — fatturato per servizio ad agosto, il professionista che fattura
   di più, quante visite di nutrizione — e compone la risposta dai motori di calcolo
   che già esistono. Sa spiegare un "perché" scomponendo la variazione fra due
-  mesi, e capisce i seguiti: "perché?", "e ad agosto?". Con dati sanitari non è una
+  mesi, e capisce i seguiti: "perché?", "e ad agosto?". Per la conversazione
+  davvero libera, `UNIQUE_BRAIN=ollama` accende un modello aperto sul server di
+  Unique — stessi strumenti, stessa Row Level Security, e nessun dato che esce. Con dati sanitari non è una
   preferenza tecnica — ogni domanda mandata a un'API esterna è un trasferimento di
   dati da giustificare. Sotto ogni risposta restano scritte le chiamate fatte, e
   quando non capisce lo dice invece di indovinare. Un modello linguistico si può

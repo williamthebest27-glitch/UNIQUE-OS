@@ -7,6 +7,7 @@ import { BRAIN_MODEL, BrainNotConfiguredError, isBrainConfigured } from "@/lib/b
 import { collectPatientData } from "@/lib/brain/briefing";
 import { motoreConversazione } from "@/lib/brain/fornitore";
 import { rispondiSullaCartella } from "@/lib/clinical/copilot-proprio";
+import { generaStrutturato, modelloOllama, ollamaRaggiungibile } from "@/lib/brain/ollama";
 
 /**
  * Il copilot clinico dentro la cartella.
@@ -103,6 +104,54 @@ export async function askCopilot(
    */
   if (motoreConversazione() === "proprio") {
     return rispostaPropria(patientId, domanda, profile.id);
+  }
+
+  // Il modello locale: la stessa domanda, gli stessi dati, lo stesso
+  // schema di risposta con le fonti obbligatorie. Cambia solo dove gira.
+  if (motoreConversazione() === "ollama") {
+    const stato = await ollamaRaggiungibile();
+    if (!stato.ok) throw new Error(stato.motivo ?? "Ollama non raggiungibile.");
+
+    const datiLocali = await collectPatientData(patientId);
+    if (!datiLocali.anagrafica) throw new Error("Paziente non trovato o non accessibile.");
+
+    const parsed = await generaStrutturato({
+      sistema: SYSTEM_PROMPT,
+      richiesta: `Data di oggi: ${new Date().toISOString().slice(0, 10)}.
+
+Domanda del professionista:
+${domanda}
+
+Dati disponibili su questo paziente:
+
+${JSON.stringify(datiLocali, null, 2)}`,
+      schema: AnswerSchema,
+    });
+
+    const supabaseLocale = await createSupabaseServerClient();
+    const { data, error } = await supabaseLocale
+      .from("copilot_messages")
+      .insert({
+        patient_id: patientId,
+        profile_id: profile.id,
+        question: domanda,
+        answer: parsed.answer,
+        sources: parsed.sources,
+        model: `ollama:${modelloOllama()}`,
+      })
+      .select("id, created_at")
+      .single();
+
+    if (error) throw new Error(`Risposta non registrata: ${error.message}`);
+    const row = data as { id: string; created_at: string };
+
+    return {
+      id: row.id,
+      question: domanda,
+      answer: parsed.answer,
+      sources: parsed.sources,
+      createdAt: row.created_at,
+    };
   }
 
   if (!isBrainConfigured()) throw new BrainNotConfiguredError();

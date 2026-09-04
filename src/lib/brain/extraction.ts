@@ -2,6 +2,9 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { METRIC_DEFINITIONS } from "@/lib/score/metrics";
+import { motoreConversazione } from "@/lib/brain/fornitore";
+import { generaStrutturato, ollamaRaggiungibile } from "@/lib/brain/ollama";
+import { testoDaDocumento } from "@/lib/clinical/testo-documento";
 
 /**
  * Estrazione dei parametri clinici da un documento.
@@ -149,6 +152,54 @@ export class BrainRefusalError extends Error {
 export async function extractFromDocument(
   input: DocumentInput,
 ): Promise<DocumentExtraction> {
+  /*
+   * Il modello locale legge in due modi.
+   *
+   * Un PDF con il testo si converte in testo — la stessa ricostruzione
+   * delle righe del lettore proprietario — e si manda quello: e' piu'
+   * affidabile di un'immagine anche per un modello con la vista, e
+   * funziona con qualunque modello. Un'immagine si manda com'e', e serve
+   * un modello che sappia guardarla (llama3.2-vision, llava): con uno
+   * solo testuale la richiesta fallisce con un messaggio chiaro.
+   *
+   * Un PDF scansionato — pagine e nessun testo — resta il caso che qui
+   * non si copre: andrebbe rasterizzato, e senza una libreria per farlo
+   * e' meglio dirlo che tentare.
+   */
+  if (motoreConversazione() === "ollama") {
+    const stato = await ollamaRaggiungibile();
+    if (!stato.ok) throw new Error(stato.motivo ?? "Ollama non raggiungibile.");
+
+    const isPdfLocale = input.mimeType === "application/pdf";
+    const bytes = new Uint8Array(Buffer.from(input.data, "base64"));
+
+    if (isPdfLocale) {
+      const documento = await testoDaDocumento(bytes, input.mimeType);
+      if (!documento.leggibile) {
+        throw new Error(
+          documento.motivo ??
+            "Il PDF non contiene testo: con il modello locale serve un'immagine del referto.",
+        );
+      }
+      return generaStrutturato({
+        sistema: SYSTEM_PROMPT,
+        richiesta: `Documento: ${input.fileName}. Estrai i parametri secondo le regole dal testo qui sotto.
+
+${documento.testo}`,
+        schema: DocumentExtraction,
+        timeoutMs: 240_000,
+      });
+    }
+
+    return generaStrutturato({
+      sistema: SYSTEM_PROMPT,
+      richiesta: `Documento: ${input.fileName}. Estrai i parametri secondo le regole dall'immagine.`,
+      schema: DocumentExtraction,
+      immagini: [input.data],
+      timeoutMs: 240_000,
+    });
+  }
+
   if (!isBrainConfigured()) throw new BrainNotConfiguredError();
 
   const client = new Anthropic();

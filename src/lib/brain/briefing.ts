@@ -4,6 +4,8 @@ import { z } from "zod";
 import { requireProfile } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { BRAIN_MODEL, BrainNotConfiguredError, isBrainConfigured } from "@/lib/brain/extraction";
+import { modelloAttivo, motoreConversazione } from "@/lib/brain/fornitore";
+import { generaStrutturato, modelloOllama, ollamaRaggiungibile } from "@/lib/brain/ollama";
 
 /**
  * "Riassumimi questo paziente prima della visita."
@@ -140,7 +142,8 @@ export async function collectPatientData(patientId: string) {
 /* ── Generazione ──────────────────────────────────────────────────── */
 
 export async function generateBriefing(patientId: string): Promise<Briefing> {
-  if (!isBrainConfigured()) throw new BrainNotConfiguredError();
+  if (!modelloAttivo()) throw new BrainNotConfiguredError();
+  if (motoreConversazione() === "anthropic" && !isBrainConfigured()) throw new BrainNotConfiguredError();
 
   const profile = await requireProfile();
   if (profile.role === "patient") {
@@ -152,40 +155,46 @@ export async function generateBriefing(patientId: string): Promise<Briefing> {
     throw new Error("Paziente non trovato o non accessibile.");
   }
 
-  const client = new Anthropic();
-  const response = await client.messages.parse({
-    model: BRAIN_MODEL,
-    max_tokens: 16000,
-    thinking: { type: "adaptive" },
-    system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
-    output_config: { format: zodOutputFormat(BriefingSchema), effort: "high" },
-    messages: [
-      {
-        role: "user",
-        content: `Data di oggi: ${new Date().toISOString().slice(0, 10)}.
+  const richiesta = `Data di oggi: ${new Date().toISOString().slice(0, 10)}.
 
 Dati disponibili su questo paziente:
 
-${JSON.stringify(dati, null, 2)}`,
-      },
-    ],
-  });
+${JSON.stringify(dati, null, 2)}`;
+  const modelloUsato = motoreConversazione() === "ollama" ? `ollama:${modelloOllama()}` : BRAIN_MODEL;
 
-  if (response.stop_reason === "refusal") {
-    throw new Error("Il modello ha rifiutato di produrre il briefing.");
-  }
-  if (!response.parsed_output) {
-    throw new Error("Il modello non ha restituito un briefing leggibile.");
+  let parsed: z.infer<typeof BriefingSchema>;
+
+  if (motoreConversazione() === "ollama") {
+    const stato = await ollamaRaggiungibile();
+    if (!stato.ok) throw new Error(stato.motivo ?? "Ollama non raggiungibile.");
+    parsed = await generaStrutturato({ sistema: SYSTEM_PROMPT, richiesta, schema: BriefingSchema });
+  } else {
+    const client = new Anthropic();
+    const response = await client.messages.parse({
+      model: BRAIN_MODEL,
+      max_tokens: 16000,
+      thinking: { type: "adaptive" },
+      system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
+      output_config: { format: zodOutputFormat(BriefingSchema), effort: "high" },
+      messages: [{ role: "user", content: richiesta }],
+    });
+
+    if (response.stop_reason === "refusal") {
+      throw new Error("Il modello ha rifiutato di produrre il briefing.");
+    }
+    if (!response.parsed_output) {
+      throw new Error("Il modello non ha restituito un briefing leggibile.");
+    }
+    parsed = response.parsed_output;
   }
 
-  const parsed = response.parsed_output;
   const supabase = await createSupabaseServerClient();
 
   const { data, error } = await supabase
     .from("patient_briefings")
     .insert({
       patient_id: patientId,
-      model: BRAIN_MODEL,
+      model: modelloUsato,
       summary: parsed.summary,
       highlights: parsed.highlights,
       open_questions: parsed.open_questions,

@@ -8,6 +8,8 @@ import { BRAIN_MODEL, BrainNotConfiguredError, isBrainConfigured } from "@/lib/b
 import { cercaConoscenza, conoscenzaPerSlug, type VoceCorrente } from "@/lib/knowledge/queries";
 import { contenutiMigliori } from "@/lib/data/marketing";
 import { ricorrenzeVincenti } from "@/lib/marketing/engine";
+import { modelloAttivo, motoreConversazione } from "@/lib/brain/fornitore";
+import { generaStrutturato, modelloOllama, ollamaRaggiungibile } from "@/lib/brain/ollama";
 
 /**
  * Il Content Brain.
@@ -162,7 +164,8 @@ export async function generaContenuto(input: {
   brief: string;
   campaignId?: string | null;
 }): Promise<RisultatoContenuto> {
-  if (!isBrainConfigured()) throw new BrainNotConfiguredError();
+  if (!modelloAttivo()) throw new BrainNotConfiguredError();
+  if (motoreConversazione() === "anthropic" && !isBrainConfigured()) throw new BrainNotConfiguredError();
 
   const profile = await requireProfile();
   if (!["admin", "owner", "marketing"].includes(profile.role)) {
@@ -184,17 +187,7 @@ export async function generaContenuto(input: {
 
   const ricorrenze = ricorrenzeVincenti(migliori);
 
-  const client = new Anthropic();
-  const response = await client.messages.parse({
-    model: BRAIN_MODEL,
-    max_tokens: 16000,
-    thinking: { type: "adaptive" },
-    system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
-    output_config: { format: zodOutputFormat(ContenutoGenerato), effort: "high" },
-    messages: [
-      {
-        role: "user",
-        content: `Data di oggi: ${new Date().toISOString().slice(0, 10)}.
+  const richiesta = `Data di oggi: ${new Date().toISOString().slice(0, 10)}.
 
 ## Cosa serve
 ${FORMATI[input.formato]}
@@ -225,19 +218,35 @@ ${
         .map(([a, n]) => `${a} (${n})`)
         .join(", ")}.`
     : ""
-}`,
-      },
-    ],
-  });
+}`;
+  const modelloUsato = motoreConversazione() === "ollama" ? `ollama:${modelloOllama()}` : BRAIN_MODEL;
 
-  if (response.stop_reason === "refusal") {
-    throw new Error("Il modello ha rifiutato di generare questo contenuto.");
-  }
-  if (!response.parsed_output) {
-    throw new Error("Il modello non ha restituito un contenuto leggibile.");
+  let contenuto: z.infer<typeof ContenutoGenerato>;
+
+  if (motoreConversazione() === "ollama") {
+    const stato = await ollamaRaggiungibile();
+    if (!stato.ok) throw new Error(stato.motivo ?? "Ollama non raggiungibile.");
+    contenuto = await generaStrutturato({ sistema: SYSTEM_PROMPT, richiesta, schema: ContenutoGenerato });
+  } else {
+    const client = new Anthropic();
+    const response = await client.messages.parse({
+      model: BRAIN_MODEL,
+      max_tokens: 16000,
+      thinking: { type: "adaptive" },
+      system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
+      output_config: { format: zodOutputFormat(ContenutoGenerato), effort: "high" },
+      messages: [{ role: "user", content: richiesta }],
+    });
+
+    if (response.stop_reason === "refusal") {
+      throw new Error("Il modello ha rifiutato di generare questo contenuto.");
+    }
+    if (!response.parsed_output) {
+      throw new Error("Il modello non ha restituito un contenuto leggibile.");
+    }
+    contenuto = response.parsed_output;
   }
 
-  const contenuto = response.parsed_output;
 
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
@@ -254,7 +263,7 @@ ${
         version: v.version,
         valid_from: v.validFrom,
       })),
-      model: BRAIN_MODEL,
+      model: modelloUsato,
       created_by: profile.id,
       campaign_id: input.campaignId ?? null,
     })

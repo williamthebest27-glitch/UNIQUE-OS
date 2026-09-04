@@ -63,7 +63,9 @@ export default async function BrainPage({
           </Stato>
           {motore === "proprio"
             ? "Risponde leggendo il database. Nessun dato esce dall’infrastruttura, nessun costo per domanda."
-            : "Conversazione libera con un modello linguistico. I numeri restano quelli degli strumenti."}
+            : motore === "ollama"
+              ? "Conversazione libera con un modello aperto sul server di Unique. Nessun dato esce, e i numeri restano quelli degli strumenti."
+              : "Conversazione libera con un modello linguistico esterno. I numeri restano quelli degli strumenti."}
           {!capacita.redazione ? (
             <span className="text-bone-50/25">
               · lettura documenti e Content Brain richiedono un modello

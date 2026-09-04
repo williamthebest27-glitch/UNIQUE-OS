@@ -9,7 +9,8 @@ import {
   isBrainConfigured,
 } from "@/lib/brain/extraction";
 import { validateExtraction, type ValidatedProposal } from "@/lib/brain/validation";
-import { motoreConversazione } from "@/lib/brain/fornitore";
+import { modelloAttivo, motoreConversazione } from "@/lib/brain/fornitore";
+import { modelloOllama } from "@/lib/brain/ollama";
 import { estraiSenzaModello } from "@/lib/clinical/estrazione-propria";
 import { createSupabaseServiceClient, isServiceRoleConfigured } from "@/lib/supabase/service";
 
@@ -93,7 +94,12 @@ export async function analyzeDocument(documentId: string): Promise<AnalysisOutco
       document_id: document.id,
       patient_id: document.patient_id,
       status: "pending",
-      model: motoreConversazione() === "anthropic" ? BRAIN_MODEL : "lettore-unique",
+      model:
+        motoreConversazione() === "anthropic"
+          ? BRAIN_MODEL
+          : motoreConversazione() === "ollama"
+            ? `ollama:${modelloOllama()}`
+            : "lettore-unique",
       requested_by: profile.id,
     })
     .select("id")
@@ -128,7 +134,7 @@ export async function analyzeDocument(documentId: string): Promise<AnalysisOutco
      * codice deterministico di prima.
      */
     const extraction =
-      motoreConversazione() === "anthropic" && isBrainConfigured()
+      modelloAttivo()
         ? await extractFromDocument({
             data: Buffer.from(contenuto).toString("base64"),
             mimeType: document.mime_type ?? "application/pdf",
