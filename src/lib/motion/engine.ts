@@ -22,6 +22,16 @@ type Tick = (time: number, velocity: number) => void;
 interface Engine {
   onTick(fn: Tick): () => void;
   glide(y: number): void;
+  /**
+   * Accende o spegne lo scroll con peso, lasciando vivo il resto.
+   *
+   * Serve alla landing, dove lo scorrimento è governato da Lenis perché
+   * ScrollTrigger possa agganciarsi a un solo motore: due sistemi che
+   * scrivono `scrollTo` nello stesso fotogramma litigano, e il pin di
+   * una sezione trema. Il ciclo rAF e la velocità pubblicata restano —
+   * la Signature ci è appesa — si stacca solo la rotellina.
+   */
+  setWheel(enabled: boolean): void;
   destroy(): void;
   reduced: boolean;
 }
@@ -39,6 +49,10 @@ export function startEngine(): Engine {
   const coarse = matchMedia("(pointer:coarse)").matches;
   const ticks = new Set<Tick>();
 
+  // Dichiarata prima di tutto il resto: la legge anche `setWheel`, che
+  // in ordine di file viene prima del ciclo.
+  let alive = true;
+
   let target = scrollY;
   let now = scrollY;
   let lastSet = scrollY;
@@ -46,7 +60,6 @@ export function startEngine(): Engine {
   let velocity = 0;
   let prevY = scrollY;
   let raf = 0;
-  let alive = true;
 
   const maxY = () => document.documentElement.scrollHeight - innerHeight;
 
@@ -89,12 +102,34 @@ export function startEngine(): Engine {
     scrolling = true;
   };
 
-  if (!reduced && !coarse) {
-    addEventListener("wheel", onWheel, { passive: false });
-  }
+  // Su touch l'inerzia nativa è già migliore di qualunque cosa si possa
+  // scrivere, e con reduced motion lo scorrimento non va addolcito affatto.
+  const rotellinaAmmessa = !reduced && !coarse;
+  let rotellina = false;
+
+  const setWheel = (enabled: boolean) => {
+    // Dopo `destroy()` il ciclo non gira più: riattaccare qui la
+    // rotellina lascerebbe in pagina un gestore che chiama
+    // `preventDefault` e non muove niente — cioè uno scroll bloccato. Chi
+    // ha spento la rotellina entrando (la landing) la riaccende uscendo,
+    // e potrebbe farlo dopo che il motore è già stato smontato.
+    const voluto = enabled && rotellinaAmmessa && alive;
+    if (voluto === rotellina) return;
+    rotellina = voluto;
+    if (voluto) {
+      addEventListener("wheel", onWheel, { passive: false });
+    } else {
+      removeEventListener("wheel", onWheel);
+      // Si resta dove si è: interrompere una corsa a metà farebbe un salto.
+      scrolling = false;
+    }
+  };
+
+  setWheel(true);
 
   instance = {
     reduced,
+    setWheel,
     onTick(fn) {
       ticks.add(fn);
       return () => ticks.delete(fn);
@@ -109,9 +144,11 @@ export function startEngine(): Engine {
       scrolling = true;
     },
     destroy() {
+      // Prima si stacca, poi si muore: `setWheel` guarda `alive`, e
+      // invertendo l'ordine il gestore resterebbe attaccato per sempre.
+      setWheel(false);
       alive = false;
       cancelAnimationFrame(raf);
-      removeEventListener("wheel", onWheel);
       ticks.clear();
       instance = null;
     },

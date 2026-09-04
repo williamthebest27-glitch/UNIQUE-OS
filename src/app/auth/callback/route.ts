@@ -18,9 +18,12 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get("type") as EmailOtpType | null;
 
   // Solo percorsi interni: un "next" assoluto sarebbe un redirect aperto.
-  const richiesto = searchParams.get("next") ?? "/";
+  // Il ripiego è `/app` — lo smistamento per ruolo — e non `/`, che dal
+  // giorno della landing è la presentazione: chi ha appena aperto il link
+  // ricevuto via email ha chiesto di entrare, non di leggere la copertina.
+  const richiesto = searchParams.get("next") ?? "/app";
   const next =
-    richiesto.startsWith("/") && !richiesto.startsWith("//") ? richiesto : "/";
+    richiesto.startsWith("/") && !richiesto.startsWith("//") ? richiesto : "/app";
 
   const supabase = await createSupabaseServerClient();
 

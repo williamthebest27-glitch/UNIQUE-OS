@@ -8,10 +8,16 @@ import { PASSWORD_MINIMA, type StatoAccesso, type StatoPassword } from "@/lib/au
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-/** Dove riportare l'utente dopo l'accesso. Solo percorsi interni. */
+/**
+ * Dove riportare l'utente dopo l'accesso. Solo percorsi interni.
+ *
+ * Il ripiego è `/app`, non `/`: la radice è la presentazione di Unique
+ * OS, e chi ha appena inserito la password ha chiesto di entrare, non di
+ * leggere la copertina. `/app` smista al livello che compete al ruolo.
+ */
 function destinazione(formData: FormData): string {
   const richiesto = String(formData.get("next") ?? "");
-  return richiesto.startsWith("/") && !richiesto.startsWith("//") ? richiesto : "/";
+  return richiesto.startsWith("/") && !richiesto.startsWith("//") ? richiesto : "/app";
 }
 
 /**
@@ -169,7 +175,7 @@ export async function impostaPassword(
     return { esito: "errore", messaggio, codice };
   }
 
-  redirect("/");
+  redirect("/app");
 }
 
 /**

@@ -15,12 +15,24 @@ import {
  * nella Row Level Security, dove non può essere aggirato.
  */
 
-/** Percorsi raggiungibili senza sessione. */
+/**
+ * Percorsi raggiungibili senza sessione.
+ *
+ * La radice è la presentazione di Unique OS: è l'unico indirizzo che una
+ * persona digita, condivide o riceve in un link, e deve aprirsi anche
+ * per chi un account non ce l'ha. Sta fra gli esatti e non fra i
+ * prefissi per una ragione aritmetica, non stilistica: `"/"` come
+ * prefisso renderebbe pubblica ogni pagina dell'applicazione, perché
+ * ogni percorso comincia per barra.
+ */
+const PUBLIC_EXACT = ["/"];
+
 // /api/integrazioni parla con il gestionale, non con una persona: si
 // autentica con un token proprio, non con un cookie di sessione.
 const PUBLIC_PREFIXES = ["/accedi", "/auth", "/api/integrazioni"];
 
 function isPublicPath(pathname: string): boolean {
+  if (PUBLIC_EXACT.includes(pathname)) return true;
   return PUBLIC_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
@@ -77,9 +89,12 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Chi è già dentro e apre il modulo d'accesso va al proprio livello,
+  // non alla presentazione: `/` adesso è la landing, e rimandarcelo
+  // sarebbe rispondere «guarda la brochure» a chi ha chiesto di entrare.
   if (autenticato && pathname === "/accedi") {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/app";
     url.search = "";
     return NextResponse.redirect(url);
   }
