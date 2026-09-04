@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { contenutiGenerati, FORMATI } from "@/lib/brain/content";
 import { generaContenutoAction } from "@/lib/brain/content-actions";
-import { isBrainConfigured } from "@/lib/brain/extraction";
+import { capacitaAttive } from "@/lib/brain/fornitore";
+import { ControlloContenuto } from "@/components/control/controllo-contenuto";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { formatShortDate } from "@/lib/format";
 import {
@@ -38,6 +39,7 @@ export default async function ContenutiPage() {
   }
 
   const bozze = await contenutiGenerati();
+  const capacita = capacitaAttive();
 
   return (
     <div className="space-y-8">
@@ -53,9 +55,9 @@ export default async function ContenutiPage() {
       <Panel
         title="Nuovo contenuto"
         hint={
-          isBrainConfigured()
+          capacita.redazione
             ? "Una bozza da rileggere, non un post da pubblicare."
-            : "ANTHROPIC_API_KEY non è impostata: la generazione è spenta."
+            : "Senza modello linguistico esce un'impalcatura: struttura, fatti veri dalla knowledge base, e cosa resta da scrivere."
         }
       >
         <form action={generaContenutoAction} className="grid gap-4 px-5 pb-5 pt-2">
@@ -81,8 +83,8 @@ export default async function ContenutiPage() {
           </Campo>
 
           <div>
-            <Bottone type="submit" disabled={!isBrainConfigured()}>
-              Genera la bozza
+            <Bottone type="submit">
+              {capacita.redazione ? "Genera la bozza" : "Costruisci l'impalcatura"}
             </Bottone>
           </div>
         </form>
@@ -108,9 +110,16 @@ export default async function ContenutiPage() {
                     <p className="text-[11px] font-medium uppercase tracking-[0.09em] text-bone-50/40">
                       {blocco.ruolo}
                     </p>
-                    <p className="mt-1 whitespace-pre-wrap text-[15px] leading-relaxed text-bone-50/85">
-                      {blocco.testo}
-                    </p>
+                    {blocco.testo ? (
+                      <p className="mt-1 whitespace-pre-wrap text-[15px] leading-relaxed text-bone-50/85">
+                        {blocco.testo}
+                      </p>
+                    ) : null}
+                    {blocco.daScrivere ? (
+                      <p className="mt-1 text-[15px] leading-relaxed text-gold-300/80">
+                        {blocco.daScrivere}
+                      </p>
+                    ) : null}
                     {blocco.nota ? (
                       <p className="mt-1 text-xs text-bone-50/35">{blocco.nota}</p>
                     ) : null}
@@ -120,6 +129,36 @@ export default async function ContenutiPage() {
 
               {bozza.contenuto.call_to_action ? (
                 <p className="text-[15px] text-brand-300">{bozza.contenuto.call_to_action}</p>
+              ) : null}
+
+              {bozza.contenuto.vincoli_rispettati?.length ? (
+                <div>
+                  <p className="text-[11px] font-medium uppercase tracking-[0.09em] text-bone-50/40">
+                    Vincoli
+                  </p>
+                  <ul className="mt-1 space-y-1">
+                    {bozza.contenuto.vincoli_rispettati.map((v, i) => (
+                      <li key={i} className="text-sm text-bone-50/55">
+                        {v}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {bozza.contenuto.da_far_rileggere?.length ? (
+                <div>
+                  <p className="text-[11px] font-medium uppercase tracking-[0.09em] text-gold-300">
+                    Da sapere prima di scrivere
+                  </p>
+                  <ul className="mt-1 space-y-1">
+                    {bozza.contenuto.da_far_rileggere.map((a, i) => (
+                      <li key={i} className="text-sm text-gold-300/80">
+                        {a}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ) : null}
 
               {bozza.contenuto.hook_alternativi?.length ? (
@@ -137,20 +176,6 @@ export default async function ContenutiPage() {
                 </div>
               ) : null}
 
-              {bozza.contenuto.da_far_rileggere?.length ? (
-                <div>
-                  <p className="text-[11px] font-medium uppercase tracking-[0.09em] text-gold-300">
-                    Da far rileggere a un medico
-                  </p>
-                  <ul className="mt-1 space-y-1">
-                    {bozza.contenuto.da_far_rileggere.map((a, i) => (
-                      <li key={i} className="text-sm text-gold-300/80">
-                        {a}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
 
               <div className="flex flex-wrap gap-2">
                 {bozza.contenuto.fonti?.map((f, i) => (
@@ -163,6 +188,12 @@ export default async function ContenutiPage() {
           </Panel>
         ))
       )}
+      <Panel
+        title="Controllo di conformità"
+        hint="Su un testo qualunque: scritto a mano, da un modello, o preso da una campagna già online."
+      >
+        <ControlloContenuto formati={Object.entries(FORMATI)} />
+      </Panel>
     </div>
   );
 }

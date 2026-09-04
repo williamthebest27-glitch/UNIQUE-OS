@@ -2,8 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { generaContenuto, type FormatoContenuto } from "@/lib/brain/content";
+import { costruisciContenutoProprio, controllaTesto } from "@/lib/content/content-proprio";
+import { capacitaAttive } from "@/lib/brain/fornitore";
 import { requireProfile } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { Segnalazione } from "@/lib/content/regole-brand";
 
 /**
  * Le azioni del Content Brain.
@@ -17,8 +20,45 @@ export async function generaContenutoAction(formData: FormData): Promise<void> {
   const brief = String(formData.get("brief") ?? "");
   const campaignId = String(formData.get("campaignId") ?? "") || null;
 
-  await generaContenuto({ formato, brief, campaignId });
+  /*
+   * Con il modello si ottiene un testo; senza, un'impalcatura.
+   *
+   * Sono due cose diverse e l'interfaccia lo dice: qui non si finge che
+   * una traccia con i fatti giusti sia un post pronto. La differenza fra
+   * le due è esattamente il lavoro che resta da fare a una persona.
+   */
+  if (capacitaAttive().redazione) {
+    await generaContenuto({ formato, brief, campaignId });
+  } else {
+    await costruisciContenutoProprio({ formato, brief, campaignId });
+  }
+
   revalidatePath("/control/contenuti");
+}
+
+/**
+ * Il controllo di conformità su un testo scritto altrove.
+ *
+ * È l'azione più utile del Content Brain, e l'unica in cui il codice fa
+ * meglio di un modello: verifica sempre, allo stesso modo, e non si
+ * stanca alla ventesima variante di un carosello.
+ */
+export async function controllaContenutoAction(
+  _prev: unknown,
+  formData: FormData,
+): Promise<{ esito: "vuoto" } | { esito: "fatto"; segnalazioni: Segnalazione[]; pubblicabile: boolean; caratteri: number }> {
+  const testo = String(formData.get("testo") ?? "").trim();
+  if (testo.length < 10) return { esito: "vuoto" };
+
+  const formato = String(formData.get("formato") ?? "") || undefined;
+  const risultato = await controllaTesto(testo, formato as FormatoContenuto | undefined);
+
+  return {
+    esito: "fatto",
+    segnalazioni: risultato.segnalazioni,
+    pubblicabile: risultato.pubblicabile,
+    caratteri: risultato.caratteri,
+  };
 }
 
 /** "Va bene così": il contenuto può essere prodotto e pubblicato. */

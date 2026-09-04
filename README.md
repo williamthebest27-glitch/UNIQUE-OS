@@ -102,9 +102,17 @@ distinti.
 - **Marketing intelligence** — campagne, spesa, creatività e contenuti collegati
   a lead, pazienti, membership e incassi. CPL, CAC, ROAS e qualità dei pazienti
   portati, con le medie pesate e i rapporti non calcolabili dichiarati tali.
-- **Content Brain** — caroselli, script, landing e campagne scritti sul brand
-  book e sul listino in vigore. Un prezzo che non trova nelle fonti non lo
-  inventa, e ogni bozza esce con le fonti e con ciò che un medico deve rileggere.
+- **Content Brain** — con un modello scrive caroselli, script e landing sul brand
+  book e sul listino in vigore; senza, costruisce l'impalcatura: struttura del
+  formato, fatti **citati** dalla knowledge base, angoli che hanno funzionato, e
+  riga per riga cosa resta da scrivere. Una traccia con dentro le cose vere, non
+  un post finito — chiamarla copy sarebbe una bugia.
+- **Controllo di conformità** — il lavoro in cui il codice batte un modello:
+  verifica ogni volta, allo stesso modo, senza stancarsi alla ventesima variante.
+  Promesse di guarigione, prevenzione garantita, confronti con altri centri,
+  urgenza inventata e **prezzi fuori listino** sono blocchi; superlativi,
+  percentuali senza fonte e due call to action sono avvisi. Vale su qualunque
+  testo, anche scritto altrove.
 - **Task e notifiche** — un elenco solo per tutta Unique, con incaricato,
   priorità, scadenza e origine; tre livelli di notifica in cui l’informativo
   finisce nel digest del mattino e non suona mai.

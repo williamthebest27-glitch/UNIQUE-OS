@@ -81,12 +81,36 @@ const ContenutoGenerato = z.object({
     ),
 });
 
+/**
+ * Ciò che si rilegge da `generated_contents`.
+ *
+ * Superset delle due produzioni: il modello riempie `testo`,
+ * l'impalcatura riempie anche `daScrivere` e le segnalazioni del
+ * controllo di conformità. Un tipo solo, così la pagina non deve
+ * chiedersi chi ha scritto.
+ */
+export interface ContenutoSalvato {
+  titolo?: string;
+  blocchi?: {
+    ruolo: string;
+    testo?: string | null;
+    daScrivere?: string | null;
+    nota?: string | null;
+  }[];
+  call_to_action?: string;
+  hook_alternativi?: string[];
+  vincoli_rispettati?: string[];
+  fonti?: { slug: string; usata_per: string }[];
+  da_far_rileggere?: string[];
+  segnalazioni?: { gravita: string; regola: string; estratto: string; perche: string }[];
+}
+
 export interface RisultatoContenuto {
   id: string;
   titolo: string;
   formato: FormatoContenuto;
   brief: string;
-  contenuto: z.infer<typeof ContenutoGenerato>;
+  contenuto: ContenutoSalvato;
   createdAt: string;
 }
 
@@ -266,7 +290,7 @@ export async function contenutiGenerati(limite = 20): Promise<RisultatoContenuto
     kind: string;
     brief: string;
     title: string | null;
-    output: z.infer<typeof ContenutoGenerato>;
+    output: ContenutoSalvato;
     created_at: string;
   }[]).map((row) => ({
     id: row.id,

@@ -78,6 +78,55 @@ prese su un numero sbagliato.
 
 ## Content Brain
 
+**Senza modello linguistico fa due cose, e la seconda vale più della prima.**
+
+### Costruisce l'impalcatura
+
+Struttura del formato, fatti **citati** dalla knowledge base in vigore, angoli e
+ganci che hanno funzionato davvero, vincoli di brand applicati, e — riga per
+riga — cosa resta da scrivere.
+
+I fatti si citano, non si riassumono: una parafrasi senza modello rischia di
+cambiare il significato, e su un contenuto sanitario il significato è tutto.
+
+Il risultato è una traccia con dentro le cose vere, **non un post finito**.
+Chiamarlo copy sarebbe una bugia, e in un sistema che serve a decidere le bugie
+costano più del lavoro che risparmiano. Le parole belle le trova un modello, e
+non c'è motivo di fingere il contrario.
+
+Quando la knowledge base non basta, l'impalcatura lo dice invece di riempire il
+vuoto: *"Non trovo una voce di servizio su questo argomento. Scrivila lì prima:
+un contenuto che dice cose non ancora scritte è un contenuto che nessuno può
+verificare."*
+
+### Controlla la conformità
+
+**Qui il codice batte il modello**, e conviene dirlo chiaramente: un modello a
+cui si chiede di non promettere guarigioni non le promette *quasi* sempre. Un
+controllo a regole verifica tutte le volte, sullo stesso testo dà sempre la
+stessa risposta, e non si stanca alla ventesima variante di un carosello.
+
+In sanità la differenza non è accademica: un claim di guarigione in un contenuto
+di una clinica è pubblicità sanitaria ingannevole, e la responsabilità è di chi
+pubblica.
+
+| Blocco — non si pubblica | Attenzione — si guarda |
+| --- | --- |
+| promessa di guarigione | superlativo assoluto |
+| prevenzione garantita | risultato promesso entro una data |
+| diagnosi promessa in un contenuto | percentuale senza fonte |
+| confronto con altri centri | testimonianza clinica |
+| urgenza artificiale | emoji come punteggiatura |
+| **prezzo fuori listino** | più di una call to action |
+
+Il controllo sui prezzi legge il listino in vigore dalla knowledge base: una cifra
+che non è lì dentro è una promessa commerciale che qualcuno verrà a riscuotere.
+
+Si usa su qualunque testo — scritto a mano, uscito da un modello, o preso da una
+campagna già online. Sul secondo serve di più.
+
+## Content Brain con il modello
+
 Non è il brand book incollato in un prompt. Tre vincoli, tutti verificabili
 guardando l'output:
 
