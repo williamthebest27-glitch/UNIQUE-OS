@@ -24,6 +24,7 @@ import { redirect } from "next/navigation";
 import { PILLAR_KEYS } from "@/lib/domain/types";
 import { getMetric } from "@/lib/score/metrics";
 import { normalize } from "@/lib/score/engine";
+import { cache } from "react";
 import { getCurrentProfile, homePathForRole, requireProfile } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -340,9 +341,9 @@ function toNotification(row: NotificationRow): AppNotification {
  * staff, oppure un account non ancora associato a una scheda clinica.
  * In modalità dimostrativa restituisce i dati di esempio.
  */
-export async function getPatientDashboard(
+export const getPatientDashboard = cache(async (
   targetPatientId?: string,
-): Promise<PatientDashboardData | null> {
+): Promise<PatientDashboardData | null> => {
   if (!isSupabaseConfigured()) {
     return mockPatientDashboard;
   }
@@ -548,7 +549,7 @@ export async function getPatientDashboard(
       : [],
     highlights: buildHighlights((measurements.data ?? []) as MeasurementRow[]),
   };
-}
+});
 
 /**
  * Variante usata dalle pagine della Patient App.
