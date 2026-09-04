@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { Marchio } from "@/components/brand/marchio";
+import { aSiparioAperto } from "@/components/brand/sipario";
 import { CampoVivo } from "@/components/landing/campo";
 import { Comando, Freccia, Titolo } from "@/components/landing/primitive";
 import { useRegia } from "@/components/landing/regia";
@@ -27,9 +28,15 @@ import { cx } from "@/components/ui/primitives";
  * sistema — ed è il motivo per cui la sezione è fissata: senza il pin,
  * lo scorrimento porterebbe *via* dalla scena invece che *dentro*.
  *
- * Il sipario d'avvio dell'applicazione qui è spento di proposito (lo
- * toglie il CSS, in `globals.css`): due accensioni di fila sono
- * un'attesa, non una presentazione.
+ * **L'accensione comincia a sipario alzato.** Sulla landing il sipario
+ * d'avvio c'è — è il primo indirizzo che si scrive, e per quasi tutti è
+ * l'unica pagina dove il marchio si presenta — e dura fra i due e i tre
+ * secondi. L'accensione ne dura poco più di due: partendo al montaggio
+ * passerebbe intera lì sotto, e il sipario si alzerebbe su una scena già
+ * finita e ferma. Sul telefono, dove dietro non c'è la Signature a
+ * tenere viva la figura, è tutta l'impressione che si porta a casa: un
+ * sito lento. Perciò qui si aspetta l'annuncio del sipario — vedi
+ * `brand/sipario.ts` — e le due cose si leggono come un gesto solo.
  */
 
 /* I numeri della riga di stato sono quelli veri del prodotto: sette
@@ -186,6 +193,18 @@ export function HeroSystem({
       // Il vuoto si chiude sopra la scena: è la porta fra l'accensione e
       // la prima sezione, e le dà un bordo netto invece di una sfumatura.
       .fromTo(q("[data-buio]"), { opacity: 0 }, { opacity: 1 }, 0.55);
+
+    /* ── Il via ─────────────────────────────────────────────────── */
+    if (!ridotta) return;
+
+    /* `pause(0)` e non `paused: true` alla costruzione: il fotogramma
+       iniziale va disegnato *adesso*, sincrono. Affidarlo
+       all'`immediateRender` delle `from` significa dipendere da quando
+       arriva il primo tick — e se il primo tick arriva tardi, alzando il
+       sipario si vedrebbe la scena già montata sbiancare di colpo e
+       riaccendersi. Sotto al sipario dev'essere già al buio. */
+    avvio.pause(0);
+    return aSiparioAperto(() => avvio.play());
   });
 
   return (
@@ -262,6 +281,7 @@ export function HeroSystem({
             tag="h1"
             testo={"The intelligence\nbehind your longevity."}
             ritardo={1.35}
+            attendiSipario
             className="text-[clamp(2.55rem,8.6vw,7.2rem)]"
           />
         </div>

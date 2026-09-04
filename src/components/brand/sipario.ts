@@ -19,6 +19,76 @@
 export const CALA = "unique:sipario-cala";
 /** E si rialza subito, quando si scopre che non si entra affatto. */
 export const ALZA = "unique:sipario-alza";
+/**
+ * Il sipario ha cominciato ad alzarsi: da qui in poi la scena è a vista.
+ *
+ * Non è un comando ma un annuncio, e serve a chi deve *cominciare* lì.
+ * L'avviso parte quando la salita comincia, non quando finisce: i sette
+ * decimi di secondo del taglio scoprono la pagina dal basso, e una scena
+ * che parte in quel momento si legge insieme al sipario invece che dopo.
+ */
+export const APERTO = "unique:sipario-aperto";
+
+/** Oltre questo non si aspetta più: nessuna scena resta dietro un sipario rotto. */
+const SCORTA = 5000;
+
+/**
+ * Esegue `fn` quando la scena è scoperta.
+ *
+ * Serve all'accensione dell'hero. Il sipario e l'hero raccontano la
+ * stessa cosa — un sistema che si accende — e vanno letti come un gesto
+ * solo: se l'accensione parte al montaggio, i suoi due secondi passano
+ * interi dietro al marchio che si riempie, e chi arriva trova una scena
+ * già finita e ferma. Che è esattamente l'impressione di un sito lento.
+ *
+ * Se il sipario non c'è — `prefers-reduced-motion`, oppure un ritorno
+ * alla landing a guscio già caricato — non c'è niente da aspettare e
+ * `fn` parte subito.
+ *
+ * **E parte comunque.** Un'animazione d'ingresso lascia il contenuto nel
+ * suo stato iniziale finché non gira: se l'annuncio non arrivasse mai,
+ * l'hero resterebbe invisibile. Perciò una scorta a tempo, e se allo
+ * scadere la pagina è ancora nascosta — scheda in secondo piano, dove il
+ * sipario stesso aspetta — si aspetta il ritorno di chi guarda invece di
+ * bruciare la scena a sala vuota.
+ *
+ * Restituisce la funzione per smettere di aspettare.
+ */
+export function aSiparioAperto(fn: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  if (!document.querySelector(".avvio")) {
+    fn();
+    return () => {};
+  }
+
+  let fatto = false;
+  let scorta = 0;
+
+  const parti = () => {
+    if (fatto) return;
+    fatto = true;
+    smetti();
+    fn();
+  };
+
+  // Allo scadere della scorta, se non c'è nessuno a guardare si rimanda:
+  // il sipario è fermo per lo stesso motivo, e ripartirà da capo.
+  const allaScadenza = () => {
+    if (!document.hidden) return parti();
+    document.addEventListener("visibilitychange", allaScadenza, { once: true });
+  };
+
+  function smetti() {
+    clearTimeout(scorta);
+    window.removeEventListener(APERTO, parti);
+    document.removeEventListener("visibilitychange", allaScadenza);
+  }
+
+  window.addEventListener(APERTO, parti, { once: true });
+  scorta = window.setTimeout(allaScadenza, SCORTA);
+
+  return smetti;
+}
 
 /**
  * Cala il sipario a pagina viva.

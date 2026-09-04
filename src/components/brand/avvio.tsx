@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { reducedMotion } from "@/lib/motion/engine";
-import { ALZA, CALA, calaSipario } from "./sipario";
+import { ALZA, APERTO, CALA, calaSipario } from "./sipario";
 
 /**
  * Il sipario d'avvio.
@@ -90,6 +90,7 @@ export function Avvio() {
     // Chi ha chiesto meno movimento non lo vede.
     if (reducedMotion()) {
       setVisibile(false);
+      window.dispatchEvent(new Event(APERTO));
       return;
     }
 
@@ -113,6 +114,10 @@ export function Avvio() {
       // dice che qualcosa è andato storto, anche quando non è vero.
       nodo.style.setProperty("--p", "1");
       setUscita(true);
+      // Il taglio scopre la pagina dal basso mentre sale: chi deve
+      // cominciare qui — l'accensione dell'hero — parte adesso, non fra
+      // settecento millisecondi, o le due cose si leggono come due attese.
+      window.dispatchEvent(new Event(APERTO));
       timer = window.setTimeout(() => setVisibile(false), USCITA);
     };
 
