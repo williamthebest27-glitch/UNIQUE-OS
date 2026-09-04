@@ -92,8 +92,22 @@ function Errore({ stato }: { stato: { messaggio?: string; codice?: string } }) {
   );
 }
 
-export function LoginForm({ next }: { next?: string }) {
-  const [modalita, setModalita] = useState<Modalita>("password");
+export function LoginForm({
+  next,
+  iniziale = "password",
+}: {
+  next?: string;
+  /**
+   * Con quale delle tre strade aprire il modulo.
+   *
+   * Arriva dalla landing: «Registrati» porta qui con la strada della
+   * *scelta* della password, perché alla Unique l'account lo crea la
+   * clinica e la prima cosa che una persona nuova deve fare non è
+   * iscriversi — è attivare quello che ha già.
+   */
+  iniziale?: Modalita;
+}) {
+  const [modalita, setModalita] = useState<Modalita>(iniziale);
 
   const [statoPassword, azionePassword, inCorsoPassword] = useActionState(
     accediConPassword,
@@ -236,10 +250,17 @@ export function LoginForm({ next }: { next?: string }) {
   return (
     <div className="space-y-5">
       <form action={azioneReset} className="space-y-4">
-        <p className="text-sm leading-relaxed text-ink-500">
-          Ti mandiamo un collegamento per sceglierla. Vale anche la prima volta,
-          se una password non l’hai mai avuta.
-        </p>
+        {/* Quando si arriva qui *dalla landing* la pagina l'ha già
+            spiegato sopra, con più parole e meglio: ripeterlo qui sotto
+            farebbe leggere due volte la stessa cosa prima di un campo
+            email. La riga resta per chi ci arriva da dentro il modulo,
+            dove il titolo dice ancora «Accedi al tuo percorso». */}
+        {iniziale !== "reimposta" ? (
+          <p className="text-sm leading-relaxed text-ink-500">
+            Ti mandiamo un collegamento per sceglierla. Vale anche la prima
+            volta, se una password non l’hai mai avuta.
+          </p>
+        ) : null}
 
         <div>
           <label htmlFor="email-reset" className={ETICHETTA}>

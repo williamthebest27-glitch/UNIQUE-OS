@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import { preload } from "react-dom";
+import { appUrl } from "@/lib/supabase/config";
 import { MotionProvider } from "@/components/motion/motion-provider";
 import { Avvio } from "@/components/brand/avvio";
 import "./globals.css";
@@ -29,12 +30,18 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  // L'origine su cui si risolvono i percorsi relativi dei metadati —
+  // l'immagine di anteprima e il canonico della presentazione. Senza,
+  // Next ricade su localhost e lo dice a ogni build.
+  metadataBase: new URL(appUrl()),
   title: {
     default: "Unique OS",
     template: "%s · Unique OS",
   },
   description: "Il cervello digitale di Unique Longevity Clinic.",
   // La piattaforma tratta dati sanitari: nessuna pagina va indicizzata.
+  // La sola eccezione è la presentazione su `/`, che se lo riprende da
+  // sé — ed è l'unica pagina che non sta dietro l'accesso.
   robots: { index: false, follow: false },
 };
 

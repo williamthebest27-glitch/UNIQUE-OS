@@ -462,3 +462,463 @@
     animation: score-draw 1.4s var(--ease-out-expo) forwards;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   UNIQUE OS — La landing
+   Il sistema visto da fuori.
+
+   **Bianca, come tutto il resto.** L'applicazione è bianca perché chi ci
+   lavora deve leggere per ore; la presentazione lo è per la ragione
+   opposta e complementare — su carta il rosso del marchio è tutto ciò che
+   serve, e lo spazio negativo fa il lavoro che sul nero facevano gli
+   aloni. Fra la copertina e il prodotto non c'è più uno stacco da
+   attraversare: è lo stesso foglio.
+
+   Un solo racconto cromatico, e regge tutta la pagina:
+
+        il dato è freddo   →   l'intelligenza è calda   →   l'esito è oro
+
+   Sul bianco quei tre stati prendono le tinte piene invece di quelle
+   luminose: il **petrolio** della U per il dato, il **rosso del marchio**
+   per l'intelligenza — che è poi ciò che docs/design.md prescrive da
+   sempre come unico accento — e l'**oro profondo** per l'esito. Il lume
+   rosa esisteva solo perché il fondo era nero: tolto quel fondo, torna
+   al rosso da cui veniva.
+
+   Nessun colore fuori dai token qui sotto. Cambiare tema vuol dire
+   riscrivere quel blocco e nient'altro: è per questo che perfino i veli
+   e i vetri hanno un nome.
+   ═══════════════════════════════════════════════════════════════════ */
+
+@layer components {
+  .os {
+    /* ── Fondali ─────────────────────────────────────────────────── */
+    --os-vuoto: var(--color-bone-50);
+    --os-fondo: var(--color-bone-100);
+    --os-alto: var(--color-bone-200);
+
+    /* ── Inchiostri sul bianco ───────────────────────────────────────
+       Sul nero la scala aveva quattro gradini perché il bianco al 22%
+       resta leggibile. Sul bianco quel gradino non esiste: sotto
+       `ink-500` un testo di undici pixel scende oltre il 4,5:1 e smette
+       di essere leggibile per chi ha una vista media, non solo per chi
+       ha un problema. Quindi **`tenue` e `appena` coincidono**, e la
+       gerarchia fra loro la fa la tipografia — corpo, spaziatura,
+       maiuscoletto — che è dove doveva stare fin dall'inizio.
+
+       `--os-segno` è l'unico tono davvero sotto la soglia, e porta solo
+       ciò che non è testo: i numeri d'ordine, che ripetono un'etichetta
+       già scritta accanto, e i filetti. */
+    --os-piena: var(--color-ink-900);   /* 18.6:1 — titoli, testo forte */
+    --os-media: var(--color-ink-700);   /* 11.6:1 — il corpo */
+    --os-tenue: var(--color-ink-500);   /*  5.6:1 — etichette e micro-testo */
+    --os-appena: var(--color-ink-500);  /*  5.6:1 — idem: vedi sopra */
+    --os-segno: var(--color-ink-400);   /*  3.6:1 — ornamento, mai parole */
+    --os-riga: rgb(20 19 19 / 0.10);
+    --os-riga-viva: rgb(20 19 19 / 0.20);
+
+    /* ── I tre stati della materia ───────────────────────────────── */
+    /* Il dato grezzo: freddo, misurato, senza opinione. Il petrolio
+       della U, che sul bianco si legge (4,9:1) dove la salvia chiara
+       sarebbe sparita. */
+    --os-dato: var(--color-unique-500);
+    --os-dato-cupo: var(--color-unique-700);
+    /* L'intelligenza: il rosso del marchio. Sul nero serviva il lume —
+       il rosso pieno lì si spegne — ma sul bianco l'accento è quello, e
+       docs/design.md non ne ammette un secondo. */
+    --os-mente: var(--color-brand-600);
+    --os-mente-chiara: var(--color-brand-500);
+    /* L'azione e l'esito: il colore del valore, usato con parsimonia.
+       L'oro della tavolozza si ferma a 4,2:1 sul bianco, appena sotto la
+       soglia: qui è lo stesso oro spinto verso l'inchiostro finché non
+       la supera. Derivato, non inventato — resta l'oro del marchio. */
+    --os-azione: color-mix(in srgb, var(--color-gold-600) 84%, var(--color-ink-900));
+    /* Il verde resta l'unico modo di dire "va meglio": il rosso è il
+       marchio, e da solo non può voler dire che qualcosa va male. */
+    --os-positivo: color-mix(in srgb, var(--color-signal-positive) 90%, var(--color-ink-900));
+
+    /* ── Superfici ───────────────────────────────────────────────────
+       Sul nero una superficie si alzava schiarendo. Sul bianco non può:
+       si alza scurendo appena, e il bordo fa il resto. */
+    --os-lastra-alto: rgb(20 19 19 / 0.026);
+    --os-lastra-basso: rgb(20 19 19 / 0.008);
+    --os-reticolo: rgb(20 19 19 / 0.032);
+
+    /* Il vetro della barra condensata: abbastanza opaco da staccare la
+       navigazione dal contenuto che le scorre sotto. */
+    --os-vetro: rgb(255 255 255 / 0.78);
+    --os-vetro-bordo: rgb(20 19 19 / 0.09);
+    --os-vetro-ombra: 0 18px 44px -28px rgb(20 19 19 / 0.30);
+
+    /* ── Veli e aloni ────────────────────────────────────────────────
+       Su fondo scuro la luce si aggiunge; sul bianco si toglie. Sono gli
+       stessi tre colori, portati a un'alfa in cui tingono la carta
+       invece di illuminarla. */
+    --os-alone-mente: rgb(207 42 66 / 0.13);
+    --os-alone-mente-forte: rgb(207 42 66 / 0.20);
+    --os-alone-dato: rgb(51 116 130 / 0.09);
+    --os-luce-nodo: rgb(207 42 66 / 0.50);
+    /* Il velo appena rosato sotto una riga selezionata, e la luce che la
+       linea di trasformazione proietta oltre il proprio bordo. */
+    --os-velo-mente: rgb(207 42 66 / 0.075);
+    --os-luce-linea: 0 0 22px 1px rgb(207 42 66 / 0.26);
+    --os-luce-dato: rgb(51 116 130 / 0.22);
+
+    --os-oro-velo: rgb(154 118 60 / 0.07);
+    --os-oro-velo-tenue: rgb(154 118 60 / 0.02);
+    --os-oro-bordo: rgb(154 118 60 / 0.28);
+
+    --os-positivo-velo: rgb(31 138 76 / 0.10);
+
+    /* Il binario vuoto di una barra che si riempie. */
+    --os-traccia-vuota: rgb(20 19 19 / 0.08);
+
+    /* ── Il pannello di prodotto ─────────────────────────────────────
+       È la Patient App, e la Patient App è bianca: sul nero il pannello
+       era "la stessa struttura vestita per la scena", qui è la cosa. */
+    --os-pannello-alto: var(--color-bone-50);
+    --os-pannello-basso: var(--color-bone-100);
+    --os-pannello-ombra: 0 44px 90px -56px rgb(20 19 19 / 0.42);
+
+    /* ── Il comando pieno ────────────────────────────────────────────
+       Nero su bianco, non rosso: il rosso è l'accento semantico
+       dell'intelligenza, e usarlo anche per il pulsante ne farebbe due
+       cose diverse nella stessa pagina. */
+    --os-btn-fondo: var(--color-ink-900);
+    --os-btn-testo: var(--color-bone-50);
+    --os-btn-alone: 0 18px 40px -18px rgb(20 19 19 / 0.45);
+
+    position: relative;
+    background: var(--os-vuoto);
+    color: var(--os-piena);
+    /* Un pin di ScrollTrigger monta un distanziatore largo quanto la
+       sezione: `clip` lo contiene senza creare un contesto di scroll —
+       `hidden` romperebbe `position: sticky` più in basso. */
+    overflow-x: clip;
+  }
+
+  /* Il sipario d'avvio è la porta dell'applicazione, non della landing:
+     qui la porta è l'accensione dell'hero, e due accensioni di fila sono
+     un'attesa. Lo toglie il CSS al primo fotogramma, prima che il suo
+     motore possa anche solo partire. */
+  body:has(.os) .avvio {
+    display: none;
+  }
+
+  /* ── Tipografia ─────────────────────────────────────────────────
+     Tre registri, e il contrasto fra loro è metà del disegno:
+     il titolo enorme, la micro-etichetta da terminale, il numero. */
+
+  .os-display {
+    font-family: var(--font-display);
+    font-variation-settings: "opsz" 144, "SOFT" 40, "WONK" 1;
+    font-weight: 300;
+    line-height: 0.9;
+    letter-spacing: -0.035em;
+    text-wrap: balance;
+  }
+
+  /* Le micro-etichette parlano la lingua della macchina: monospaziate,
+     spaziate, minuscole. Nessun carattere da scaricare — la pila di
+     sistema qui è giusta, non un ripiego. */
+  .os-mono {
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 10.5px;
+    line-height: 1.4;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (min-width: 768px) {
+    .os-mono {
+      font-size: 11px;
+    }
+  }
+
+  .os-occhiello {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--os-tenue);
+  }
+
+  .os-cifra {
+    font-family: var(--font-display);
+    font-variation-settings: "opsz" 144, "SOFT" 50, "WONK" 1;
+    font-weight: 300;
+    letter-spacing: -0.045em;
+    font-variant-numeric: tabular-nums;
+    line-height: 0.82;
+  }
+
+  /* Il corpo del testo, sul nero: mai bianco pieno, mai troppo largo. */
+  .os-corpo {
+    color: var(--os-media);
+    font-size: 16px;
+    line-height: 1.62;
+    text-wrap: pretty;
+  }
+
+  @media (min-width: 768px) {
+    .os-corpo {
+      font-size: 17px;
+      line-height: 1.6;
+    }
+  }
+
+  /* ── Misure ─────────────────────────────────────────────────────
+     Una sola gabbia per tutta la pagina. Il margine cresce con lo
+     schermo invece di restare fisso: su un 27 pollici un contenuto
+     incollato al bordo sembra una pagina non finita. */
+
+  .os-gabbia {
+    width: 100%;
+    max-width: 1440px;
+    margin-inline: auto;
+    padding-inline: clamp(20px, 5.5vw, 88px);
+  }
+
+  .os-sezione {
+    position: relative;
+    padding-block: clamp(96px, 15vh, 200px);
+  }
+
+  /* Il filo che separa due sezioni: non una riga piena da bordo a
+     bordo, ma una luce che si accende al centro e si spegne ai lati. */
+  .os-filo {
+    height: 1px;
+    border: 0;
+    margin: 0;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--os-riga-viva) 22%,
+      var(--os-riga-viva) 78%,
+      transparent
+    );
+  }
+
+  /* ── Superfici ──────────────────────────────────────────────────
+     Nessuna card. Il rilievo viene dal bordo e da un fondo appena più
+     chiaro del vuoto, non da un'ombra che sul nero non esiste. */
+
+  .os-lastra {
+    position: relative;
+    border-radius: 18px;
+    background: linear-gradient(
+      180deg,
+      var(--os-lastra-alto),
+      var(--os-lastra-basso)
+    );
+    box-shadow: inset 0 0 0 1px var(--os-riga);
+  }
+
+  /* ── Reticolo ───────────────────────────────────────────────────
+     Il fondo del sistema: una griglia tecnica, quasi invisibile, che
+     dà allo spazio una scala. Si vede solo perché senza si sentirebbe
+     la mancanza. */
+
+  .os-reticolo {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(to right, var(--os-reticolo) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--os-reticolo) 1px, transparent 1px);
+    background-size: 88px 88px;
+    /* Sfuma ai bordi: una griglia che finisce di netto è una texture,
+       una che si dissolve è spazio. */
+    mask-image: radial-gradient(120% 90% at 50% 40%, #000 30%, transparent 78%);
+  }
+
+  /* ── L'alone ────────────────────────────────────────────────────
+     La luce che il sistema proietta. Un solo strato per sezione, mai
+     due sovrapposti: il glassmorphism a strati fa sembrare tutto
+     molle. */
+
+  /* Sul nero l'alone era luce che si aggiunge; sul bianco è una tinta
+     che si posa, quindi va più sfocata e meno densa — altrimenti si
+     legge come una macchia invece che come un'atmosfera. */
+  .os-alone {
+    position: absolute;
+    pointer-events: none;
+    border-radius: 50%;
+    filter: blur(86px);
+    opacity: 0.9;
+  }
+
+  /* ── Comandi ────────────────────────────────────────────────────
+     Due soli pulsanti in tutta la pagina, ripetuti: entrare, e
+     chiedere l'accesso. */
+
+  .os-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    /* Il pollice ha bisogno di 44px, sempre, anche quando il disegno
+       ne chiederebbe meno. */
+    min-height: 46px;
+    padding: 0 1.5rem;
+    border-radius: 999px;
+    font-size: 14.5px;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    white-space: nowrap;
+    transition:
+      background-color 0.4s var(--ease-out-expo),
+      color 0.4s var(--ease-out-expo),
+      box-shadow 0.4s var(--ease-out-expo),
+      transform 0.5s var(--ease-out-expo);
+  }
+
+  .os-btn-pieno {
+    color: var(--os-btn-testo);
+    background: var(--os-btn-fondo);
+    box-shadow: 0 0 0 0 rgb(20 19 19 / 0);
+  }
+
+  /* Sul nero il pulsante si accendeva; sul bianco si stacca dal foglio.
+     È lo stesso gesto — "questo oggetto viene avanti" — detto con
+     l'ombra invece che con la luce, perché è l'unico dei due che sulla
+     carta esiste. */
+  .os-btn-pieno:hover {
+    box-shadow: var(--os-btn-alone);
+  }
+
+  .os-btn-vuoto {
+    color: var(--os-piena);
+    box-shadow: inset 0 0 0 1px var(--os-riga-viva);
+  }
+
+  .os-btn-vuoto:hover {
+    box-shadow: inset 0 0 0 1px rgb(20 19 19 / 0.42);
+    background: rgb(20 19 19 / 0.035);
+  }
+
+  /* Il magnetismo: lo scostamento lo scrive il puntatore, la molla è
+     qui. Su touch `--mx`/`--my` restano a zero e non succede nulla. */
+  .os-magnete {
+    transform: translate3d(calc(var(--mx, 0) * 1px), calc(var(--my, 0) * 1px), 0);
+  }
+
+  /* ── Il collegamento con la riga che si scrive ──────────────────── */
+
+  .os-voce {
+    position: relative;
+    color: var(--os-media);
+    transition: color 0.35s var(--ease-out-expo);
+  }
+
+  .os-voce::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -5px;
+    height: 1px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 0.55s var(--ease-out-expo);
+  }
+
+  .os-voce:hover,
+  .os-voce[data-qui] {
+    color: var(--os-piena);
+  }
+
+  .os-voce:hover::after,
+  .os-voce[data-qui]::after {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+
+  /* ── Il fuoco ────────────────────────────────────────────────────
+     Sul nero l'anello doveva essere bianco, perché il rosso del marchio
+     contro il vuoto spariva. Sul bianco torna a essere quello di tutta
+     l'applicazione: chi naviga da tastiera vede lo stesso segnale nella
+     presentazione e dentro il prodotto. Restano l'offset e il raggio
+     più larghi, tarati sugli oggetti grandi di questa pagina. */
+
+  .os :focus-visible {
+    outline: 2px solid var(--color-brand-500);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+
+  /* ── Il pallino che pulsa ───────────────────────────────────────
+     Dice una cosa sola, e la dice bene: il sistema è acceso. */
+
+  .os-vivo {
+    position: relative;
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--os-mente);
+  }
+
+  .os-vivo::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    background: var(--os-mente);
+    opacity: 0.35;
+    animation: os-battito 2.6s ease-in-out infinite;
+  }
+
+  @keyframes os-battito {
+    0%, 100% { transform: scale(0.6); opacity: 0.35; }
+    50%      { transform: scale(1.5); opacity: 0; }
+  }
+
+  /* ── Il tracciato che si disegna ────────────────────────────────
+     Lo stato di riposo è *disegnato*: senza JavaScript le linee del
+     sistema ci sono comunque. GSAP scrive lo stato iniziale solo
+     quando può anche animarlo. */
+
+  .os-traccia {
+    stroke-dasharray: var(--lung, 1000);
+    stroke-dashoffset: 0;
+  }
+
+  /* ── La barra di avanzamento della lettura ─────────────────────── */
+
+  .os-avanzamento {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1.5px;
+    z-index: 60;
+    transform-origin: 0 50%;
+    transform: scaleX(var(--avanzamento, 0));
+    background: linear-gradient(
+      90deg,
+      var(--os-dato-cupo),
+      var(--os-mente) 62%,
+      var(--os-azione)
+    );
+    pointer-events: none;
+  }
+
+  /* ── Rispetto del movimento ridotto ─────────────────────────────
+     Non è una versione degradata: è la stessa pagina, ferma. Ciò che
+     si muoveva è già arrivato. */
+
+  @media (prefers-reduced-motion: reduce) {
+    .os-vivo::after,
+    .os [data-anima] {
+      animation: none;
+    }
+
+    .os-avanzamento {
+      display: none;
+    }
+  }
+}
