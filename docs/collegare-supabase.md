@@ -46,10 +46,12 @@ Dal progetto, apri **SQL Editor** ed esegui i file di `supabase/migrations/`
     attribuzione
 14. `20260904130000_brain_approvals_tasks.sql` — conversazioni e memoria del
     Brain, approvazioni, task unificati, notifiche con gravità
+15. `20260904140000_gestionale.sql` — stanza sull'appuntamento, anagrafica e
+    incassi dalla reception, ricevute progressive, attivazione membership
 
 ### Oppure tutte insieme, in un incollaggio solo
 
-Quattordici file uno alla volta sono quattordici occasioni per saltarne uno.
+Quindici file uno alla volta sono quindici occasioni per saltarne uno.
 
 ```bash
 npm run db:pacchetto
@@ -71,7 +73,7 @@ npm run db:pacchetto -- --da 10
 ```
 
 Per sapere da quale numero ripartire, esegui `supabase/stato-migrazioni.sql` nella
-SQL Editor: è di sola lettura, elenca le quattordici migrazioni una per una e
+SQL Editor: è di sola lettura, elenca le quindici migrazioni una per una e
 dice qual è la prima che manca. Supabase non tiene un registro delle migrazioni
 incollate a mano — lo tiene solo quando si usa la CLI — quindi l'unico modo di
 saperlo è guardare quali oggetti esistono.

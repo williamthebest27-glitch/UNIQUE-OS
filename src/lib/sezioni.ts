@@ -87,7 +87,23 @@ export const SEZIONI_CONTROL: Record<string, Sezione> = {
   },
   "/control/agenda": {
     title: "Agenda",
-    subtitle: "I prossimi sette giorni, tutti i professionisti.",
+    subtitle: "I prossimi sette giorni, tutti i professionisti. Da qui si fissa, si conferma, si sposta e si disdice.",
+  },
+  "/control/pazienti": {
+    title: "Pazienti",
+    subtitle: "L'anagrafica della clinica. Recapiti, membership e crediti; la cartella clinica resta ai professionisti.",
+  },
+  "/control/incassi": {
+    title: "Incassi",
+    subtitle: "Quello che entra al banco: contanti, POS, bonifici. Ogni incasso ha la sua ricevuta.",
+  },
+  "/control/servizi": {
+    title: "Listino e stanze",
+    subtitle: "I servizi che si prenotano, con durata, crediti e prezzo. E le stanze in cui si svolgono.",
+  },
+  "/control/professionisti": {
+    title: "Professionisti",
+    subtitle: "La squadra, gli orari settimanali e le disponibilità pubblicate.",
   },
   "/control/economia": { title: "Unit economics" },
   "/control/capacita": { title: "Capacità" },

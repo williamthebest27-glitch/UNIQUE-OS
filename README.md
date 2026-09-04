@@ -66,6 +66,12 @@ distinti.
   automatici all’amministrazione. Il numero della carta non entra mai nel database.
 - **Prenotazioni** — il paziente vede, prenota e disdice; il gestionale esistente
   sincronizza agende e disponibilità da un endpoint dedicato.
+- **Gestionale** — anagrafica, agenda operativa, disponibilità, listino, stanze,
+  professionisti, incassi con ricevuta progressiva e membership attivate in
+  sede, dentro il Control Center e sulle stesse tabelle di tutto il resto. Un
+  appuntamento non entra se il professionista o la stanza sono già occupati, e
+  il messaggio dice con chi. La reception fa tutto questo senza vedere una
+  riga di cartella clinica, per policy e non per menu.
 - **Control Center** — KPI di giornata e di mese, unit economics per servizio,
   professionista e paziente, compensi ricostruibili riga per riga, capacità e
   proiezioni di crescita, CRM con imbuto e valore per campagna.
@@ -259,6 +265,9 @@ Postgres non restituirebbe comunque righe che l’utente non ha diritto di veder
 - [Crediti, pagamenti e prenotazioni](docs/crediti-pagamenti-prenotazioni.md) —
   la macchina a stati del credito, gli avvisi di incasso, l’integrazione col
   gestionale.
+- [Il gestionale](docs/gestionale.md) — anagrafica, agenda, disponibilità,
+  incassi e membership dal banco: chi fa cosa, le regole dell’agenda, le
+  ricevute.
 - [Professionisti, copilot e membership](docs/professionisti-e-membership.md) —
   permessi per disciplina, assistente contestuale, crediti e piani.
 - [Documenti, timeline e cartella](docs/documenti-e-cartella.md) — caricamento,

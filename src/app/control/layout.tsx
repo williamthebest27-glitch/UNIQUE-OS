@@ -20,6 +20,8 @@ const SEZIONI = [
   { href: "/control", label: "Oggi" },
   { href: "/control/brain", label: "Brain" },
   { href: "/control/agenda", label: "Agenda" },
+  { href: "/control/pazienti", label: "Pazienti" },
+  { href: "/control/incassi", label: "Incassi" },
   { href: "/control/economia", label: "Economia" },
   { href: "/control/capacita", label: "Capacità" },
   { href: "/control/crm", label: "CRM" },
@@ -28,6 +30,8 @@ const SEZIONI = [
   { href: "/control/marketing", label: "Marketing" },
   { href: "/control/contenuti", label: "Contenuti" },
   { href: "/control/conoscenza", label: "Conoscenza" },
+  { href: "/control/servizi", label: "Servizi" },
+  { href: "/control/professionisti", label: "Professionisti" },
 ] as const;
 
 export default async function ControlLayout({

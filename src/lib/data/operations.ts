@@ -19,6 +19,9 @@ export interface VisitaInAgenda {
   patientName: string;
   serviceName: string;
   professionalName: string | null;
+  professionalId: string | null;
+  roomId: string | null;
+  roomName: string | null;
   status: string;
   attendance: string;
   creditsCost: number;
@@ -50,6 +53,9 @@ interface Riga {
   attendance: string;
   credits_cost: number;
   source: string;
+  professional_id: string | null;
+  room_id: string | null;
+  room: { name: string } | null;
   patient: { id: string; profile: { full_name: string } | null } | null;
   professional: { title: string | null; profile: { full_name: string } | null } | null;
 }
@@ -66,7 +72,8 @@ export async function getAgendaSede(giorni = 7): Promise<GiornoInAgenda[]> {
   const { data } = await supabase
     .from("appointments")
     .select(
-      "id, service_name, starts_at, ends_at, status, attendance, credits_cost, source, " +
+      "id, service_name, starts_at, ends_at, status, attendance, credits_cost, source, professional_id, room_id, " +
+        "room:rooms(name), " +
         "patient:patients(id, profile:profiles(full_name)), " +
         "professional:professionals(title, profile:profiles(full_name))",
     )
@@ -94,6 +101,9 @@ export async function getAgendaSede(giorni = 7): Promise<GiornoInAgenda[]> {
       professionalName: row.professional?.profile?.full_name
         ? [row.professional.title, row.professional.profile.full_name].filter(Boolean).join(" ")
         : null,
+      professionalId: row.professional_id,
+      roomId: row.room_id,
+      roomName: row.room?.name ?? null,
       status: row.status,
       attendance: row.attendance,
       creditsCost: Number(row.credits_cost ?? 0),
