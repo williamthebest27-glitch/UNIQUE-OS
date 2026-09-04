@@ -720,6 +720,111 @@
     box-shadow: inset 0 0 0 1px var(--os-riga);
   }
 
+  /* ── Il film ───────────────────────────────────────
+     Un rettangolo profondo su un foglio chiaro. Tutto qui serve a una
+     cosa sola: che il buio del filmato sembri **appoggiato** alla pagina
+     e non ritagliato dentro. */
+  .os-film {
+    position: relative;
+    margin: 0;
+  }
+
+  /* L'alone è la luce fredda del filmato che trapassa la lastra e si
+     posa sul foglio. Sta dietro, non riceve il puntatore, e sfuma a
+     nulla prima di toccare qualunque testo. */
+  .os-film-alone {
+    position: absolute;
+    inset: -7% -5% -11%;
+    z-index: 0;
+    pointer-events: none;
+    border-radius: 50%;
+    background: radial-gradient(
+      54% 50% at 50% 50%,
+      var(--os-luce-dato),
+      transparent 70%
+    );
+    filter: blur(46px);
+  }
+
+  .os-film-lastra {
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+    border-radius: 20px;
+    /* Il fondo è il nero del filmato: finché il primo fotogramma non
+       è decodificato non si vede un lampo chiaro al suo posto. */
+    background: var(--color-ink-900);
+    box-shadow:
+      inset 0 0 0 1px var(--os-riga-viva),
+      var(--os-pannello-ombra);
+    /* La forma è tenuta prima che il filmato arrivi. Senza, la pagina
+       salterebbe di un'altezza intera al primo fotogramma — ed è
+       esattamente il genere di scatto che su un telefono fa perdere il
+       segno a chi sta già scorrendo. */
+    aspect-ratio: 16 / 9;
+  }
+
+  .os-film-video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Il comando: piccolo, in basso a destra, sul vetro scuro. Si trova
+     quando lo si cerca e non compete con ciò che sta guardando. */
+  .os-film-comando {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    /* Su telefono la parola sparisce e resta il solo segno: senza questo
+       il bersaglio si stringerebbe a quaranta pixel scarsi. */
+    min-width: 44px;
+    justify-content: center;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    /* Quarantaquattro pixel: la misura sotto la quale un dito sbaglia. */
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: 999px;
+    font-size: 11px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.84);
+    background: rgb(8 12 14 / 0.52);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.16);
+    backdrop-filter: blur(10px);
+    transition:
+      background 0.2s ease,
+      color 0.2s ease;
+  }
+
+  .os-film-comando:hover {
+    color: #fff;
+    background: rgb(8 12 14 / 0.74);
+  }
+
+  /* Su telefono resta il solo segno: il nome lo porta l'`aria-label`. */
+  .os-film-parola {
+    display: none;
+  }
+
+  @media (min-width: 640px) {
+    .os-film-parola {
+      display: inline;
+    }
+  }
+
+  .os-film-didascalia {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 10px 26px;
+    margin-top: 18px;
+  }
+
   /* ── Reticolo ───────────────────────────────────────────────────
      Il fondo del sistema: una griglia tecnica, quasi invisibile, che
      dà allo spazio una scala. Si vede solo perché senza si sentirebbe
@@ -816,6 +921,21 @@
     position: relative;
     color: var(--os-media);
     transition: color 0.35s var(--ease-out-expo);
+  }
+
+  /* Il dito è più grosso di una riga di testo.
+     Queste voci sono alte diciassette pixel e distano trentasei l'una
+     dall'altra: invece di ingrassarle — il che sposterebbe il filo che
+     corre sotto la parola — si allarga la sola *area sensibile* fino a
+     riempire lo spazio disponibile. Trentacinque pixel per diciotto di
+     margine: sopra il minimo richiesto, e senza che due voci vicine si
+     rubino il tocco a vicenda. */
+  @media (pointer: coarse) {
+    .os-voce::before {
+      content: "";
+      position: absolute;
+      inset: -9px -8px;
+    }
   }
 
   .os-voce::after {

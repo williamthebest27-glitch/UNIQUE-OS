@@ -9,6 +9,7 @@ import { LivingSystem } from "@/components/landing/organismo";
 import { JourneyTimeline } from "@/components/landing/percorso";
 import { PatientClinicConnection } from "@/components/landing/connessione";
 import { ProductInterface } from "@/components/landing/interfaccia";
+import { DnaFilm } from "@/components/landing/dna";
 import { FinalCTA } from "@/components/landing/finale";
 import { UniqueFooter } from "@/components/landing/footer";
 
@@ -19,7 +20,7 @@ import { UniqueFooter } from "@/components/landing/footer";
  *
  *   accensione → cosa entra → cosa ne esce → come pensa → cosa decide →
  *   come evolve → cosa succede in novanta giorni → chi ci sta dentro →
- *   che cosa si usa davvero → la porta
+ *   che cosa si usa davvero → tutto da capo in otto secondi → la porta
  *
  * Le destinazioni arrivano da fuori, decise una volta sola in
  * `app/page.tsx` a partire dal routing e dalla sessione vere. Nessun
@@ -81,6 +82,9 @@ export function UniqueLanding({
           <hr className="os-filo" />
 
           <ProductInterface />
+          <hr className="os-filo" />
+
+          <DnaFilm />
           <hr className="os-filo" />
 
           <FinalCTA

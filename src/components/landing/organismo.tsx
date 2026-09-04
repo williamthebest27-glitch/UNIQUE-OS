@@ -137,6 +137,37 @@ export function LivingSystem() {
       });
     });
 
+    /* Sotto i 1024 px il binario non è in pagina, e senza questo la
+       sezione sul telefono resterebbe l'unica ferma di tutta la
+       landing. La colonna che lo sostituisce arriva una tappa alla
+       volta e il filo si tira scorrendo: è la stessa lettura del
+       binario, girata in verticale, e costa due trasformazioni. */
+    mm.add("(max-width: 1023px)", () => {
+      const colonna = q<HTMLElement>("[data-colonna]")[0];
+      if (!colonna) return;
+
+      gsap.from(q("[data-colonna] li"), {
+        y: 26,
+        opacity: 0,
+        duration: 0.8,
+        ease: "expo.out",
+        stagger: 0.085,
+        scrollTrigger: { trigger: colonna, start: "top 80%", once: true },
+      });
+
+      gsap.from(q("[data-filo]"), {
+        scaleY: 0,
+        transformOrigin: "50% 0%",
+        ease: "none",
+        scrollTrigger: {
+          trigger: colonna,
+          start: "top 78%",
+          end: "bottom 72%",
+          scrub: 0.4,
+        },
+      });
+    });
+
     return () => mm.revert();
   });
 
@@ -222,10 +253,11 @@ export function LivingSystem() {
       </div>
 
       {/* ── La colonna, su schermo stretto ───────────────────────── */}
-      <div className="os-gabbia relative mt-14 lg:hidden">
+      <div data-colonna="" className="os-gabbia relative mt-14 lg:hidden">
         {/* La linea sta fuori dalla lista: un `<div>` figlio di `<ol>`
             non è markup valido, e qui non porta contenuto. */}
         <div
+          data-filo=""
           aria-hidden="true"
           className="absolute bottom-20 left-[calc(clamp(20px,5.5vw,88px)+7px)] top-3 w-px"
           style={{

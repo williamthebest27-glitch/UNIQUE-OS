@@ -190,6 +190,34 @@ export function PatientClinicConnection() {
       });
     });
 
+    /* Il palco fissato esiste solo da 1024 in su. Sul telefono le
+       stesse quattro voci sono una griglia, e senza una scena loro
+       restano immobili mentre tutto il resto della pagina si muove:
+       arrivano in fila, e il nucleo dopo di loro. I selettori passano
+       dal contenitore stretto perché `data-vertice` esiste due volte
+       nel markup — una per il palco, una per la griglia. */
+    mm.add("(max-width: 1023px)", () => {
+      const stretto = q<HTMLElement>("[data-stretto]")[0];
+      if (!stretto) return;
+
+      gsap.from(q("[data-stretto] li"), {
+        y: 22,
+        opacity: 0,
+        duration: 0.75,
+        ease: "expo.out",
+        stagger: 0.07,
+        scrollTrigger: { trigger: stretto, start: "top 82%", once: true },
+      });
+
+      gsap.from(q("[data-nucleo-stretto]"), {
+        scale: 0.86,
+        opacity: 0,
+        duration: 1,
+        ease: "expo.out",
+        scrollTrigger: { trigger: stretto, start: "top 55%", once: true },
+      });
+    });
+
     return () => mm.revert();
   });
 
@@ -276,7 +304,7 @@ export function PatientClinicConnection() {
       </div>
 
       {/* ── La colonna, su schermo stretto ───────────────────────── */}
-      <div className="os-gabbia mt-12 lg:hidden">
+      <div data-stretto="" className="os-gabbia mt-12 lg:hidden">
         <ul className="grid gap-px sm:grid-cols-2" style={{ background: "var(--os-riga)" }}>
           {VERTICI.map((v) => (
             <li
@@ -294,7 +322,7 @@ export function PatientClinicConnection() {
           ))}
         </ul>
 
-        <div className="relative mt-12 flex justify-center">
+        <div data-nucleo-stretto="" className="relative mt-12 flex justify-center">
           <Nucleo compatto />
         </div>
       </div>

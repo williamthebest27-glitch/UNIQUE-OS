@@ -33,6 +33,21 @@ let registrato = false;
 function registra() {
   if (registrato || typeof window === "undefined") return;
   gsap.registerPlugin(ScrollTrigger);
+
+  /*
+   * Sul telefono la barra degli indirizzi entra e esce mentre si scorre,
+   * e ogni volta il browser annuncia un `resize`. ScrollTrigger, che di
+   * suo rimisura a ogni resize, ricalcola allora tutte le scene nel bel
+   * mezzo di uno scorrimento: le sezioni si riposizionano sotto il dito
+   * e la pagina dà quella sensazione di terreno che si muove.
+   *
+   * `ignoreMobileResize` gli fa ignorare i resize che cambiano solo
+   * l'altezza sui dispositivi tattili — cioè esattamente quelli della
+   * barra. Una rotazione dello schermo cambia anche la larghezza e
+   * continua a rimisurare, che è giusto: lì la pagina è davvero un'altra.
+   */
+  ScrollTrigger.config({ ignoreMobileResize: true });
+
   // Una pausa lunga — scheda in secondo piano, un garbage collect — non
   // deve far saltare in avanti le scene fissate.
   gsap.ticker.lagSmoothing(0);
