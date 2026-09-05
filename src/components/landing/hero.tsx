@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { Marchio } from "@/components/brand/marchio";
 import { aSiparioAperto } from "@/components/brand/sipario";
 import { CampoVivo } from "@/components/landing/campo";
 import { FiguraUmana } from "@/components/landing/figura";
@@ -18,16 +19,16 @@ import { cx } from "@/components/ui/primitives";
  * due secondi:
  *
  *   il vuoto  →  una linea di scansione attraversa lo schermo  →  i punti
- *   di misura si accendono dietro di lei  →  la rete si disegna  →
- *   UNIQUE OS  →  il titolo sale parola per parola  →  la riga di stato
- *   dice che il sistema è in linea.
+ *   di misura si accendono dietro di lei  →  la rete si disegna  →  il
+ *   marchio compare al centro  →  UNIQUE OS  →  il titolo sale parola per
+ *   parola  →  la riga di stato dice che il sistema è in linea.
  *
  * La figura, dietro, non ha una battuta: non entra in scena perché c'era
  * già. Il sistema si accende attorno a una persona, e questo è tutto il
  * racconto della pagina detto in due secondi.
  *
  * Poi si scorre, e la scena non svanisce: **la si attraversa**. Il campo
- * si apre, la figura cresce e passa oltre l'obiettivo, il titolo si
+ * si apre, il marchio cresce e passa oltre l'obiettivo, il titolo si
  * ritira verso l'alto. Non è una dissolvenza, è una camera che entra nel
  * sistema — ed è il motivo per cui la sezione è fissata: senza il pin,
  * lo scorrimento porterebbe *via* dalla scena invece che *dentro*.
@@ -138,6 +139,13 @@ export function HeroSystem({
 
       .from(q("[data-misura]"), { opacity: 0, x: -8, duration: 0.8, stagger: 0.07 }, 1.05)
 
+      // Il marchio arriva quando il campo esiste già: è il sistema che
+      // prende forma attorno a un centro, non un logo con dei puntini.
+      .from(
+        q("[data-marchio]"),
+        { opacity: 0, scale: 0.72, filter: "blur(14px)", duration: 1.4 },
+        0.7,
+      )
       .from(q("[data-parola-os] > span"), {
         yPercent: 110,
         opacity: 0,
@@ -188,10 +196,12 @@ export function HeroSystem({
         // La camera entra: il campo si apre verso di noi e passa oltre.
         .to(q("[data-rete]"), { scale: 1.55, opacity: 0, y: -40 }, 0)
         .to(q("[data-campo]"), { scale: 1.3, opacity: 0 }, 0)
-        // La figura si avvicina più piano di tutto il resto e cresce di
-        // più: tolto il marchio dal centro, è rimasta lei l'oggetto che
-        // si oltrepassa, e per un istante resta sola in campo.
-        .to(q("[data-figura]"), { scale: 1.34, opacity: 0 }, 0.12)
+        // La figura si avvicina più piano di tutto il resto: è il corpo
+        // che si attraversa per ultimo, e per un istante resta sola.
+        .to(q("[data-figura]"), { scale: 1.16, opacity: 0 }, 0.12)
+        // Il marchio cresce fino a superare l'obiettivo, e si dissolve
+        // nell'istante in cui lo attraversiamo.
+        .to(q("[data-marchio]"), { scale: 3.4, opacity: 0, y: -30 }, 0)
         .to(q("[data-parola-os]"), { opacity: 0, y: -30 }, 0)
         // Il titolo si ritira verso l'alto e si stringe: non sparisce,
         // arretra — è quello che fa un oggetto quando lo si oltrepassa.
@@ -233,18 +243,18 @@ export function HeroSystem({
      * **L'attraversamento nasce quando l'accensione è finita, mai prima.**
      *
      * Le due scene scrivono sulle stesse proprietà degli stessi elementi
-     * — il sottotitolo, i comandi, il campo — una animandoli
+     * — il marchio, il sottotitolo, i comandi, il campo — una animandoli
      * in ingresso, l'altra portandoli via con lo scorrimento. Su schermo
      * largo non si incontrano mai, perché l'ingresso è già finito prima
      * che ci sia qualcosa da scorrere.
      *
      * Sul telefono si incontravano sempre. L'accensione resta ferma sotto
-     * al sipario con sottotitolo e comandi a opacità zero; un
+     * al sipario con marchio, sottotitolo e comandi a opacità zero; un
      * dito che sfiora lo schermo in quei secondi — e li sfiora, perché
      * non si vede muovere niente — fa registrare allo scrub *quello* come
      * stato di riposo. Da lì in poi tornare in cima non riportava indietro
-     * nulla: il sottotitolo restava invisibile, e i due pulsanti della
-     * pagina sparivano per sempre. Non era un'animazione
+     * nulla: il marchio restava invisibile, il sottotitolo pure, e i due
+     * pulsanti della pagina sparivano per sempre. Non era un'animazione
      * lenta, era la pagina rotta.
      *
      * Costruire l'uscita alla fine dell'accensione toglie di mezzo la
@@ -297,7 +307,7 @@ export function HeroSystem({
     >
       {/* ── Il campo vivo: la Signature, quasi al nero ───────────── */}
       {/* La Signature sta *dietro* la scena, non dentro: raccolta attorno
-          al centro e già spenta dove comincia il titolo. A opacità piena
+          al marchio e già spenta dove comincia il titolo. A opacità piena
           e a tutto schermo è una bella figura che però compete con la
           tipografia, e in una gara fra uno shader e una frase deve
           vincere la frase.
@@ -344,7 +354,7 @@ export function HeroSystem({
 
       <div className="os-reticolo -z-10" aria-hidden="true" />
 
-      {/* La sola luce della scena, dietro la figura. */}
+      {/* La sola luce della scena, sotto il marchio. */}
       <div
         aria-hidden="true"
         className="os-alone -z-10 left-1/2 top-1/2 h-[46vh] w-[70vw] max-w-[900px] -translate-x-1/2 -translate-y-1/2"
@@ -359,9 +369,13 @@ export function HeroSystem({
 
       {/* ── Il contenuto ─────────────────────────────────────────── */}
       <div className="os-gabbia relative z-10 flex flex-col items-center pb-24 pt-32 text-center sm:pb-28">
+        <div data-marchio="" className="flex flex-col items-center">
+          <Marchio className="h-[68px] w-auto sm:h-[92px]" />
+        </div>
+
         <p
           data-parola-os=""
-          className="os-mono flex gap-[0.32em] overflow-hidden text-[color:var(--os-media)]"
+          className="os-mono mt-5 flex gap-[0.32em] overflow-hidden text-[color:var(--os-media)]"
           aria-label="Unique OS"
         >
           {"UNIQUE OS".split("").map((c, i) => (
@@ -467,8 +481,8 @@ function Costellazione({
   /*
    * Le etichette si appoggiano solo ai nodi che stanno nei margini.
    *
-   * La colonna centrale — dove vivono titolo, sottotitolo e comandi — è
-   * esclusa esplicitamente: una misura scritta sopra il
+   * La colonna centrale — dove vivono marchio, titolo, sottotitolo e
+   * comandi — è esclusa esplicitamente: una misura scritta sopra il
    * titolo non è profondità, è una cosa che il lettore deve scavalcare.
    * Il rettangolo qui sotto è più largo del testo di proposito, perché il
    * titolo cresce con la finestra.
