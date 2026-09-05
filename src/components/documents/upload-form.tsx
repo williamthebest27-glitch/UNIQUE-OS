@@ -19,11 +19,21 @@ const CATEGORIE = [
 ] as const;
 
 /**
- * Caricamento di un referto.
+ * Caricamento di un referto, in forma compatta.
  *
  * La categoria è facoltativa e parte da "non lo so": il motore la
  * riconosce da solo, e chiederla al paziente sarebbe scaricare su di lui
  * un lavoro che il sistema sa fare.
+ *
+ * Resta accanto a `dropzone.tsx`, che è la versione completa — trascina,
+ * fotografa, avanzamento reale. Questa vive dove il caricamento è un
+ * gesto secondario dentro un'altra schermata, come durante una visita:
+ * lì un'area da trascinare grande quanto mezzo schermo ruberebbe lo
+ * spazio al lavoro vero.
+ *
+ * I formati accettati sono gli stessi: `ACCEPT_ATTRIBUTE` viene dal
+ * registro del Document Intelligence Engine, quindi le due non possono
+ * divergere.
  */
 export function UploadForm({ patientId }: { patientId?: string }) {
   const [stato, azione, inCorso] = useActionState(caricaDocumento, statoUploadIniziale);
@@ -97,7 +107,8 @@ export function UploadForm({ patientId }: { patientId?: string }) {
           {inCorso ? "Caricamento e analisi…" : "Carica documento"}
         </button>
         <span className="text-xs text-ink-400">
-          PDF o immagine, fino a {Math.round(DIMENSIONE_MASSIMA_BYTE / 1024 / 1024)} MB
+          PDF, immagine, Word, Excel o CSV — fino a{" "}
+          {Math.round(DIMENSIONE_MASSIMA_BYTE / 1024 / 1024)} MB
         </span>
       </div>
 

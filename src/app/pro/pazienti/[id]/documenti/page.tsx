@@ -10,7 +10,7 @@ import { formatFileSize, formatShortDate } from "@/lib/format";
 import { NavLink } from "@/components/shell/nav-link";
 import { ConfineAI, Niente, Riquadro } from "@/components/clinical/command-center";
 import { RevisioneReferto } from "@/components/clinical/revisione-referto";
-import { UploadForm } from "@/components/documents/upload-form";
+import { Dropzone } from "@/components/documents/dropzone";
 import { Badge, cx } from "@/components/ui/primitives";
 
 export const metadata: Metadata = { title: "Documenti del paziente" };
@@ -89,7 +89,7 @@ export default async function DocumentiPazientePage({
         nota="Il motore lo classifica, ne estrae i parametri e segnala al care team ciò che va rivisto. Se l’analisi fallisce, il file resta comunque caricato."
       >
         <div className="px-6 pb-5 pt-3">
-          <UploadForm patientId={id} />
+          <Dropzone patientId={id} baseDocumenti={`/pro/pazienti/${id}/documenti`} />
           {!capacita.estrazione ? (
             <p className="mt-3 text-xs leading-relaxed text-ink-400">
               Un PDF con il testo dentro viene letto dal motore proprietario. Un
@@ -182,7 +182,18 @@ function ElencoDocumenti({
         return (
           <li key={d.id} className="flex flex-wrap gap-x-6 gap-y-4 px-6 py-4">
             <div className="min-w-[16rem] flex-1">
-              <p className="text-[15px] font-medium text-ink-900">{d.titolo}</p>
+              {/*
+                Il titolo porta al documento. Prima l'elenco era un
+                capolinea: si vedeva che un referto esisteva e che era
+                stato analizzato, e non c'era modo di guardare né il file
+                né i valori che ne erano usciti.
+              */}
+              <NavLink
+                href={`/pro/pazienti/${patientId}/documenti/${d.id}`}
+                className="text-[15px] font-medium text-ink-900 underline-offset-4 hover:text-brand-700 hover:underline"
+              >
+                {d.titolo}
+              </NavLink>
               <p className="mt-0.5 text-sm text-ink-500">
                 {TIPO[d.tipo] ?? d.tipo} ·{" "}
                 <span className="tnum">

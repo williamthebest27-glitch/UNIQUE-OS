@@ -232,8 +232,16 @@ export async function analyzeDocument(documentId: string): Promise<AnalysisOutco
   }
 }
 
-/** Scrive le misure e restituisce l'id creato per ciascuna metrica. */
-async function insertMeasurements(
+/**
+ * Scrive le misure e restituisce l'id creato per ciascuna metrica.
+ *
+ * Esportata perché la usa anche il Document Intelligence Engine. Le
+ * misure che entrano in cartella devono essere scritte in un modo solo,
+ * con lo stesso upsert e la stessa chiave di conflitto: due percorsi di
+ * scrittura sulla stessa tabella prima o poi divergono, e quando lo
+ * fanno divergono su un valore clinico.
+ */
+export async function insertMeasurements(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
   patientId: string,

@@ -6,184 +6,58 @@ import {
 } from "@/lib/cache/invalidazione";
 import { requireProfile } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { isBrainConfigured } from "@/lib/brain/extraction";
-import { ServiceRoleRequiredError, analyzeDocument } from "@/lib/brain/analyze";
-import {
-  DIMENSIONE_MASSIMA_BYTE,
-  TIPI_ACCETTATI,
-  type StatoRevisioneDocumento,
-  type StatoUpload,
+import { caricaFile } from "@/lib/documents/caricamento";
+import { elaboraDocumento } from "@/lib/documents/intelligence";
+import type {
+  StatoRevisioneAnalisi,
+  StatoRevisioneDocumento,
+  StatoUpload,
 } from "@/lib/documents/state";
 
 /**
- * Caricamento di un documento sanitario.
+ * Le azioni sui documenti sanitari.
  *
- * Lo usano sia il paziente, per i propri referti, sia il professionista,
- * sul paziente che segue. Dopo il salvataggio il motore classifica il
- * documento, ne estrae i parametri e avvisa il care team — ma se
- * qualcosa di tutto ciò fallisce, **il file resta caricato**: perdere il
- * referto per un errore dell'AI sarebbe il peggiore dei risultati.
+ * Il caricamento vero e proprio sta in `caricamento.ts`, perché ci
+ * arrivano due strade: questa server action — il percorso che funziona
+ * anche senza JavaScript — e la rotta `POST /api/documenti`, che è
+ * quella con la barra di avanzamento. Due modi di consegnare gli stessi
+ * byte, e devono fare esattamente la stessa cosa.
  */
-
-const BUCKET = "patient-documents";
-
-/** Un nome file finisce dentro un percorso di storage: va disinnescato. */
-function nomeSicuro(nome: string): string {
-  return nome
-    .normalize("NFKD")
-    .replace(/[^\w.\- ]+/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .slice(-80)
-    .replace(/^[.\-]+/, "") || "documento";
-}
-
-function senzaEstensione(nome: string): string {
-  return nome.replace(/\.[^.]+$/, "");
-}
 
 export async function caricaDocumento(
   _prev: StatoUpload,
   formData: FormData,
 ): Promise<StatoUpload> {
-  const profile = await requireProfile();
-  const supabase = await createSupabaseServerClient();
-
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) {
-    return { esito: "errore", messaggio: "Nessun file selezionato." };
-  }
-
-  if (file.size > DIMENSIONE_MASSIMA_BYTE) {
-    return {
-      esito: "errore",
-      messaggio: `Il file supera gli ${Math.round(DIMENSIONE_MASSIMA_BYTE / 1024 / 1024)} MB consentiti.`,
-    };
-  }
-
-  if (!(TIPI_ACCETTATI as readonly string[]).includes(file.type)) {
-    return {
-      esito: "errore",
-      messaggio: "Formato non accettato. Sono ammessi PDF, PNG, JPEG e WebP.",
-    };
-  }
-
-  // ── A chi appartiene il documento ───────────────────────────────
-  // Un paziente carica solo su di sé, qualunque cosa arrivi dal form.
-  let patientId: string | null = null;
-
-  if (profile.role === "patient") {
-    const { data } = await supabase
-      .from("patients")
-      .select("id")
-      .eq("profile_id", profile.id)
-      .maybeSingle();
-    patientId = (data as { id: string } | null)?.id ?? null;
-    if (!patientId) {
-      return { esito: "errore", messaggio: "La tua scheda clinica non è ancora aperta." };
-    }
-  } else {
-    const requested = String(formData.get("patientId") ?? "");
-    if (!requested) {
-      return { esito: "errore", messaggio: "Paziente non indicato." };
-    }
-    // Non ci fidiamo dell'id che arriva dal form: se la Row Level Security
-    // non restituisce la riga, l'utente non ha titolo su quel paziente.
-    const { data } = await supabase
-      .from("patients")
-      .select("id")
-      .eq("id", requested)
-      .maybeSingle();
-    patientId = (data as { id: string } | null)?.id ?? null;
-    if (!patientId) {
-      return { esito: "errore", messaggio: "Paziente non trovato o non accessibile." };
-    }
-  }
-
-  const titolo =
-    String(formData.get("title") ?? "").trim() || senzaEstensione(file.name);
-  const kind = String(formData.get("kind") ?? "other");
-  const storagePath = `${patientId}/${crypto.randomUUID()}-${nomeSicuro(file.name)}`;
-
-  // ── Storage ─────────────────────────────────────────────────────
-  const upload = await supabase.storage
-    .from(BUCKET)
-    .upload(storagePath, file, { contentType: file.type, upsert: false });
-
-  if (upload.error) {
-    return {
-      esito: "errore",
-      messaggio: `Caricamento non riuscito: ${upload.error.message}`,
-    };
-  }
-
-  // ── Riga in cartella ────────────────────────────────────────────
-  const { data: inserted, error } = await supabase
-    .from("documents")
-    .insert({
-      patient_id: patientId,
-      kind,
-      title: titolo,
-      storage_path: storagePath,
-      mime_type: file.type,
-      size_bytes: file.size,
-      uploaded_by: profile.id,
-      // Se lo carica il paziente stesso, per lui non è una novità.
-      is_new_for_patient: profile.role !== "patient",
-    })
-    .select("id")
-    .single();
-
-  if (error) {
-    // Il file è già nello storage: senza la riga sarebbe orfano.
-    await supabase.storage.from(BUCKET).remove([storagePath]);
-    return { esito: "errore", messaggio: `Documento non registrato: ${error.message}` };
-  }
-
-  const documentId = (inserted as { id: string }).id;
-
-  // ── Segnalazione al care team ───────────────────────────────────
-  if (profile.role === "patient") {
-    await supabase.rpc("notify_care_team", {
-      target: patientId,
-      p_title: "Nuovo documento caricato dal paziente",
-      p_body: titolo,
-      p_link: `/pro/pazienti/${patientId}`,
-    });
-  }
-
-  // ── Analisi ─────────────────────────────────────────────────────
-  let dettaglio: string | undefined;
-
-  if (isBrainConfigured()) {
-    try {
-      const esito = await analyzeDocument(documentId);
-      const parti: string[] = [];
-      if (esito.autoApplied > 0) parti.push(`${esito.autoApplied} valori acquisiti`);
-      if (esito.pendingReview > 0) parti.push(`${esito.pendingReview} in revisione`);
-      dettaglio =
-        parti.length > 0
-          ? `Analisi completata: ${parti.join(", ")}.`
-          : "Analisi completata: nessun parametro misurato da estrarre.";
-    } catch (analysisError) {
-      dettaglio =
-        analysisError instanceof ServiceRoleRequiredError
-          ? "Il documento sarà esaminato dalla clinica."
-          : "Il documento è salvato, ma l'analisi automatica non è riuscita.";
-      console.error("[documenti] analisi fallita:", analysisError);
-    }
-  } else {
-    dettaglio = "Il documento sarà esaminato dalla clinica.";
-  }
-
-  // Un referto caricato si vede anche in «Risultati», che legge gli
-  // stessi documenti: mancava, e restava indietro di una versione.
-  invalidaCartellaClinica(patientId);
-
-  return { esito: "ok", messaggio: `"${titolo}" è stato caricato.`, dettaglio };
+  return caricaFile(formData);
 }
 
-/* ── Revisione ────────────────────────────────────────────────────── */
+/* ── Rilettura ────────────────────────────────────────────────────── */
+
+/**
+ * Rilegge un documento già in archivio.
+ *
+ * Serve per i referti caricati prima che il motore esistesse, e dopo
+ * ogni miglioramento del lettore: la stessa pipeline sullo stesso file
+ * produce una nuova estrazione **accanto** alla precedente, non al posto
+ * suo. Confrontare due letture dello stesso documento è come si scopre
+ * se il motore è davvero migliorato.
+ */
+export async function rileggiDocumento(formData: FormData): Promise<void> {
+  const profile = await requireProfile();
+  if (profile.role === "patient") {
+    throw new Error("La rilettura di un documento è riservata ai professionisti.");
+  }
+
+  const documentId = String(formData.get("documentId") ?? "").trim();
+  if (!documentId) throw new Error("Documento non indicato.");
+
+  await elaboraDocumento(documentId);
+
+  const patientId = String(formData.get("patientId") ?? "").trim();
+  invalidaCartellaClinica(patientId || null);
+}
+
+/* ── Revisione del referto ────────────────────────────────────────── */
 
 /**
  * Segnare un referto letto, o approvarlo.
@@ -234,7 +108,7 @@ export async function revisionaDocumento(
         stato === "approved"
           ? "Approvato: ha valore clinico."
           : stato === "reviewed"
-            ? "Segnato come letto."
+            ? "Segnato come letto. Il paziente ora vede anche i valori estratti."
             : "Rimesso in coda.",
     };
   } catch (error) {
@@ -244,4 +118,128 @@ export async function revisionaDocumento(
         error instanceof Error ? error.message : "La revisione non è stata registrata.",
     };
   }
+}
+
+/* ── Revisione dell'analisi ───────────────────────────────────────── */
+
+/**
+ * Approvare, correggere o respingere ciò che il motore ha capito.
+ *
+ * È un gesto **diverso** dal revisionare il referto, e le due cose
+ * restano separate per un motivo pratico: un medico può leggere e
+ * approvare un referto e insieme respingere l'estrazione, perché il
+ * motore ha letto male tre valori. Con un flag solo bisognerebbe
+ * scegliere quale delle due verità registrare.
+ */
+export async function revisionaAnalisi(
+  _prev: StatoRevisioneAnalisi,
+  formData: FormData,
+): Promise<StatoRevisioneAnalisi> {
+  const extractionId = String(formData.get("extractionId") ?? "").trim();
+  const decisione = String(formData.get("decisione") ?? "").trim();
+  const nota = String(formData.get("nota") ?? "").trim();
+  const patientId = String(formData.get("patientId") ?? "").trim();
+
+  if (!extractionId) return { esito: "errore", messaggio: "Analisi non indicata." };
+  if (!["approvata", "corretta", "respinta"].includes(decisione)) {
+    return { esito: "errore", messaggio: "Decisione non valida." };
+  }
+
+  try {
+    await requireProfile();
+    const supabase = await createSupabaseServerClient();
+
+    const { error } = await supabase.rpc("revisiona_estrazione", {
+      p_extraction: extractionId,
+      p_decision: decisione,
+      p_note: nota || null,
+    });
+
+    if (error) throw new Error(error.message);
+
+    invalidaCartellaClinica(patientId || null);
+
+    return {
+      esito: "ok",
+      messaggio:
+        decisione === "respinta"
+          ? "Analisi respinta: il documento resta da rivedere."
+          : "Analisi validata.",
+    };
+  } catch (error) {
+    return {
+      esito: "errore",
+      messaggio:
+        error instanceof Error ? error.message : "La revisione non è stata registrata.",
+    };
+  }
+}
+
+/**
+ * Correggere un valore che il motore ha letto male.
+ *
+ * Il valore originale non viene sovrascritto: resta accanto alla
+ * correzione. È la differenza fra una cartella clinica e un foglio di
+ * calcolo — fra un anno si deve poter sapere che cosa aveva letto la
+ * macchina e che cosa ha corretto la persona.
+ */
+export async function correggiValore(formData: FormData): Promise<void> {
+  await requireProfile();
+
+  const biomarkerId = String(formData.get("biomarkerId") ?? "").trim();
+  const grezzo = String(formData.get("valore") ?? "").trim().replace(",", ".");
+  const nota = String(formData.get("nota") ?? "").trim();
+  const patientId = String(formData.get("patientId") ?? "").trim();
+
+  if (!biomarkerId) throw new Error("Valore non indicato.");
+
+  const valore = Number(grezzo);
+  if (!Number.isFinite(valore)) throw new Error("Il valore inserito non è un numero.");
+
+  const supabase = await createSupabaseServerClient();
+
+  const { error } = await supabase.rpc("correggi_biomarcatore", {
+    p_biomarker: biomarkerId,
+    p_value: valore,
+    p_note: nota || null,
+  });
+
+  if (error) throw new Error(error.message);
+
+  invalidaCartellaClinica(patientId || null);
+}
+
+/**
+ * Decidere su una raccomandazione.
+ *
+ * È l'anello che chiude il ciclo: osservazione, interpretazione,
+ * raccomandazione, **decisione**. Finché nessuno decide, la
+ * raccomandazione resta sospesa — e il paziente non la vede, perché una
+ * raccomandazione non ancora valutata da un professionista è
+ * indistinguibile da un consiglio clinico.
+ */
+export async function decidiRaccomandazione(formData: FormData): Promise<void> {
+  await requireProfile();
+
+  const recommendationId = String(formData.get("recommendationId") ?? "").trim();
+  const decisione = String(formData.get("decisione") ?? "").trim();
+  const nota = String(formData.get("nota") ?? "").trim();
+  const patientId = String(formData.get("patientId") ?? "").trim();
+
+  if (!recommendationId) throw new Error("Raccomandazione non indicata.");
+  if (!["accolta", "respinta", "rimandata"].includes(decisione)) {
+    throw new Error("Decisione non valida.");
+  }
+
+  const supabase = await createSupabaseServerClient();
+
+  const { error } = await supabase.rpc("decidi_raccomandazione", {
+    p_recommendation: recommendationId,
+    p_decision: decisione,
+    p_note: nota || null,
+  });
+
+  if (error) throw new Error(error.message);
+
+  invalidaCartellaClinica(patientId || null);
 }
