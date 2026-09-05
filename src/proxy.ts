@@ -24,8 +24,22 @@ import {
  * prefissi per una ragione aritmetica, non stilistica: `"/"` come
  * prefisso renderebbe pubblica ogni pagina dell'applicazione, perché
  * ogni percorso comincia per barra.
+ *
+ * **La copertina va con lei.** `/opengraph-image` è l'anteprima che
+ * WhatsApp, LinkedIn e Slack vanno a prendere quando qualcuno incolla il
+ * link della presentazione. Senza sessione — e un crawler non ne ha
+ * nessuna — finiva nella guardia e riceveva un 307 verso l'accesso: la
+ * copertina esisteva, era disegnata con cura, e non l'ha mai vista
+ * nessuno. È lo stesso guasto muto descritto nel matcher qui sotto, con
+ * l'aggravante che lì basta l'estensione a salvare un file, mentre una
+ * rotta senza estensione passa dritta di qua.
+ *
+ * Renderla pubblica non apre niente: la copertina è composta di testo
+ * fisso e del marchio letto da `public/`, non tocca il database e non
+ * accetta parametri. Se un giorno mostrasse un dato di una persona,
+ * questa riga va tolta lo stesso giorno.
  */
-const PUBLIC_EXACT = ["/"];
+const PUBLIC_EXACT = ["/", "/opengraph-image"];
 
 // /api/integrazioni parla con il gestionale, non con una persona: si
 // autentica con un token proprio, non con un cookie di sessione.
