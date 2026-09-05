@@ -2,8 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   // pdfjs va lasciata fuori dal bundle: e una libreria Node con risorse
-  // proprie, e impacchettarla la rompe.
-  serverExternalPackages: ["pdfjs-dist"],
+  // proprie, e impacchettarla la rompe. Stessa cosa per tesseract.js, che
+  // avvia processi figli e carica un modello in WebAssembly: dentro un
+  // bundle non trova piu ne i worker ne i dati di lingua.
+  serverExternalPackages: ["pdfjs-dist", "tesseract.js"],
   reactStrictMode: true,
   // Il badge di sviluppo copre l angolo in basso a sinistra, dove vive
   // il profilo nella barra laterale.

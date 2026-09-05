@@ -1,4 +1,7 @@
 import "server-only";
+import { mkdir } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { z } from "zod";
 import { motoreConversazione } from "@/lib/brain/fornitore";
 import { generaStrutturato, ollamaRaggiungibile } from "@/lib/brain/ollama";
@@ -269,29 +272,77 @@ const motoreTesseract: MotoreOcr = {
       );
     }
 
+    let worker: WorkerTesseract | null = null;
+
     try {
       const tesseract = await caricaTesseract();
       const lingue = (richiesta.lingue ?? ["ita", "eng"]).join("+");
 
-      const { data } = await tesseract.recognize(Buffer.from(richiesta.dati), lingue);
+      /*
+       * L'API a worker, e non la scorciatoia `recognize()`.
+       *
+       * La scorciatoia restituisce solo il testo intero e una
+       * confidenza sola per tutta la pagina. Serve invece il dettaglio
+       * per riga: su una scansione storta la prima metà del foglio si
+       * legge benissimo e l'ultima riga no — ed è lì che sta il valore
+       * che conta. `blocks: true` è l'unico modo di ottenerlo, e si può
+       * chiedere solo da qui.
+       */
+      /*
+       * I dati di lingua vanno in una cartella temporanea, non nella
+       * radice del progetto.
+       *
+       * È il valore predefinito di tesseract.js: alla prima lettura
+       * scarica `ita.traineddata` e `eng.traineddata` — otto megabyte —
+       * e li scrive nella directory di lavoro. In sviluppo significa due
+       * file binari che compaiono nel repository; **in produzione
+       * significa un errore**, perché su un runtime serverless il
+       * filesystem è in sola lettura tranne la cartella temporanea.
+       *
+       * Scoperto facendo girare il riconoscimento la prima volta: i due
+       * file sono comparsi accanto a `package.json`.
+       *
+       * La cartella va creata a mano: tesseract.js non la crea, e senza
+       * di essa non fallisce — semplicemente non mette niente in cache e
+       * riscarica gli otto megabyte a ogni lettura. Un guasto silenzioso
+       * che si manifesta solo come lentezza.
+       */
+      const cache = join(tmpdir(), "unique-os-ocr");
+      await mkdir(cache, { recursive: true }).catch(() => {});
 
-      const righe = (data.lines ?? []).map((riga: { text: string; confidence: number }) => ({
-        testo: riga.text.replace(/\s+/g, " ").trim(),
-        // Tesseract dà la confidenza in centesimi.
-        fiducia: Math.max(0, Math.min(1, riga.confidence / 100)),
-      }));
+      worker = await tesseract.createWorker(lingue, undefined, { cachePath: cache });
+      const { data } = await worker.recognize(
+        Buffer.from(richiesta.dati),
+        {},
+        { blocks: true, text: true },
+      );
 
-      // Se non espone le righe, resta il testo intero: si spezza a mano e
-      // si usa la fiducia complessiva per tutte.
+      const righe: RigaOcr[] = [];
+      for (const blocco of data.blocks ?? []) {
+        for (const paragrafo of blocco.paragraphs ?? []) {
+          for (const riga of paragrafo.lines ?? []) {
+            righe.push({
+              testo: riga.text.replace(/\s+/g, " ").trim(),
+              // Tesseract dà la confidenza in centesimi.
+              fiducia: Math.max(0, Math.min(1, riga.confidence / 100)),
+            });
+          }
+        }
+      }
+
+      // Ripiego: se i blocchi non arrivano — versione diversa, pagina
+      // che il motore non sa segmentare — resta il testo intero, con la
+      // confidenza di pagina applicata a ogni riga. Meno preciso, ma
+      // meglio che perdere la lettura.
       if (righe.length === 0 && typeof data.text === "string") {
         const fiducia = Math.max(0, Math.min(1, (data.confidence ?? 0) / 100));
         return componi(
           "tesseract",
           data.text
             .split(/\r?\n/)
-            .map((t: string) => t.replace(/\s+/g, " ").trim())
-            .filter((t: string) => t.length > 0)
-            .map((testo: string) => ({ testo, fiducia })),
+            .map((t) => t.replace(/\s+/g, " ").trim())
+            .filter((t) => t.length > 0)
+            .map((testo) => ({ testo, fiducia })),
         );
       }
 
@@ -301,21 +352,41 @@ const motoreTesseract: MotoreOcr = {
         "tesseract",
         `Il riconoscimento locale non è riuscito: ${errore instanceof Error ? errore.message : String(errore)}`,
       );
+    } finally {
+      // Un worker non terminato tiene in vita un processo figlio e la
+      // memoria del modello. Su un server che elabora documenti tutto il
+      // giorno, dimenticarlo si vede dopo un'ora.
+      await worker?.terminate().catch(() => {});
     }
   },
 };
 
-interface ApiTesseract {
+interface RigaTesseract {
+  text: string;
+  confidence: number;
+}
+
+interface WorkerTesseract {
   recognize: (
     immagine: Buffer,
-    lingue: string,
+    opzioni: Record<string, unknown>,
+    uscita: { blocks: boolean; text: boolean },
   ) => Promise<{
     data: {
       text: string;
       confidence?: number;
-      lines?: { text: string; confidence: number }[];
+      blocks: { paragraphs: { lines: RigaTesseract[] }[] }[] | null;
     };
   }>;
+  terminate: () => Promise<unknown>;
+}
+
+interface ApiTesseract {
+  createWorker: (
+    lingue: string,
+    oem?: number,
+    opzioni?: { cachePath?: string },
+  ) => Promise<WorkerTesseract>;
 }
 
 async function caricaTesseract(): Promise<ApiTesseract> {
@@ -325,7 +396,10 @@ async function caricaTesseract(): Promise<ApiTesseract> {
   const modulo = (await import(/* webpackIgnore: true */ nome)) as
     | ApiTesseract
     | { default: ApiTesseract };
-  return "recognize" in modulo ? modulo : modulo.default;
+
+  // Il pacchetto espone sia named export sia `default` a seconda di come
+  // viene risolto: si prende quello che ha davvero la funzione.
+  return "createWorker" in modulo ? modulo : modulo.default;
 }
 
 /* ── Il registro ──────────────────────────────────────────────────── */

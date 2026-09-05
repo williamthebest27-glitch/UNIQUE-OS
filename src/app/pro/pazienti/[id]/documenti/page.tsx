@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { getCurrentProfile } from "@/lib/auth";
 import { getDocumentiPaziente } from "@/lib/data/cartella";
 import { traccia } from "@/lib/audit";
-import { analizzaDocumento } from "@/lib/brain/actions";
-import { capacitaAttive } from "@/lib/brain/fornitore";
+import { rileggiDocumento } from "@/lib/documents/actions";
+import { motoreOcrAttivo } from "@/lib/document-intelligence/ocr";
 import { puoApprovare as puoApprovareReferti, toStatoRevisione } from "@/lib/documents/revisione";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatFileSize, formatShortDate } from "@/lib/format";
@@ -79,7 +79,7 @@ export default async function DocumentiPazientePage({
     profile?.role ?? "professional",
   );
 
-  const capacita = capacitaAttive();
+  const ocr = await motoreOcrAttivo();
   const daLeggere = documenti.filter((d) => toStatoRevisione(d.statoRevisione) === "pending");
 
   return (
@@ -90,14 +90,35 @@ export default async function DocumentiPazientePage({
       >
         <div className="px-6 pb-5 pt-3">
           <Dropzone patientId={id} baseDocumenti={`/pro/pazienti/${id}/documenti`} />
-          {!capacita.estrazione ? (
-            <p className="mt-3 text-xs leading-relaxed text-ink-400">
-              Un PDF con il testo dentro viene letto dal motore proprietario. Un
-              referto <em>scansionato</em> è un&apos;immagine, e senza un modello
-              linguistico non si legge: il file resta caricato e va guardato a mano,
-              che è meglio di leggerlo male.
-            </p>
-          ) : null}
+
+          {/*
+            Cosa il motore sa leggere *adesso*, chiesto al registro dei
+            motori invece che dedotto dal modello linguistico acceso.
+            Sono due cose diverse da quando il riconoscimento ottico può
+            girare in locale: dirlo male qui significa far ricaricare a
+            mano referti che il sistema avrebbe letto.
+          */}
+          <p className="mt-3 text-xs leading-relaxed text-ink-400">
+            PDF, Word, Excel e CSV vengono letti direttamente.{" "}
+            {ocr.nome === "tesseract" ? (
+              <>
+                Le foto e le immagini passano dal riconoscimento ottico locale: non
+                esce niente dalla clinica. Un PDF <em>scansionato</em> resta invece
+                un&apos;immagine dentro un contenitore, e per quello serve un modello.
+              </>
+            ) : ocr.nome === "modello" ? (
+              <>
+                Foto, immagini e PDF scansionati passano dal riconoscimento ottico del
+                modello acceso.
+              </>
+            ) : (
+              <>
+                Una foto o un referto <em>scansionato</em> è un&apos;immagine, e senza
+                riconoscimento ottico non si legge: il file resta caricato e va
+                guardato a mano, che è meglio di leggerlo male.
+              </>
+            )}
+          </p>
         </div>
       </Riquadro>
 
@@ -154,8 +175,10 @@ export default async function DocumentiPazientePage({
             approvato.
           </p>
           <p>
-            Un referto scansionato è un&apos;immagine: il sistema lo dichiara invece
-            di leggerlo male.
+            Word ed Excel si aprono per intero — fogli, tabelle, formule comprese.
+            Una foto o un&apos;immagine passa dal riconoscimento ottico, che dichiara
+            quanto è sicuro di ogni riga: un carattere non letto resta un carattere
+            non letto, e il valore che lo contiene non entra in cartella da solo.
           </p>
         </div>
       </Riquadro>
@@ -214,8 +237,15 @@ function ElencoDocumenti({
                   </span>
                 ) : null}
 
+                {/*
+                  Passa dal Document Intelligence Engine, non più dal
+                  vecchio estrattore: è la stessa pipeline del
+                  caricamento, quindi da qui un referto scansionato
+                  viene riconosciuto otticamente invece di risultare
+                  «analizzato» senza che nessuno abbia letto niente.
+                */}
                 {!analizzato ? (
-                  <form action={analizzaDocumento}>
+                  <form action={rileggiDocumento}>
                     <input type="hidden" name="documentId" value={d.id} />
                     <input type="hidden" name="patientId" value={patientId} />
                     <button

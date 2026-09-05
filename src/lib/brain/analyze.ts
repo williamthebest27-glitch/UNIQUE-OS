@@ -23,6 +23,19 @@ import { createSupabaseServiceClient, isServiceRoleConfigured } from "@/lib/supa
  * L'unico passo affidato al modello è l'estrazione. Tutto il resto —
  * validazione, confronto, decisione su cosa entra da solo e cosa aspetta
  * un medico — è codice deterministico e testato.
+ *
+ * ---
+ *
+ * ⚠️ **Questo è il percorso precedente, e nessuna schermata lo usa più.**
+ * Lo ha sostituito `elaboraDocumento` in `lib/documents/intelligence.ts`,
+ * che legge anche Word, Excel e le scansioni, riconosce gli intervalli
+ * del laboratorio e passa dal Document Intelligence Engine.
+ *
+ * Resta qui perché `insertMeasurements` la usa il motore nuovo, e perché
+ * cancellarla è un lavoro a sé. Ma è un doppione della strada viva su
+ * dati clinici: chi la ricollegasse a un pulsante otterrebbe un referto
+ * «analizzato» senza OCR, senza intervalli e senza registro. Prima di
+ * riusarla, spostare la logica utile e toglierla.
  */
 
 export interface AnalysisOutcome {

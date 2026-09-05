@@ -51,3 +51,9 @@ coverage/
 supabase/locale/*
 !supabase/locale/LEGGIMI.md
 .vercel
+
+# Dati di lingua del riconoscimento ottico. tesseract.js li scarica alla
+# prima lettura: il motore li manda in una cartella temporanea, ma se
+# qualcuno lo avvia con le impostazioni predefinite finiscono qui, e sono
+# otto megabyte di binario che nel repository non devono entrare.
+*.traineddata

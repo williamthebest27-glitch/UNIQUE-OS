@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { capacitaAttive } from "@/lib/brain/fornitore";
+import { motoreOcrAttivo } from "@/lib/document-intelligence/ocr";
 import { approvaProposta, ricalcolaPunteggio, rifiutaProposta } from "@/lib/brain/actions";
 import { REVIEW_REASON_LABELS, type ReviewReason } from "@/lib/brain/validation";
 import { formatShortDate } from "@/lib/format";
@@ -204,6 +204,10 @@ export default async function RevisioniPage() {
 
   const rows = (data ?? []) as unknown as ProposalRow[];
 
+  // Se il riconoscimento ottico è spento va detto qui, perché è qui che
+  // ci si accorge che da un referto fotografato non è arrivato niente.
+  const ocr = await motoreOcrAttivo();
+
   // Raggruppate per analisi: un referto si rivede tutto insieme, non un
   // valore alla volta scollegato dal suo contesto.
   const groups = new Map<string, ProposalRow[]>();
@@ -221,11 +225,11 @@ export default async function RevisioniPage() {
         subtitle="I valori che il motore AI ha estratto dai documenti e propone di scrivere in cartella. Finché non li approvi, non toccano il punteggio del paziente."
       />
 
-      {!capacitaAttive().estrazione ? (
+      {ocr.nome === "assente" ? (
         <p className="mt-5 rounded-xl bg-gold-100 px-4 py-3 text-sm text-gold-600">
           I referti li legge il lettore proprietario: riconosce gli esami dal
-          catalogo e non manda niente fuori. Un referto scansionato resta però
-          un&rsquo;immagine, e per quello servirebbe un modello.
+          catalogo e non manda niente fuori. Una foto o un referto scansionato resta
+          però un&rsquo;immagine, e senza riconoscimento ottico non si legge.
         </p>
       ) : null}
 

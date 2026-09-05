@@ -96,26 +96,43 @@ si costruisce esattamente lì.
 Un registro di motori, in `ocr.ts`. Nessuno è obbligatorio e il sistema dichiara
 quando non ne ha nessuno, invece di fingere di aver letto.
 
-| Motore | Quando | Dove gira |
-|---|---|---|
-| `modello` | `UNIQUE_BRAIN=ollama` o `anthropic` | server della clinica, o esterno |
-| `tesseract` | `UNIQUE_OCR=tesseract` e pacchetto installato | in locale, senza rete |
-| `assente` | nessuno dei due | dichiarato, il file resta in cartella |
+| Motore | Quando | Dove gira | Cosa legge |
+|---|---|---|---|
+| `modello` | `UNIQUE_BRAIN=ollama` o `anthropic` | server della clinica, o esterno | immagini; con `anthropic` anche PDF scansionati |
+| `tesseract` | `UNIQUE_OCR=tesseract` | in locale, senza rete | immagini |
+| `assente` | nessuno dei due | — | niente: dichiarato, il file resta in cartella |
 
-L'ordine predefinito prova il modello e poi il riconoscimento locale.
-`UNIQUE_OCR` forza una scelta; `UNIQUE_OCR=nessuno` lo spegne del tutto.
+**Stato attuale: `UNIQUE_OCR=tesseract`.** Il riconoscimento gira in locale, non
+esce niente dalla clinica e non serve nessuna chiave. La scelta è scritta
+esplicitamente e non lasciata al valore predefinito: così nessun referto uscirà
+mai per essere letto, nemmeno se un domani qualcuno impostasse una chiave.
 
-Il modello riceve **istruzioni di trascrizione, non di interpretazione**: copia
-riga per riga, separa le colonne con due spazi, e scrive `?` dove non legge.
-L'interpretazione è il mestiere del codice deterministico a valle, e mescolare
-le due cose renderebbe impossibile sapere quale delle due ha sbagliato.
+Il prezzo è che un **PDF scansionato** resta non letto — è un'immagine dentro un
+contenitore, e tesseract riceve immagini. Le foto scattate col telefono, che
+sono il caso più frequente per un paziente, si leggono. Per coprire anche le
+scansioni serve `UNIQUE_BRAIN=anthropic`, che però manda il documento fuori e
+cambia insieme copilot, briefing e Content Brain: è una decisione di
+riservatezza prima che tecnica.
 
-`tesseract.js` è una dipendenza **opzionale**: non sta in `package.json` perché
-porterebbe con sé una decina di megabyte e i dati di lingua. Chi la vuole:
+L'ordine predefinito, a `UNIQUE_OCR` vuoto, prova il modello e poi il
+riconoscimento locale. `UNIQUE_OCR=nessuno` lo spegne del tutto.
 
-```
-npm install tesseract.js
-```
+Il motore locale usa l'API a **worker** e chiede `blocks: true`. Non è un
+dettaglio: la scorciatoia `recognize()` restituisce una confidenza sola per
+tutta la pagina, mentre serve quella **riga per riga** — su una scansione storta
+la prima metà del foglio si legge benissimo e l'ultima riga no, ed è lì che sta
+il valore che conta. È la fiducia che `leggiNumero` usa per abbassare un valore
+letto su una riga incerta.
+
+Il modello, quando è lui a leggere, riceve **istruzioni di trascrizione, non di
+interpretazione**: copia riga per riga, separa le colonne con due spazi, e scrive
+`?` dove non legge. L'interpretazione è il mestiere del codice deterministico a
+valle, e mescolare le due cose renderebbe impossibile sapere quale delle due ha
+sbagliato.
+
+`tesseract.js` scarica i dati di lingua (`ita`, `eng`) alla prima lettura e li
+tiene in cache. Sulla prima richiesta dopo un avvio a freddo aggiunge qualche
+secondo.
 
 ---
 
@@ -295,6 +312,16 @@ rianalizza — il risultato sarebbe identico — e decide una persona.
 Word, Excel e CSV, riconosce i biomarcatori, calcola stati e trend e produce
 intuizioni. Quello che manca senza OCR sono le immagini e le scansioni, e il
 sistema lo dice invece di tentare.
+
+`UNIQUE_OCR` va impostata **anche su Vercel** perché valga in produzione, e le
+variabili entrano in un deployment quando viene costruito: cambiarla non tocca
+quelli già online.
+
+Le pagine che parlano di cosa il motore sa leggere — la cartella documenti del
+paziente e la coda di revisione — chiedono la risposta a `motoreOcrAttivo()`
+invece di dedurla dal modello linguistico acceso. Sono due cose diverse da
+quando il riconoscimento può girare in locale, e confonderle significa far
+ricaricare a mano referti che il sistema avrebbe letto.
 
 ---
 
