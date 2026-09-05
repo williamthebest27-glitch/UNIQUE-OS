@@ -389,11 +389,26 @@ interface ApiTesseract {
   ) => Promise<WorkerTesseract>;
 }
 
+/**
+ * Carica il riconoscimento locale.
+ *
+ * Il nome del pacchetto è **scritto per esteso**, e non composto a pezzi
+ * come sarebbe comodo per tenerlo fuori dall'analisi statica.
+ *
+ * La versione furba c'era, e sembrava giusta finché tesseract era una
+ * dipendenza facoltativa: un nome costruito a runtime lascia compilare
+ * anche chi non l'ha installato. Il problema è che *nessuno* lo vede
+ * più, compreso lo strumento che decide quali file salgono su una
+ * funzione serverless. Il pacchetto restava a terra, l'import falliva in
+ * produzione, e il motore si dichiarava «non installato» su una macchina
+ * dove era installato benissimo — un guasto che in locale non si
+ * riproduce mai.
+ *
+ * Da quando sta in `package.json` la furbizia non serve più: se manca,
+ * è giusto che il build se ne accorga.
+ */
 async function caricaTesseract(): Promise<ApiTesseract> {
-  // Il nome spezzato tiene il pacchetto fuori dall'analisi statica del
-  // bundler: chi non l'ha installato compila lo stesso.
-  const nome = ["tesseract", ".js"].join("");
-  const modulo = (await import(/* webpackIgnore: true */ nome)) as
+  const modulo = (await import("tesseract.js")) as unknown as
     | ApiTesseract
     | { default: ApiTesseract };
 

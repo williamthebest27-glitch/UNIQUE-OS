@@ -131,8 +131,32 @@ valle, e mescolare le due cose renderebbe impossibile sapere quale delle due ha
 sbagliato.
 
 `tesseract.js` scarica i dati di lingua (`ita`, `eng`) alla prima lettura e li
-tiene in cache. Sulla prima richiesta dopo un avvio a freddo aggiunge qualche
-secondo.
+tiene in cache sotto la cartella temporanea di sistema — non nella directory di
+lavoro, che è dove li metterebbe da solo e dove su un runtime serverless non si
+può scrivere. La cartella va **creata**: senza, tesseract non fallisce, non
+mette niente in cache e riscarica otto megabyte a ogni lettura.
+
+### Due trappole di distribuzione
+
+Nessuna delle due si vede in locale, dove `node_modules` c'è comunque. Entrambe
+si manifestano solo in produzione, e come «motore non installato» su una
+macchina dove è installato benissimo.
+
+**Il nome del pacchetto va scritto per esteso.** Un `import` con il nome
+composto a runtime — comodo per tenere una dipendenza facoltativa fuori
+dall'analisi statica — lo nasconde anche allo strumento che decide quali file
+salgono sulla funzione. Da quando tesseract sta in `package.json` la furbizia
+non serve, e fa danno.
+
+**Il core WebAssembly va incluso a mano**, con `outputFileTracingIncludes` in
+`next.config.ts`. `tesseract.js` risolve `tesseract.js-core` dentro il processo
+worker che avvia, e nessuna analisi statica può seguirlo: quei 43 MB non
+verrebbero caricati. L'inclusione è limitata alle sei rotte che referenziano
+davvero l'OCR — le altre restano a 6-8 MB invece di 50.
+
+Si includono **tutte** le varianti del core, non solo quella attesa: quale venga
+scelta dipende dal rilevamento di SIMD sulla macchina che esegue, e indovinare
+male significa OCR rotto in produzione e funzionante ovunque lo si provi.
 
 ---
 

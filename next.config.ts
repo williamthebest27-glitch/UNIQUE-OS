@@ -6,6 +6,37 @@ const nextConfig: NextConfig = {
   // avvia processi figli e carica un modello in WebAssembly: dentro un
   // bundle non trova piu ne i worker ne i dati di lingua.
   serverExternalPackages: ["pdfjs-dist", "tesseract.js"],
+
+  /*
+   * Il motore WebAssembly del riconoscimento ottico va caricato a mano
+   * sulle funzioni che lo usano.
+   *
+   * `tesseract.js` risolve `tesseract.js-core` a runtime, dentro il
+   * processo worker che avvia: nessuno strumento di analisi statica puo
+   * seguirlo, quindi la tracciatura dei file non lo include e su un
+   * runtime serverless quei 44 MB non salgono. In locale non si vede —
+   * `node_modules` c'e comunque — e in produzione l'import fallisce e il
+   * motore si dichiara «non installato» su una macchina dove e
+   * installato benissimo.
+   *
+   * Le rotte elencate sono quelle il cui bundle referenzia davvero
+   * tesseract: caricare tutto ovunque significherebbe 44 MB in piu su
+   * ogni funzione, e avviamenti a freddo piu lenti su pagine che l'OCR
+   * non lo toccano nemmeno.
+   *
+   * Si includono **tutte** le varianti del core e non solo quella attesa:
+   * quale venga scelta dipende dal rilevamento di SIMD sulla macchina che
+   * esegue, e indovinare male qui vuol dire OCR rotto in produzione e
+   * funzionante ovunque si provi.
+   */
+  outputFileTracingIncludes: {
+    "/api/documenti": ["./node_modules/tesseract.js-core/**/*"],
+    "/documenti": ["./node_modules/tesseract.js-core/**/*"],
+    "/pro/revisioni": ["./node_modules/tesseract.js-core/**/*"],
+    "/pro/pazienti/[id]/documenti": ["./node_modules/tesseract.js-core/**/*"],
+    "/pro/pazienti/[id]/documenti/[docId]": ["./node_modules/tesseract.js-core/**/*"],
+    "/pro/pazienti/[id]/visita": ["./node_modules/tesseract.js-core/**/*"],
+  },
   reactStrictMode: true,
   // Il badge di sviluppo copre l angolo in basso a sinistra, dove vive
   // il profilo nella barra laterale.
