@@ -42,58 +42,58 @@ interface Riga {
 const RIGHE: Riga[] = [
   {
     codice: "LAB",
-    fonte: "Labs",
+    fonte: "Laboratorio",
     dato: "HbA1c 5.1 %   ·   LDL 118 mg/dL   ·   hs-CRP 0.7",
     lettura: "Metabolismo stabile. Il colesterolo è la leva rimasta.",
   },
   {
-    codice: "SLP",
-    fonte: "Sleep",
+    codice: "SON",
+    fonte: "Sonno",
     dato: "7h 12m   ·   efficienza 84 %   ·   profondo 14 %",
     lettura: "Dorme abbastanza. La fase profonda è corta.",
   },
   {
     codice: "MOV",
-    fonte: "Movement",
+    fonte: "Movimento",
     dato: "9 240 passi/d   ·   3 sessioni   ·   142 min",
     lettura: "Il volume c'è. L'intensità resta sotto soglia.",
   },
   {
     codice: "NUT",
-    fonte: "Nutrition",
+    fonte: "Nutrizione",
     dato: "1 980 kcal   ·   proteine 1.4 g/kg   ·   fibra 26 g",
     lettura: "Apporto proteico in target, aderenza alta.",
   },
   {
-    codice: "BOD",
-    fonte: "Body",
+    codice: "COR",
+    fonte: "Corpo",
     dato: "massa magra 58.2 kg   ·   grasso 18.4 %",
     lettura: "Composizione in miglioramento da due rilevazioni.",
   },
   {
     codice: "REC",
-    fonte: "Recovery",
+    fonte: "Recupero",
     dato: "HRV 62 ms   ·   riposo 54 bpm   ·   carico 0.9",
     lettura: "Recupero pieno: c'è margine per caricare.",
   },
   {
-    codice: "ASM",
-    fonte: "Assessment",
+    codice: "VAL",
+    fonte: "Valutazione",
     dato: "PSS-10  14   ·   PSQI  6   ·   IPAQ  moderato",
     lettura: "Lo stress percepito è in calo da 90 giorni.",
   },
   {
-    codice: "CLN",
-    fonte: "Clinical",
+    codice: "CLI",
+    fonte: "Clinica",
     dato: "3 referti   ·   2 visite   ·   1 revisione medica",
     lettura: "Quadro clinico coerente, nulla in sospeso.",
   },
 ];
 
 const STADI = [
-  { chiave: "DATA", nota: "ciò che è stato misurato" },
-  { chiave: "INSIGHT", nota: "ciò che significa" },
-  { chiave: "ACTION", nota: "ciò che va fatto" },
+  { chiave: "DATO", nota: "ciò che è stato misurato" },
+  { chiave: "LETTURA", nota: "ciò che significa" },
+  { chiave: "AZIONE", nota: "ciò che va fatto" },
 ] as const;
 
 export function DataIntelligence() {
@@ -165,12 +165,13 @@ export function DataIntelligence() {
   return (
     <section ref={rif} id="intelligenza" className="os-sezione">
       <div className="os-gabbia">
-        <header>
+        <header className="os-testata">
           <Etichetta indice="02" tono="mente">
-            Data · Intelligence · Action
+            Dati · Intelligenza · Azione
           </Etichetta>
           <Titolo
-            testo={"Eight streams enter.\nOne decision leaves."}
+            zoom
+            testo={"Entrano otto flussi.\nEsce una decisione."}
             className="mt-7 text-[clamp(2.05rem,5.4vw,4.4rem)]"
           />
           <Entra tag="p" className="os-corpo mt-7 max-w-[50ch]">
@@ -293,14 +294,14 @@ export function DataIntelligence() {
               }}
             >
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                <p className="os-mono text-[color:var(--os-azione)]">Next best action</p>
+                <p className="os-mono text-[color:var(--os-azione)]">La mossa successiva</p>
                 <span
                   aria-hidden="true"
                   className="hidden h-px flex-1 sm:block"
                   style={{ background: "var(--os-oro-bordo)" }}
                 />
                 <p className="os-mono text-[color:var(--os-appena)]">
-                  Cardiovascular · priorità 01
+                  Cardiovascolare · priorità 01
                 </p>
               </div>
 

@@ -4,9 +4,15 @@
  * Questo file non importa nulla, di proposito: il motore di calcolo deve
  * poter girare sotto `node --test` senza il resolver di Next.
  *
- * Le etichette restano in inglese perché sono nomi di prodotto, come
- * "Unique Longevity Score": il paziente italiano e il materiale
- * commerciale devono leggere le stesse parole.
+ * Le etichette sono in italiano: le legge un paziente italiano, in una
+ * clinica italiana, e nessuna di esse è un nome registrato. Resta in
+ * inglese solo ciò che è marchio — "Unique OS", "Unique Longevity
+ * Clinic", "Unique Longevity Score" — perché quello è un nome, non una
+ * parola.
+ *
+ * Le chiavi (`PILLAR_KEYS`) restano invariate: sono l'identità del
+ * pilastro nel database e nelle API, e tradurle vorrebbe dire migrare
+ * dati per un motivo estetico.
  */
 export const PILLAR_KEYS = [
   "metabolic_health",
@@ -21,13 +27,13 @@ export const PILLAR_KEYS = [
 export type PillarKey = (typeof PILLAR_KEYS)[number];
 
 export const PILLAR_LABELS: Record<PillarKey, string> = {
-  metabolic_health: "Metabolic Health",
-  cardiovascular: "Cardiovascular",
-  body_composition: "Body Composition",
-  movement: "Movement",
-  nutrition: "Nutrition",
-  mental_wellbeing: "Mental Wellbeing",
-  lifestyle: "Lifestyle",
+  metabolic_health: "Salute metabolica",
+  cardiovascular: "Cardiovascolare",
+  body_composition: "Composizione corporea",
+  movement: "Movimento",
+  nutrition: "Nutrizione",
+  mental_wellbeing: "Benessere mentale",
+  lifestyle: "Stile di vita",
 };
 
 /**

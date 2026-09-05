@@ -150,7 +150,7 @@ export default async function ComandoClinicoPage() {
               href="/pro/revisioni"
             />
             <Numero
-              etichetta="Reassessment"
+              etichetta="Rivalutazione"
               valore={c.numeri.reassessment}
               nota="Score non recente"
               tono="quieto"

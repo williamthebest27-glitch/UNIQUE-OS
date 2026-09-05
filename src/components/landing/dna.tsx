@@ -160,8 +160,8 @@ export function DnaFilm() {
         <div className="os-film-velo" aria-hidden="true" />
 
         <div className="os-film-testo">
-          <Etichetta tono="dato">The film</Etichetta>
-          <h2 className="os-film-titolo">Intelligence in your DNA.</h2>
+          <Etichetta tono="dato">Il filmato</Etichetta>
+          <h2 className="os-film-titolo">Intelligenza nel tuo DNA.</h2>
           <p className="os-film-riga">
             Scorri: il filmato avanza con te. Dal dato grezzo alla decisione,
             negli stessi otto secondi che al sistema servono per arrivarci.

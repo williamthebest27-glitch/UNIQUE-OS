@@ -157,8 +157,9 @@ export function FinalCTA({
       </div>
 
       <Titolo
+        zoom
         tag="h2"
-        testo={"You've seen the system.\nNow use it."}
+        testo={"Hai visto il sistema.\nAdesso usalo."}
         className="mt-9 text-[clamp(2.4rem,7.4vw,5.6rem)]"
       />
 

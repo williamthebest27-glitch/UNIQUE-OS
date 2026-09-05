@@ -8,7 +8,7 @@ import { MorningBrief } from "@/components/control/morning-brief";
 import { formatEuro, formatPercent } from "@/lib/format";
 import { Kpi, KpiStrip, Panel, Riga, Vuoto } from "@/components/control/primitives";
 
-export const metadata: Metadata = { title: "Control Center" };
+export const metadata: Metadata = { title: "Direzione" };
 export const dynamic = "force-dynamic";
 
 const MESI = [
@@ -34,7 +34,7 @@ export default async function ControlPage() {
 
   if (!dati) {
     return (
-      <Panel title="Control Center">
+      <Panel title="Direzione">
         <Vuoto>
           {isSupabaseConfigured()
             ? "Il tuo profilo non ha i permessi di direzione."

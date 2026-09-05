@@ -32,13 +32,13 @@ interface Anello {
 
 const CATENA: Anello[] = [
   {
-    chiave: "DATA",
+    chiave: "DATO",
     titolo: "Il numero",
     righe: ["LDL 118 mg/dL", "apoB 96 mg/dL", "hs-CRP 0.7 mg/L", "rilevato il 28.08"],
     tono: "dato",
   },
   {
-    chiave: "CONTEXT",
+    chiave: "CONTESTO",
     titolo: "Tutto il resto che il sistema sa",
     righe: [
       "48 anni · familiarità cardiovascolare",
@@ -49,7 +49,7 @@ const CATENA: Anello[] = [
     tono: "dato",
   },
   {
-    chiave: "INTELLIGENCE",
+    chiave: "INTELLIGENZA",
     titolo: "La regola che si è attivata, e perché",
     righe: [
       "pilastro cardiovascolare sotto il potenziale",
@@ -60,7 +60,7 @@ const CATENA: Anello[] = [
     tono: "mente",
   },
   {
-    chiave: "NEXT BEST ACTION",
+    chiave: "LA MOSSA SUCCESSIVA",
     titolo: "La proposta, al medico",
     righe: [
       "anticipare il pannello lipidico di 30 giorni",
@@ -123,12 +123,13 @@ export function NextBestAction() {
   return (
     <section ref={rif} className="os-sezione">
       <div className="os-gabbia">
-        <header>
+        <header className="os-testata">
           <Etichetta indice="04" tono="azione">
-            Next best action
+            La mossa successiva
           </Etichetta>
           <Titolo
-            testo={"The next decision\nis the whole product."}
+            zoom
+            testo={"La prossima decisione\nè tutto il prodotto."}
             className="mt-7 text-[clamp(2.05rem,5.4vw,4.4rem)]"
           />
           <Entra tag="p" className="os-corpo mt-7 max-w-[52ch]">

@@ -36,7 +36,7 @@ interface Tappa {
 const TAPPE: Tappa[] = [
   {
     giorno: 1,
-    chiave: "Baseline",
+    chiave: "Partenza",
     titolo: "Si misura tutto",
     testo:
       "Prelievo, composizione corporea, parametri cardiovascolari, questionari. Da qui in poi ogni numero avrà un prima con cui essere confrontato.",
@@ -44,7 +44,7 @@ const TAPPE: Tappa[] = [
   },
   {
     giorno: 30,
-    chiave: "Adapt",
+    chiave: "Adattamento",
     titolo: "Il piano incontra la vita vera",
     testo:
       "Il primo mese non serve a migliorare: serve a scoprire cosa regge davvero fra lavoro, viaggi e famiglia. Il piano si corregge su quello, non sull'ideale.",
@@ -52,7 +52,7 @@ const TAPPE: Tappa[] = [
   },
   {
     giorno: 60,
-    chiave: "Optimize",
+    chiave: "Ottimizzazione",
     titolo: "Si spinge dove risponde",
     testo:
       "A due mesi i segnali dicono quale leva sta funzionando. L'intensità si sposta lì, e si toglie da dove non stava cambiando niente.",
@@ -60,7 +60,7 @@ const TAPPE: Tappa[] = [
   },
   {
     giorno: 90,
-    chiave: "Reassess",
+    chiave: "Rivalutazione",
     titolo: "Gli stessi esami, un altro momento",
     testo:
       "Non un nuovo inizio: la seconda misura della stessa scala. Il ciclo successivo parte da qui, con quello che si è imparato.",
@@ -194,18 +194,17 @@ export function JourneyTimeline() {
   return (
     <section ref={rif} id="percorso" className="os-sezione">
       <div className="os-gabbia">
-        <header className="flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <Etichetta indice="06" tono="azione">
-              90-day cycle
-            </Etichetta>
-            <Titolo
-              testo={"Not a visit.\nA cycle that\nnever closes."}
-              className="mt-7 text-[clamp(2.05rem,5.4vw,4.4rem)]"
-            />
-          </div>
+        <header className="os-testata">
+          <Etichetta indice="06" tono="azione">
+            Ciclo di 90 giorni
+          </Etichetta>
+          <Titolo
+            zoom
+            testo={"Non una visita.\nUn ciclo che\nnon si chiude mai."}
+            className="mt-7 text-[clamp(2.05rem,5.4vw,4.4rem)]"
+          />
 
-          <Entra tag="p" className="os-corpo max-w-[42ch] lg:pb-3">
+          <Entra tag="p" className="os-corpo mt-7 max-w-[42ch]">
             Quattro momenti che si vedono, ottantasei giorni che non si vedono e
             contano di più. Il punteggio non salta: sale di quattro punti in tre
             mesi, ed è esattamente quello che un percorso serio può promettere.
@@ -317,7 +316,7 @@ export function JourneyTimeline() {
             >
               <div className="flex items-baseline justify-between gap-3">
                 <p className="os-mono text-[color:var(--os-appena)]">
-                  Day {String(t.giorno).padStart(2, "0")}
+                  Giorno {String(t.giorno).padStart(2, "0")}
                 </p>
                 <p
                   className={cx(

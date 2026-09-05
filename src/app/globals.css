@@ -73,13 +73,29 @@
 
   /* La curva di tutto ciò che si muove: parte deciso, arriva piano. */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* La crenatura secondo Apple: non un valore solo, ma una scala che si
+     stringe man mano che il corpo cresce. È metà di quel che fa leggere
+     "Apple" a un titolo — l'altra metà è il peso semibold. */
+  --tracking-hero: -0.022em; /* oltre i 64px */
+  --tracking-titolo: -0.018em; /* 28–48px */
+  --tracking-sotto: -0.012em; /* 19–24px */
+  --tracking-corpo: -0.011em; /* 15–17px */
+  --tracking-ui: -0.005em; /* fino a 14px */
 }
 
 /* I font arrivano da next/font come variabili sull'elemento html:
    qui servono come `inline`, altrimenti Tailwind le congela al build. */
 @theme inline {
-  --font-display: var(--font-fraunces), ui-serif, "Iowan Old Style", Georgia, serif;
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* La pila è quella di apple.com, nell'ordine che conta: su hardware
+     Apple `-apple-system` restituisce San Francisco — il carattere
+     vero, con la sua griglia ottica e il suo kerning — e altrove si
+     scende su Inter. I nomi espliciti in mezzo servono alle macchine
+     dove SF Pro è stato installato a mano. Display e testo non sono
+     più due caratteri diversi: sono lo stesso carattere a due tagli
+     ottici, che è esattamente il modo in cui Apple lo usa. */
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", var(--font-inter), "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", var(--font-inter), "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 @layer base {
@@ -91,16 +107,25 @@
     background-color: var(--color-bone-100);
     color: var(--color-ink-900);
     font-family: var(--font-sans);
+    /* L'asse ottico fa da sé quel che Apple ottiene cambiando file fra
+       SF Pro Text e SF Pro Display: sotto i 20px la lettera si apre,
+       sopra si stringe.
+       Niente più `cv11`: la "a" a un piano è l'unico dettaglio di Inter
+       che si riconosce subito come "non San Francisco". */
+    font-optical-sizing: auto;
+    letter-spacing: var(--tracking-corpo);
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
-    font-feature-settings: "cv11", "ss01";
   }
 
-  /* Fraunces ha un asse ottico: i numeri grandi vanno letti con il
-     disegno da display, non con quello da testo. */
+  /* Titoli e numeri: taglio da display, semibold, stretto. Il 600 è il
+     peso con cui Apple scrive ogni titolo — sotto la pagina si sgonfia,
+     sopra diventa un'insegna. */
   .font-display {
-    font-variation-settings: "opsz" 144, "SOFT" 30, "WONK" 0;
-    letter-spacing: -0.015em;
+    font-weight: 600;
+    letter-spacing: var(--tracking-titolo);
+    font-optical-sizing: auto;
   }
 
   /* I numeri in colonna devono restare allineati fra loro. */
@@ -402,13 +427,15 @@
       linear-gradient(0deg, rgb(20 19 19 / 0.7) 0%, rgb(20 19 19 / 0) 40%);
   }
 
-  /* Il numero: enorme, leggero, con il disegno da display. */
+  /* Il numero: enorme, semibold, con il disegno da display. A questo
+     corpo la crenatura va al minimo della scala, o le cifre si leggono
+     come tre oggetti separati invece che come un numero. */
   .score-figure {
     font-family: var(--font-display);
-    font-variation-settings: "opsz" 144, "SOFT" 50, "WONK" 1;
-    font-weight: 300;
-    letter-spacing: -0.04em;
+    font-weight: 600;
+    letter-spacing: var(--tracking-hero);
     line-height: 0.85;
+    font-optical-sizing: auto;
   }
 
   /* Il glow che la Signature proietta oltre il proprio bordo. */
@@ -616,10 +643,12 @@
 
   .os-display {
     font-family: var(--font-display);
-    font-variation-settings: "opsz" 144, "SOFT" 40, "WONK" 1;
-    font-weight: 300;
-    line-height: 0.9;
-    letter-spacing: -0.035em;
+    font-weight: 600;
+    /* 1.05 è l'interlinea dei titoli di apple.com: sotto, in semibold,
+       le ascendenti della riga dopo toccano le discendenti di sopra. */
+    line-height: 1.05;
+    letter-spacing: var(--tracking-hero);
+    font-optical-sizing: auto;
     text-wrap: balance;
   }
 
@@ -651,11 +680,11 @@
 
   .os-cifra {
     font-family: var(--font-display);
-    font-variation-settings: "opsz" 144, "SOFT" 50, "WONK" 1;
-    font-weight: 300;
-    letter-spacing: -0.045em;
+    font-weight: 600;
+    letter-spacing: var(--tracking-hero);
     font-variant-numeric: tabular-nums;
-    line-height: 0.82;
+    font-optical-sizing: auto;
+    line-height: 0.9;
   }
 
   /* Il corpo del testo, sul nero: mai bianco pieno, mai troppo largo. */
@@ -671,6 +700,30 @@
       font-size: 17px;
       line-height: 1.6;
     }
+  }
+
+  /* ── La testata di sezione ──────────────────────────────────────
+     Numero, titolo e chiosa sull'asse della pagina.
+
+     Centrare non è un vezzo: l'hero apre al centro e il finale chiude
+     al centro, e le otto sezioni in mezzo tenevano un allineamento
+     diverso — la pagina cambiava impaginazione due volte per tornare
+     da dove era partita. Un asse solo, dall'inizio alla fine. */
+
+  .os-testata {
+    text-align: center;
+  }
+
+  /* La micro-etichetta è una riga flex: senza questo il gruppo
+     numero–filo–nome resterebbe a sinistra dentro un blocco centrato. */
+  .os-testata .os-mono {
+    justify-content: center;
+  }
+
+  /* Le chiose hanno una misura in `ch`: centrare il testo senza
+     centrare anche la colonna lascerebbe il blocco a sinistra. */
+  .os-testata .os-corpo {
+    margin-inline: auto;
   }
 
   /* ── Misure ─────────────────────────────────────────────────────
@@ -728,6 +781,47 @@
      Su schermo largo. Sul telefono il buio è tolto — il fotogramma è
      alto un quarto dello schermo e il resto sarebbe un rettangolo vuoto:
      vedi il blocco «Il film sul telefono» in fondo a questa sezione. */
+  /* ── La lettura del corpo ───────────────────────────────────────
+     A sinistra il filmato mosso dallo scorrimento, a destra le battute
+     che entrano ed escono. Le due colonne sono una griglia normale: qui
+     sotto c'è solo ciò che cambia *quando la scena esiste*.
+
+     Senza JavaScript, o con movimento ridotto, le battute restano una
+     sotto l'altra e si leggono tutte, il filmato mostra la posa e il
+     comando per guardarlo. Lo stato di riposo è quello finale, come
+     ovunque su questa pagina. */
+
+  .os-lettura-passi {
+    display: grid;
+    gap: 2.25rem;
+  }
+
+  /* Con la scena accesa le battute si impilano nella stessa cella: da lì
+     in poi a scoprirle è l'opacità, non il flusso. Un'altezza minima
+     tiene ferma la colonna — senza, la griglia si alzerebbe e
+     abbasserebbe a ogni cambio di battuta. */
+  [data-scorre] .os-lettura-passi {
+    gap: 0;
+    align-content: center;
+    min-height: 17rem;
+  }
+
+  [data-scorre] .os-lettura-passi > * {
+    grid-area: 1 / 1;
+  }
+
+  /* Il filmato ha il fondo bianco come la pagina: `multiply` lo fa
+     sparire e lascia solo la figura, che così sta *sulla* carta invece
+     che dentro un rettangolo appoggiato sopra. */
+  .os-lettura-video {
+    mix-blend-mode: multiply;
+  }
+
+  /* Il comando esiste solo dove il filmato non lo muove lo scorrimento. */
+  [data-scorre] .os-lettura-avvia {
+    display: none;
+  }
+
   .os-film {
     position: relative;
   }
@@ -783,9 +877,11 @@
   .os-film-titolo {
     margin-top: 18px;
     font-family: var(--font-display);
+    font-weight: 600;
     font-size: clamp(1.9rem, 5vw, 3.6rem);
-    line-height: 1.02;
-    letter-spacing: -0.02em;
+    line-height: 1.06;
+    letter-spacing: var(--tracking-titolo);
+    font-optical-sizing: auto;
   }
 
   .os-film-riga {

@@ -110,12 +110,13 @@ export function ProductInterface() {
   return (
     <section ref={rif} id="piattaforma" className="os-sezione">
       <div className="os-gabbia">
-        <header>
+        <header className="os-testata">
           <Etichetta indice="08" tono="dato">
-            The platform
+            La piattaforma
           </Etichetta>
           <Titolo
-            testo={"Everything above\nfits on one screen."}
+            zoom
+            testo={"Tutto questo\nsta in una schermata."}
             className="mt-7 text-[clamp(2.05rem,5.4vw,4.4rem)]"
           />
           <Entra tag="p" className="os-corpo mt-7 max-w-[50ch]">
@@ -152,7 +153,7 @@ export function ProductInterface() {
               <span className="ml-auto flex items-center gap-2">
                 <span className="os-vivo" />
                 <span className="os-mono hidden text-[color:var(--os-appena)] sm:inline">
-                  Patient
+                  Paziente
                 </span>
               </span>
             </div>
@@ -243,11 +244,11 @@ export function ProductInterface() {
                 <ul className="mt-7 grid gap-x-8 gap-y-2.5 sm:grid-cols-2">
                   {PILLAR_KEYS.map((chiave, i) => (
                     <li key={chiave} className="flex items-center gap-3">
-                      {/* La spaziatura monospaziata è larga: a 92 px
-                          "Mental Wellbeing" si tagliava a metà parola, e
-                          un'etichetta troncata su un pannello che deve
+                      {/* La spaziatura monospaziata è larga: a 124 px
+                          "Composizione corporea" si taglia a metà parola,
+                          e un'etichetta troncata su un pannello che deve
                           sembrare vero si legge come un difetto. */}
-                      <span className="os-mono w-[104px] shrink-0 truncate text-[9.5px] tracking-[0.1em] text-[color:var(--os-tenue)] sm:w-[124px]">
+                      <span className="os-mono w-[124px] shrink-0 truncate text-[9.5px] tracking-[0.1em] text-[color:var(--os-tenue)] sm:w-[150px]">
                         {PILLAR_LABELS[chiave]}
                       </span>
                       <span
@@ -333,19 +334,19 @@ export function ProductInterface() {
         <ul className="mt-14 grid gap-px sm:mt-16 lg:grid-cols-3" style={{ background: "var(--os-riga)" }}>
           {[
             {
-              chiave: "Patient",
+              chiave: "Paziente",
               titolo: "Il tuo percorso, non il tuo referto",
               testo:
                 "Punteggio, piano, prossimo passo, documenti, appuntamenti. Scritto per essere capito senza un medico accanto.",
             },
             {
-              chiave: "Professional",
+              chiave: "Professionista",
               titolo: "Cinque minuti prima della visita",
               testo:
                 "Cartella, timeline, copilota clinico, revisione dei referti. Tutto ciò che serve per entrare preparati, e niente altro.",
             },
             {
-              chiave: "Control",
+              chiave: "Direzione",
               titolo: "La clinica, in numeri",
               testo:
                 "Economia, capacità, CRM, approvazioni, contenuti. Il livello che decide, con davanti i dati veri.",

@@ -77,6 +77,11 @@ export function Etichetta({
  * ha un trigger che scatta prima ancora che si sia scorso, e sul telefono
  * lo scatto cade sotto al sipario d'avvio. `attendiSipario` gli dice di
  * aspettare la scena scoperta, come fa l'accensione attorno a lui.
+ *
+ * Con `zoom` il titolo prende anche la spinta di camera: entra a tre
+ * quarti della sua misura e ci arriva mentre la pagina scorre. È legata
+ * allo scorrimento e non a un tempo, quindi la governa il dito — chi si
+ * ferma, la ferma; chi torna su, la riavvolge.
  */
 export function Titolo({
   testo,
@@ -84,6 +89,7 @@ export function Titolo({
   tag: Tag = "h2",
   ritardo = 0,
   attendiSipario = false,
+  zoom = false,
 }: {
   testo: string;
   className?: string;
@@ -91,8 +97,43 @@ export function Titolo({
   ritardo?: number;
   /** Solo per il titolo dell'hero: sale quando il sipario si alza. */
   attendiSipario?: boolean;
+  /** Il titolo entra piccolo e cresce mentre la pagina prosegue. */
+  zoom?: boolean;
 }) {
   const rif = useScena<HTMLElement>(({ gsap, radice, ridotta }) => {
+    /* La spinta di camera.
+     *
+     * Il titolo entra a tre quarti e arriva a grandezza naturale quando
+     * è circa a metà schermo. `scrub` lo lega alla posizione della
+     * pagina invece che a un tempo: non è un'animazione che parte, è il
+     * titolo che sta in un posto diverso a seconda di dove sei.
+     *
+     * Il fondo scala è 1 e non oltre, ed è una misura di sicurezza
+     * prima che una scelta: un titolo che cresce sopra la propria
+     * misura esce dalla gabbia, e sul telefono la gabbia lascia venti
+     * pixel per lato. Il ritardo di 0.6 sullo scrub è quel tanto di
+     * inerzia che toglie lo scatto alla rotellina senza far sembrare
+     * che il titolo insegua la pagina.
+     *
+     * Le parole hanno la loro salita, e le due cose non si pestano i
+     * piedi: quella muove i figli, questa muove il blocco. */
+    if (zoom) {
+      gsap.fromTo(
+        radice,
+        { scale: 0.72 },
+        {
+          scale: 1,
+          ease: "none",
+          scrollTrigger: {
+            trigger: radice,
+            start: "top 92%",
+            end: "top 42%",
+            scrub: 0.6,
+          },
+        },
+      );
+    }
+
     const parole = radice.querySelectorAll<HTMLElement>("[data-parola]");
     if (parole.length === 0) return;
 

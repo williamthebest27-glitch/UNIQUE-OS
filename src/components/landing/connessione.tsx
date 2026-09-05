@@ -41,7 +41,7 @@ interface Vertice {
 
 const VERTICI: Vertice[] = [
   {
-    chiave: "PERSON",
+    chiave: "PERSONA",
     titolo: "La persona",
     testo:
       "Proprietaria dei propri dati. Vede un percorso, non un referto da interpretare da sola.",
@@ -51,7 +51,7 @@ const VERTICI: Vertice[] = [
     dy: -240,
   },
   {
-    chiave: "CLINIC",
+    chiave: "CLINICA",
     titolo: "La clinica",
     testo:
       "Medici, nutrizionisti, trainer. Una sola cartella, e a ciascuno ciò che gli compete.",
@@ -61,7 +61,7 @@ const VERTICI: Vertice[] = [
     dy: -240,
   },
   {
-    chiave: "DATA",
+    chiave: "DATI",
     titolo: "I dati",
     testo:
       "Referti, esami, misure, questionari, dispositivi. In un posto solo, su server europei.",
@@ -71,7 +71,7 @@ const VERTICI: Vertice[] = [
     dy: 240,
   },
   {
-    chiave: "INTELLIGENCE",
+    chiave: "INTELLIGENZA",
     titolo: "L'intelligenza",
     testo:
       "Legge tutto insieme, propone, allega i fatti — e si ferma prima della decisione.",
@@ -224,12 +224,13 @@ export function PatientClinicConnection() {
   return (
     <section ref={rif} className="os-sezione">
       <div className="os-gabbia">
-        <header>
+        <header className="os-testata">
           <Etichetta indice="07" tono="mente">
-            One system, four parties
+            Un sistema, quattro parti
           </Etichetta>
           <Titolo
-            testo={"The product isn't\nany of the four.\nIt's the fact they meet."}
+            zoom
+            testo={"Il prodotto non è\nnessuno dei quattro.\nÈ il punto in cui si incontrano."}
             className="mt-7 text-[clamp(2.05rem,5.4vw,4.4rem)]"
           />
           <Entra tag="p" className="os-corpo mt-7 max-w-[52ch]">

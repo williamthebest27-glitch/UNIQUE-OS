@@ -56,10 +56,10 @@ export function useRegia(): ValoreRegia {
 
 /** Le ancore che la navigazione conosce, nell'ordine in cui si incontrano. */
 export const ANCORE = [
-  { id: "sistema", etichetta: "System" },
-  { id: "intelligenza", etichetta: "Intelligence" },
-  { id: "percorso", etichetta: "Journey" },
-  { id: "piattaforma", etichetta: "Platform" },
+  { id: "sistema", etichetta: "Sistema" },
+  { id: "intelligenza", etichetta: "Intelligenza" },
+  { id: "percorso", etichetta: "Percorso" },
+  { id: "piattaforma", etichetta: "Piattaforma" },
 ] as const;
 
 export function Regia({ children }: { children: ReactNode }) {

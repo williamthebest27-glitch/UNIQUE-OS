@@ -26,12 +26,20 @@ export interface ExportOptions {
 
 export type ExportOutcome = "shared" | "downloaded";
 
+/**
+ * La stessa pila del CSS, scritta per esteso: `ctx.font` non legge le
+ * variabili CSS. Su hardware Apple esce San Francisco, altrove Inter.
+ */
+const PILA = `-apple-system, BlinkMacSystemFont, "SF Pro Display", Inter, "Segoe UI", Helvetica, Arial, sans-serif`;
+
 async function caricaFont(): Promise<void> {
   if (!document.fonts?.load) return;
-  // Se il caricamento fallisce si disegna con il ripiego: l'immagine esce lo stesso.
+  // San Francisco è già dentro il sistema: qui si aspetta solo Inter, il
+  // ripiego. Se il caricamento fallisce si disegna con quel che c'è —
+  // l'immagine esce lo stesso.
   await Promise.allSettled([
-    document.fonts.load("300 300px Fraunces"),
-    document.fonts.load("400 40px Fraunces"),
+    document.fonts.load("600 300px Inter"),
+    document.fonts.load("600 40px Inter"),
     document.fonts.load("500 30px Inter"),
   ]);
 }
@@ -84,35 +92,35 @@ function componi(figura: HTMLCanvasElement, options: ExportOptions): HTMLCanvasE
 
   // ── Marchio, in alto ────────────────────────────────────────────
   ctx.fillStyle = bone;
-  ctx.font = "400 40px Fraunces, Georgia, serif";
+  ctx.font = `600 40px ${PILA}`;
   ctx.textBaseline = "top";
   ctx.letterSpacing = "0.28em";
   ctx.fillText("UNIQUE", margine, margine);
 
-  ctx.font = "500 18px Inter, system-ui, sans-serif";
+  ctx.font = `500 18px ${PILA}`;
   ctx.letterSpacing = "0.3em";
   ctx.fillStyle = "rgba(255,255,255,0.5)";
   ctx.fillText("LONGEVITY CLINIC", margine, margine + 56);
 
   // ── Etichetta e punteggio, in basso ─────────────────────────────
   ctx.letterSpacing = "0.22em";
-  ctx.font = "500 22px Inter, system-ui, sans-serif";
+  ctx.font = `500 22px ${PILA}`;
   ctx.fillStyle = "rgba(255,255,255,0.55)";
   ctx.textBaseline = "alphabetic";
   ctx.fillText("UNIQUE LONGEVITY SCORE", margine, H - margine - 250);
 
-  ctx.letterSpacing = "-0.04em";
-  ctx.font = "300 300px Fraunces, Georgia, serif";
+  ctx.letterSpacing = "-0.022em";
+  ctx.font = `600 300px ${PILA}`;
   ctx.fillStyle = bone;
   ctx.fillText(options.scoreLabel, margine - 12, H - margine - 8);
 
   const larghezza = ctx.measureText(options.scoreLabel).width;
   ctx.letterSpacing = "0";
-  ctx.font = "400 56px Fraunces, Georgia, serif";
+  ctx.font = `500 56px ${PILA}`;
   ctx.fillStyle = "rgba(255,255,255,0.35)";
   ctx.fillText("/100", margine + larghezza + 6, H - margine - 8);
 
-  ctx.font = "500 24px Inter, system-ui, sans-serif";
+  ctx.font = `500 24px ${PILA}`;
   ctx.fillStyle = "rgba(255,255,255,0.5)";
   ctx.textAlign = "right";
   ctx.fillText(options.dateLabel, W - margine, H - margine - 8);

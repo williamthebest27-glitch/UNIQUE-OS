@@ -14,16 +14,17 @@ import { ImageResponse } from "next/og";
  * dentro un'anteprima non c'è spazio per altro: il vuoto, il marchio, la
  * frase, e la riga di stato con i numeri veri del prodotto.
  *
- * Il carattere è quello predefinito di `next/og`: Fraunces vive come
- * carattere variabile servito dal browser e non arriva fin qui senza una
- * richiesta di rete a tempo di build, che su un runner senza uscita
- * fallirebbe l'intera compilazione. Meglio una copertina che si genera
- * sempre, disegnata per il carattere che ha davvero — maiuscoletto
- * spaziato e peso leggero — che una che a volte non esiste.
+ * Il carattere è quello predefinito di `next/og`: San Francisco vive
+ * dentro il sistema operativo di chi guarda, e qui non guarda nessuno —
+ * Satori disegna su un runner. Andare a prendere Inter via rete a tempo
+ * di build fallirebbe l'intera compilazione su una macchina senza
+ * uscita. Meglio una copertina che si genera sempre, disegnata per il
+ * carattere che ha davvero — maiuscoletto spaziato e peso leggero — che
+ * una che a volte non esiste.
  */
 
 export const alt =
-  "Unique OS — The intelligence behind your longevity. Il sistema operativo digitale di Unique Longevity Clinic.";
+  "Unique OS — L'intelligenza dietro la tua longevità. Il sistema operativo digitale di Unique Longevity Clinic.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -40,10 +41,10 @@ async function marchio(): Promise<string | null> {
 }
 
 const STATO = [
-  ["PILLARS", "07"],
-  ["SIGNALS", "35"],
-  ["SOURCES", "11"],
-  ["CYCLE", "90d"],
+  ["PILASTRI", "07"],
+  ["SEGNALI", "35"],
+  ["SORGENTI", "11"],
+  ["CICLO", "90g"],
 ] as const;
 
 export default async function OpenGraphImage() {
@@ -97,7 +98,7 @@ export default async function OpenGraphImage() {
               marginBottom: 26,
             }}
           >
-            THE SYSTEM BEHIND PREVENTIVE MEDICINE
+            IL SISTEMA DIETRO LA MEDICINA PREVENTIVA
           </div>
 
           <div
@@ -110,8 +111,8 @@ export default async function OpenGraphImage() {
               letterSpacing: -2.6,
             }}
           >
-            <span>The intelligence</span>
-            <span>behind your longevity.</span>
+            <span>L&apos;intelligenza</span>
+            <span>dietro la tua longevità.</span>
           </div>
         </div>
 

@@ -36,49 +36,49 @@ interface Stadio {
 
 const STADI: Stadio[] = [
   {
-    chiave: "Baseline",
+    chiave: "Partenza",
     titolo: "Tutto quello che sei,\nmisurato una volta.",
     testo:
       "Ematochimica, composizione corporea, ECG, spirometria, test da sforzo, anamnesi, questionari validati. Non uno screening: un punto di partenza da cui si può misurare un cambiamento.",
     esito: "Unique Longevity Score · 7 pilastri",
   },
   {
-    chiave: "Assessment",
+    chiave: "Valutazione",
     titolo: "Legge un medico,\nnon un algoritmo.",
     testo:
       "Il sistema prepara, ordina, evidenzia ciò che non torna. La lettura resta clinica, e resta firmata. Nessuna proposta arriva al paziente senza essere passata da qui.",
     esito: "Revisione clinica · firma del professionista",
   },
   {
-    chiave: "Strategy",
+    chiave: "Strategia",
     titolo: "Un piano in cui ogni riga\nha un perché.",
     testo:
       "Ogni intervento è appeso al segnale che l'ha motivato. Chi lo legge — il paziente, il nutrizionista, il medico dell'anno prossimo — può risalire al dato senza fidarsi sulla parola.",
     esito: "Percorso personale · obiettivi misurabili",
   },
   {
-    chiave: "Intervention",
+    chiave: "Intervento",
     titolo: "Nutrizione, movimento,\nrecupero, integrazione.",
     testo:
       "Il piano diventa settimane. Ogni professionista lavora nella stessa cartella e vede cosa hanno fatto gli altri: è la differenza fra un percorso e quattro consulenze scollegate.",
     esito: "Team clinico · un'unica cartella",
   },
   {
-    chiave: "Monitoring",
+    chiave: "Monitoraggio",
     titolo: "Ogni giorno,\nnon ogni sei mesi.",
     testo:
       "Aderenza, sonno, carico, recupero. Il sistema non aspetta la prossima visita per accorgersi che qualcosa si è fermato: se ne accorge quando succede, e lo dice.",
     esito: "Segnali continui · avvisi al team",
   },
   {
-    chiave: "Reassessment",
+    chiave: "Rivalutazione",
     titolo: "Gli stessi esami,\nla stessa scala.",
     testo:
       "Rimisurare con un metodo diverso non è rimisurare. Le curve di normalizzazione e la versione del calcolo restano registrate: un cambio di formula non può mai passare per un miglioramento.",
-    esito: "Nuovo Score · confronto con la baseline",
+    esito: "Nuovo Score · confronto con la partenza",
   },
   {
-    chiave: "Evolution",
+    chiave: "Evoluzione",
     titolo: "Il piano cambia\nperché sei cambiato tu.",
     testo:
       "E il ciclo riparte — da dove è arrivato, non da capo. È questo che rende Unique OS un sistema operativo e non un referto: non conserva il tuo passato, lo usa.",
@@ -104,7 +104,7 @@ export function LivingSystem() {
 
       /* La corsa si ricalcola a ogni `refresh`: la larghezza del binario
          dipende dal carattere, e un valore congelato al primo montaggio
-         manderebbe l'ultima scheda mezza fuori schermo appena Fraunces
+         manderebbe l'ultima scheda mezza fuori schermo appena Inter
          finisce di caricare. */
       const corsa = () => Math.max(0, binario.scrollWidth - palco.clientWidth);
 
@@ -174,12 +174,13 @@ export function LivingSystem() {
   return (
     <section ref={rif} className="os-sezione pb-0">
       <div className="os-gabbia">
-        <header>
+        <header className="os-testata">
           <Etichetta indice="05" tono="dato">
-            Living system
+            Sistema vivo
           </Etichetta>
           <Titolo
-            testo={"Your biology changes.\nYour system should too."}
+            zoom
+            testo={"La tua biologia cambia.\nIl sistema deve cambiare con lei."}
             className="mt-7 text-[clamp(2.05rem,5.4vw,4.4rem)]"
           />
           <Entra tag="p" className="os-corpo mt-7 max-w-[50ch]">
@@ -219,7 +220,7 @@ export function LivingSystem() {
               />
             </svg>
             <p className="os-corpo max-w-[24ch] text-[15px]">
-              E poi di nuovo <span className="text-[color:var(--os-piena)]">Assessment</span>,
+              E poi di nuovo <span className="text-[color:var(--os-piena)]">Valutazione</span>,
               con un corpo che nel frattempo è cambiato.
             </p>
           </li>
@@ -243,11 +244,11 @@ export function LivingSystem() {
           </div>
 
           <div className="mt-3.5 flex items-center justify-between">
-            <p className="os-mono text-[color:var(--os-appena)]">01 · Baseline</p>
+            <p className="os-mono text-[color:var(--os-appena)]">01 · Partenza</p>
             <p className="os-mono text-[color:var(--os-appena)]">
               Il ciclo non si chiude
             </p>
-            <p className="os-mono text-[color:var(--os-azione)]">07 · Evolution</p>
+            <p className="os-mono text-[color:var(--os-azione)]">07 · Evoluzione</p>
           </div>
         </div>
       </div>
@@ -285,7 +286,7 @@ export function LivingSystem() {
           <li className="relative pl-9">
             <p className="os-corpo text-[15px]">
               E poi di nuovo{" "}
-              <span className="text-[color:var(--os-piena)]">Assessment</span>, con un
+              <span className="text-[color:var(--os-piena)]">Valutazione</span>, con un
               corpo che nel frattempo è cambiato.
             </p>
           </li>

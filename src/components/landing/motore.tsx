@@ -28,11 +28,11 @@ import { cx } from "@/components/ui/primitives";
 
 /* I passi del motore, che si accendono lungo la sezione. */
 const PASSI = [
-  { chiave: "OBSERVE", testo: "Trentacinque segnali, per ogni persona, a ogni ciclo." },
-  { chiave: "CORRELATE", testo: "Non uno alla volta: tutti insieme, sulla stessa storia." },
-  { chiave: "DETECT", testo: "L'andamento che nessuna singola misura mostrava." },
-  { chiave: "PROPOSE", testo: "Un'ipotesi, con i fatti che l'hanno attivata allegati." },
-  { chiave: "DEFER", testo: "La decisione resta al medico. Sempre." },
+  { chiave: "OSSERVA", testo: "Trentacinque segnali, per ogni persona, a ogni ciclo." },
+  { chiave: "CORRELA", testo: "Non uno alla volta: tutti insieme, sulla stessa storia." },
+  { chiave: "RILEVA", testo: "L'andamento che nessuna singola misura mostrava." },
+  { chiave: "PROPONI", testo: "Un'ipotesi, con i fatti che l'hanno attivata allegati." },
+  { chiave: "AFFIDA", testo: "La decisione resta al medico. Sempre." },
 ] as const;
 
 const COLONNE = 16;
@@ -138,12 +138,13 @@ export function IntelligenceEngine() {
   return (
     <section ref={rif} className="os-sezione">
       <div className="os-gabbia">
-        <header>
+        <header className="os-testata">
           <Etichetta indice="03" tono="mente">
-            Personal intelligence
+            Intelligenza personale
           </Etichetta>
           <Titolo
-            testo={"It doesn't read your numbers.\nIt reads the line\nbetween them."}
+            zoom
+            testo={"Non legge i tuoi numeri.\nLegge la linea\nche li unisce."}
             className="mt-7 text-[clamp(2.05rem,5.4vw,4.4rem)]"
           />
         </header>
@@ -192,7 +193,7 @@ export function IntelligenceEngine() {
           {/* ── La matrice ─────────────────────────────────────── */}
           <figure className="min-w-0">
             <figcaption className="os-mono flex items-center justify-between gap-4 text-[color:var(--os-appena)]">
-              <span>Pillars × rilevazioni</span>
+              <span>Pilastri × rilevazioni</span>
               <span className="hidden sm:inline">16 cicli · 24 mesi</span>
             </figcaption>
 
@@ -203,7 +204,7 @@ export function IntelligenceEngine() {
               <div className="grid gap-y-1.5">
                 {PILLAR_KEYS.map((chiave, r) => (
                   <div key={chiave} className="flex items-center gap-2 sm:gap-3">
-                    <span className="os-mono w-[68px] shrink-0 truncate text-[9.5px] tracking-[0.1em] text-[color:var(--os-appena)] sm:w-[104px] sm:text-[10px]">
+                    <span className="os-mono w-[84px] shrink-0 truncate text-[9.5px] tracking-[0.1em] text-[color:var(--os-appena)] sm:w-[128px] sm:text-[10px]">
                       {PILLAR_LABELS[chiave]}
                     </span>
                     <div className="flex min-w-0 flex-1 gap-[3px] sm:gap-[5px]">

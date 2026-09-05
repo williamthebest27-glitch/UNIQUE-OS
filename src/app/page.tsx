@@ -26,7 +26,7 @@ import { UniqueLanding } from "@/components/landing/landing";
  */
 export const dynamic = "force-dynamic";
 
-const TITOLO = "Unique OS — The intelligence behind your longevity";
+const TITOLO = "Unique OS — L'intelligenza dietro la tua longevità";
 const DESCRIZIONE =
   "Il sistema operativo digitale di Unique Longevity Clinic: biomarcatori, diagnostica, " +
   "stile di vita e dati clinici in un unico sistema vivo che li trasforma in una direzione. " +

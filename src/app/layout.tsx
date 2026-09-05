@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Inter } from "next/font/google";
+import { Inter } from "next/font/google";
 import { preload } from "react-dom";
 import { appUrl } from "@/lib/supabase/config";
 import { MotionProvider } from "@/components/motion/motion-provider";
@@ -7,24 +7,23 @@ import { Avvio } from "@/components/brand/avvio";
 import "./globals.css";
 
 /**
- * I caratteri.
+ * Il carattere.
  *
- * Fraunces per il display: variabile, con l'asse ottico che cambia il
- * disegno fra un titolo enorme e una riga di testo, e un'italica che vale
- * da sola il prezzo. Inter per l'interfaccia, dove serve sparire.
+ * Uno solo per tutto — titoli, sottotitoli, corpo — come fa Apple. Su
+ * hardware Apple `-apple-system` consegna San Francisco, che nessuno
+ * può servire dal web perché la licenza non lo permette; a tutti gli
+ * altri arriva Inter, il parente più stretto che esista: stesse
+ * proporzioni da grottesca neutra e — soprattutto — lo stesso asse
+ * ottico. È l'asse su cui Apple separa SF Pro Display da SF Pro Text,
+ * qui automatico via `font-optical-sizing`: un carattere solo che si
+ * ridisegna fra un titolo enorme e una riga di testo.
  *
  * La tipografia porta più valore percepito di qualunque shader: è la
  * prima cosa da azzeccare, non l'ultima.
  */
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  axes: ["opsz", "SOFT", "WONK"],
-  variable: "--font-fraunces",
-  display: "swap",
-});
-
 const inter = Inter({
   subsets: ["latin"],
+  axes: ["opsz"],
   variable: "--font-inter",
   display: "swap",
 });
@@ -59,7 +58,7 @@ export default function RootLayout({
   preload("/marchio-unique.png", { as: "image", fetchPriority: "high" });
 
   return (
-    <html lang="it" className={`${fraunces.variable} ${inter.variable}`}>
+    <html lang="it" className={inter.variable}>
       <body className="min-h-dvh">
         <Avvio />
         <MotionProvider>{children}</MotionProvider>

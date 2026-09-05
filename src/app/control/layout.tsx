@@ -62,7 +62,7 @@ export default async function ControlLayout({
                 UNIQUE
               </span>
               <span className="mt-1 block text-[9px] font-medium uppercase tracking-[0.28em] text-bone-50/50">
-                Control Center
+                Direzione
               </span>
             </span>
           </Link>

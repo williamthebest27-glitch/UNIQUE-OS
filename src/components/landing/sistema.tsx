@@ -1,528 +1,290 @@
 "use client";
 
-import { Marchio } from "@/components/brand/marchio";
+import { useRef } from "react";
 import { Entra, Etichetta, Titolo } from "@/components/landing/primitive";
-import { useScena, type Regia } from "@/lib/landing/scena";
-import { cx } from "@/components/ui/primitives";
+import { useScena } from "@/lib/landing/scena";
 
 /**
  * Il sistema: dove il corpo diventa direzione.
  *
- * Niente griglia di card. Una griglia dice "ecco otto cose che facciamo";
- * qui bisogna dire **una** cosa: che otto flussi separati, che oggi vivono
- * in otto posti diversi — un referto in una cartella, il sonno in un
- * orologio, l'anamnesi su un foglio — convergono in un punto solo e ne
- * escono come una direzione.
+ * Niente griglia di card. Una griglia dice "ecco otto cose che
+ * facciamo"; qui bisogna dire **una** cosa: che flussi separati, che
+ * oggi vivono in posti diversi — un referto in una cartella, il sonno in
+ * un orologio, l'anamnesi su un foglio — convergono su una persona sola
+ * e ne escono come una direzione.
  *
- * Perciò la forma è una convergenza, e lo scorrimento è ciò che la
- * compie: le linee si disegnano mentre si scende, gli impulsi partono
- * dalle sorgenti e arrivano al centro, il marchio si accende quando è
- * arrivato tutto. Chi scorre *fa succedere* la cosa che il titolo dice.
+ * **La forma è un corpo che si riempie di dati, e lo scorrimento è ciò
+ * che lo riempie.** A sinistra il filmato: una figura che comincia
+ * intera e si scopre punto per punto, fino ai valori appesi addosso. A
+ * destra le battute, che entrano ed escono di pari passo. Chi scorre non
+ * guarda succedere la cosa: la fa succedere.
  *
- * **Due composizioni, non una adattata.** Su schermo largo la
- * convergenza è radiale, perché c'è spazio attorno al centro. Su
- * telefono quello spazio non esiste, e una radiale ristretta diventa un
- * groviglio: lì le sorgenti scendono lungo una spina dorsale e il centro
- * sta in fondo, dove la lettura arriva naturalmente. Il disegno è
- * decorativo per chi legge con lo schermo — l'elenco vero è in chiaro,
- * appena sotto.
+ * **Il filmato non si riproduce: si scorre.** La pagina si ferma, il
+ * fotogramma lo sceglie la rotellina, e quando si arriva in fondo la
+ * pagina riprende a scendere. È anche il motivo per cui parte sempre:
+ * non dipende da `play()`, quindi non dipende dal permesso che il
+ * browser dà o nega all'avvio automatico.
+ *
+ * **Il file è codificato per essere scrubbato.** Un MP4 normale porta un
+ * fotogramma chiave ogni due secondi, e per mostrare l'istante 3,4 il
+ * browser deve decodificare tutto quel che sta in mezzo: sotto il dito
+ * si impunta. Questo ne ha uno ogni sei fotogrammi — un quarto di
+ * secondo — così ogni salto è corto. È il vero motivo per cui pesa tre
+ * megabyte invece di uno.
+ *
+ * **Senza movimento resta un filmato normale.** Con
+ * `prefers-reduced-motion` la scena non viene costruita: le quattro
+ * battute stanno una sotto l'altra e si leggono tutte, il filmato mostra
+ * la posa e un comando per guardarlo. Non è un ripiego, è una versione.
  */
 
-interface Sorgente {
-  nome: string;
-  /** Che cosa porta davvero dentro il sistema. */
-  nota: string;
-  x: number;
-  y: number;
-  lato: "sx" | "dx";
-}
+/** Un salto più corto di mezzo fotogramma è lavoro buttato. */
+const SOGLIA = 1 / 48;
 
-/*
- * Le otto sorgenti, disposte a mano.
+/**
+ * Le battute, nell'ordine in cui il filmato le incontra.
  *
- * Una distribuzione calcolata — otto punti a 45 gradi l'uno dall'altro —
- * sembrerebbe un orologio, e un orologio non è un organismo. Queste sono
- * spostate a occhio finché la figura non si è messa a respirare.
- *
- * I limiti non sono estetici ma aritmetici: l'etichetta è larga
- * `L_ETICHETTA` più il pallino, e si estende *verso l'esterno* dal suo
- * ancoraggio. Perché non esca dalla gabbia a nessuna larghezza, le
- * sorgenti di sinistra stanno oltre il 17% e quelle di destra sotto
- * l'84%. Alla soglia in cui la radiale compare (1280 px) il margine
- * disponibile è di circa 194 px contro 186 richiesti: stretto, e
- * verificato.
+ * Sono l'inventario vero di ciò che entra — undici sorgenti,
+ * trentacinque segnali, gli stessi numeri che la riga di stato
+ * dell'hero dichiara. Un elenco inventato qui si riconoscerebbe subito,
+ * perché è l'unica parte della pagina che un medico sa già leggere.
  */
-const SORGENTI: Sorgente[] = [
-  { nome: "Biomarkers", nota: "84 valori ematici", x: 22, y: 11, lato: "sx" },
-  { nome: "Recovery", nota: "HRV · riposo · carico", x: 17, y: 39, lato: "sx" },
-  { nome: "Clinical data", nota: "anamnesi · visite · referti", x: 23, y: 67, lato: "sx" },
-  { nome: "Diagnostics", nota: "ECG · spirometria · sforzo", x: 35, y: 91, lato: "sx" },
-  { nome: "Lifestyle", nota: "sonno · stress · abitudini", x: 73, y: 9, lato: "dx" },
-  { nome: "Performance", nota: "VO₂max · forza · soglia", x: 84, y: 34, lato: "dx" },
-  { nome: "Nutrition", nota: "apporto · aderenza", x: 79, y: 63, lato: "dx" },
-  { nome: "Assessments", nota: "questionari validati", x: 67, y: 90, lato: "dx" },
-];
-
-const CX = 50;
-const CY = 51;
-
-/** L'arco da una sorgente al centro, in coordinate percentuali. */
-function tracciato(s: Sorgente): string {
-  const mx = (s.x + CX) / 2;
-  const my = (s.y + CY) / 2;
-  // La curvatura è perpendicolare alla congiungente: otto archi che
-  // entrano nello stesso punto da direzioni diverse, senza sovrapporsi.
-  const dx = CX - s.x;
-  const dy = CY - s.y;
-  const k = 0.14;
-  return `M${s.x},${s.y} Q${(mx - dy * k).toFixed(2)},${(my + dx * k).toFixed(2)} ${CX},${CY}`;
-}
+const PASSI = [
+  {
+    chiave: "Sangue e strumenti",
+    titolo: "Ottantaquattro valori,\ne l'apparecchio che li conferma.",
+    testo:
+      "Ematochimica, ECG, spirometria, test da sforzo. È il fondo su cui tutto il resto viene letto: senza, ogni altro segnale resta un'impressione.",
+  },
+  {
+    chiave: "Fra una visita e l'altra",
+    titolo: "Il corpo non smette di parlare\nquando esci dallo studio.",
+    testo:
+      "HRV, riposo, carico, sonno, passi, sessioni, apporto, aderenza. È il novantanove per cento del tempo, ed è la parte che nessuna visita vede.",
+  },
+  {
+    chiave: "Quello che nessun sensore misura",
+    titolo: "Anamnesi, referti,\nquestionari validati.",
+    testo:
+      "La storia clinica e ciò che una persona riferisce di sé. Un dato senza contesto si legge male — e qualche volta si legge al contrario.",
+  },
+  {
+    chiave: "Un posto solo",
+    titolo: "Undici sorgenti.\nTrentacinque segnali.\nUna persona sola.",
+    testo:
+      "Non un archivio in più: il primo in cui i flussi coincidono, nello stesso istante e sulla stessa scheda. Da lì in poi si può ragionare.",
+  },
+] as const;
 
 export function SystemVisualization() {
-  const rif = useScena<HTMLElement>(({ gsap, radice, ridotta }) => {
-    /* Le due composizioni stanno tutte e due nel markup e il CSS ne
-       mostra una sola. Si lavora solo su quella a schermo: animare
-       l'altra è lavoro buttato, e nel caso del telefono è lavoro buttato
-       che *costa* — otto impulsi in ciclo infinito su nodi in
-       `display: none`, per sempre, sul dispositivo che se lo può
-       permettere meno. */
-    const radiale = radice.querySelector<HTMLElement>("[data-radiale]");
-    const spina = radice.querySelector<HTMLElement>("[data-spina]");
-    const disegno = radiale && radiale.offsetWidth > 0 ? radiale : spina;
-    if (!disegno) return;
+  const video = useRef<HTMLVideoElement>(null);
 
-    const q = gsap.utils.selector(disegno);
+  const rif = useScena<HTMLElement>(({ gsap, ScrollTrigger, radice, ridotta }) => {
+    const palco = radice.querySelector<HTMLElement>("[data-palco]");
+    const passi = Array.from(radice.querySelectorAll<HTMLElement>("[data-passo]"));
+    const nodo = video.current;
+    if (!palco || !nodo || passi.length === 0) return;
 
-    /* Sul telefono la spina ha una regia sua: le stesse tre battute, ma
-       legate a ciò che si muove invece che al bordo alto della sezione.
-       Ovunque altro — desktop, e la fascia stretta dei portatili dove il
-       CSS mostra comunque la spina — non cambia una riga. */
-    if (ridotta && disegno === spina) {
-      scenaSpina(gsap, spina);
-      return;
+    /* Da qui in poi la scena c'è: il CSS impila le battute e toglie il
+       comando di riproduzione, che non ha più niente da fare. */
+    radice.dataset.scorre = "";
+
+    nodo.muted = true;
+
+    /* Servono i dati, non i soli metadati: un fotogramma si mostra solo
+       se è stato scaricato. Il caricamento parte da qui e non dal
+       markup, così chi ha meno movimento non se lo trova addosso
+       comunque. */
+    const carica = () => {
+      nodo.preload = "auto";
+      nodo.load();
+    };
+
+    /* Sul telefono non si scarica subito. Sono quasi tre megabyte — il
+       filmato è codificato fitto apposta, per poterlo scorrere — e
+       chiederli al montaggio significa metterli in fila con i caratteri
+       e con l'idratazione, sulla rete di un telefono, nei secondi in cui
+       si guardano le prime due schermate. Arriva comunque in tempo: la
+       richiesta parte mezza schermata prima che il palco entri in campo. */
+    const anticipo = ridotta
+      ? ScrollTrigger.create({
+          trigger: palco,
+          start: "top bottom+=50%",
+          once: true,
+          onEnter: carica,
+        })
+      : null;
+    if (!anticipo) carica();
+
+    let durata = 0;
+    let ultimo = -1;
+    const misura = () => {
+      durata = Number.isFinite(nodo.duration) ? nodo.duration : 0;
+    };
+    nodo.addEventListener("loadedmetadata", misura);
+    if (nodo.readyState >= 1) misura();
+
+    const quante = passi.length;
+    const stato = { t: 0 };
+
+    const chiudi = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
+
+    /**
+     * Scopre la battuta di turno.
+     *
+     * Ognuna ha la sua fetta di scorrimento: entra nel primo quinto
+     * della propria fetta, resta, esce nell'ultimo. L'ultima non esce —
+     * resta in campo finché la sezione non si sblocca, o si finirebbe
+     * di scorrere su una colonna vuota.
+     */
+    function battute(t: number) {
+      for (let i = 0; i < quante; i++) {
+        const dentro = t * quante - i;
+        /* La prima non entra: c'è già quando la sezione si blocca.
+           Altrimenti si arriva sul palco e la colonna di destra è vuota
+           finché non si riprende a scorrere. */
+        const su = i === 0 ? 1 : chiudi(dentro / 0.2);
+        const giu = i === quante - 1 ? 1 : chiudi((1 - dentro) / 0.2);
+        const p = passi[i];
+        p.style.opacity = String(Math.min(su, giu));
+        /* Entrando sale da sotto, uscendo continua a salire: la battuta
+           attraversa il campo, non fa avanti e indietro. */
+        p.style.transform = `translateY(${(1 - su) * 30 - (1 - giu) * 30}px)`;
+      }
     }
 
-    /* ── Le linee si disegnano scorrendo ──────────────────────────
-       Ogni tracciato dichiara `pathLength={1}`: da lì in poi trattino e
-       scarto si misurano in frazioni del percorso, non in unità del
-       riquadro. È l'unico modo perché il conto torni anche quando il
-       riquadro è deformato — con `vector-effect: non-scaling-stroke` il
-       browser calcola i trattini in pixel di schermo, e un tratteggio
-       pensato in coordinate SVG diventa una fila di puntini. */
-    gsap.fromTo(
-      q("[data-linea]"),
-      { strokeDasharray: 1, strokeDashoffset: 1 },
-      {
-        strokeDashoffset: 0,
-        ease: "none",
-        scrollTrigger: {
-          trigger: radice,
-          start: "top 68%",
-          end: "center 46%",
-          scrub: 0.8,
-        },
-      },
-    );
+    battute(0);
 
-    /* ── Gli impulsi corrono verso il centro ──────────────────────
-       Un trattino corto — otto centesimi del percorso — che scorre su
-       uno scarto lungo quanto tutto il resto: nessun plugin di percorso,
-       nessun calcolo a ogni fotogramma. Il browser interpola un numero
-       solo e la GPU fa il resto. */
-    const impulsi = q<SVGPathElement>("[data-impulso]");
-    impulsi.forEach((impulso, i) => {
-      gsap.set(impulso, { strokeDasharray: "0.08 1" });
-      gsap.fromTo(
-        impulso,
-        { strokeDashoffset: 1.08 },
-        {
-          strokeDashoffset: 0,
-          duration: 2.4,
-          ease: "power1.in",
-          repeat: -1,
-          // Sfasati: otto impulsi che partono insieme sono un lampeggio.
-          delay: i * 0.42,
-          repeatDelay: 1.1,
-          scrollTrigger: { trigger: radice, start: "top 75%" },
-        },
-      );
+    const scena = gsap.to(stato, {
+      t: 1,
+      ease: "none",
+      scrollTrigger: {
+        trigger: palco,
+        start: "top top",
+        /* Quanta rotellina vale la scena. Tre schermate danno a dieci
+           secondi di filmato e a quattro battute un passo leggibile;
+           sul telefono si accorcia, o per arrivare in fondo servirebbe
+           un pollice paziente. */
+        end: () => `+=${Math.round(innerHeight * (ridotta ? 2.2 : 3.2))}`,
+        pin: true,
+        anticipatePin: 1,
+        /* Lo scrub smorza: il fotogramma insegue il dito invece di
+           incollarcisi, e uno strappo non diventa una raffica di salti. */
+        scrub: ridotta ? 0.4 : 0.7,
+        invalidateOnRefresh: true,
+      },
+      onUpdate: () => {
+        battute(stato.t);
+        if (!durata || nodo.readyState < 2) return;
+
+        /* L'ultimo istante non si tocca: un `currentTime` esattamente
+           pari alla durata manda il filmato in `ended`, e il fotogramma
+           sparisce proprio mentre lo si sta guardando. */
+        const istante = stato.t * (durata - 0.05);
+        if (Math.abs(istante - ultimo) < SOGLIA) return;
+        ultimo = istante;
+        nodo.currentTime = istante;
+      },
     });
 
-    /* ── Le sorgenti arrivano una alla volta ────────────────────── */
-    gsap.from(q("[data-sorgente]"), {
-      opacity: 0,
-      y: 14,
-      duration: 0.9,
-      ease: "expo.out",
-      stagger: 0.07,
-      scrollTrigger: { trigger: radice, start: "top 72%", once: true },
-    });
-
-    /* ── Il centro si accende quando è arrivato tutto ───────────── */
-    gsap.fromTo(
-      q("[data-centro]"),
-      { scale: 0.86, opacity: 0.25 },
-      {
-        scale: 1,
-        opacity: 1,
-        ease: "expo.out",
-        scrollTrigger: {
-          trigger: radice,
-          start: "top 52%",
-          end: "center 44%",
-          scrub: 1,
-        },
-      },
-    );
-
-    gsap.fromTo(
-      q("[data-aureola]"),
-      { scale: 0.6, opacity: 0 },
-      {
-        scale: 1,
-        opacity: 1,
-        ease: "none",
-        scrollTrigger: {
-          trigger: radice,
-          start: "top 56%",
-          end: "center 42%",
-          scrub: 1,
-        },
-      },
-    );
+    return () => {
+      nodo.removeEventListener("loadedmetadata", misura);
+      anticipo?.kill();
+      scena.scrollTrigger?.kill();
+      scena.kill();
+      /* Opacità e trasformazioni le ha scritte questa funzione, non
+         GSAP: il revert del contesto non le conosce e vanno tolte a
+         mano, o la sezione resta con tre battute invisibili. */
+      for (const p of passi) {
+        p.style.opacity = "";
+        p.style.transform = "";
+      }
+      delete radice.dataset.scorre;
+    };
   });
+
+  /** Il ripiego: senza scena, il filmato si guarda come un filmato. */
+  const guarda = () => {
+    const nodo = video.current;
+    if (!nodo) return;
+    nodo.muted = true;
+    if (nodo.paused) void nodo.play().catch(() => undefined);
+    else nodo.pause();
+  };
 
   return (
     <section ref={rif} id="sistema" className="os-sezione">
       <div className="os-gabbia">
-        {/* Titolo e chiosa su due colonne, non uno sotto l'altro: la
-            frase di destra commenta il titolo, e a fine riga si legge
-            come tale. Sotto i 1024 px tornano in colonna, dove l'ordine
-            di lettura fa già lo stesso lavoro.
+        {/* Titolo e chiosa stavano su due colonne, la frase di destra a
+            commento del titolo. Adesso la testata prende l'asse della
+            pagina come tutte le altre e la chiosa va sotto: stessa
+            lettura, una colonna sola.
 
-            Prima la chiosa era in posizione assoluta agganciata al bordo
-            della sezione: finiva sotto la barra di navigazione, che è
-            fissa e sta più in alto di qualunque "top: 0" di sezione. */}
-        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:gap-16">
-          <header>
-            <Etichetta indice="01" tono="dato">
-              The system
-            </Etichetta>
-            <Titolo
-              testo={"Your body\ngenerates data.\nUnique OS turns it\ninto direction."}
-              className="mt-7 text-[clamp(2.05rem,5.4vw,4.4rem)]"
-            />
-          </header>
+            Se qualcuno tornasse alle due colonne, la trappola è questa:
+            la chiosa era in posizione assoluta agganciata al bordo della
+            sezione e finiva sotto la barra di navigazione, che è fissa e
+            sta più in alto di qualunque "top: 0" di sezione. */}
+        <header className="os-testata">
+          <Etichetta indice="01" tono="dato">
+            Il sistema
+          </Etichetta>
+          <Titolo
+            zoom
+            testo={"Il tuo corpo\ngenera dati.\nUnique OS li trasforma\nin una direzione."}
+            className="mt-7 text-[clamp(2.05rem,5.4vw,4.4rem)]"
+          />
 
-          <Entra tag="p" className="os-corpo max-w-[46ch] lg:pt-4">
+          <Entra tag="p" className="os-corpo mt-7 max-w-[46ch]">
             Ogni esame, ogni notte di sonno, ogni visita produce un segnale.
             Separati non dicono niente. Unique OS li tiene nello stesso posto,
             nello stesso istante, sulla stessa persona — ed è lì che smettono di
             essere numeri e diventano una decisione.
           </Entra>
-        </div>
+        </header>
       </div>
 
       {/* ── La scena ─────────────────────────────────────────────── */}
-      <div className="os-gabbia mt-16 sm:mt-20">
-        <Radiale />
-        <Spina />
+      <div
+        data-palco=""
+        className="os-gabbia mt-14 flex min-h-[100svh] items-center sm:mt-16"
+      >
+        <div className="grid w-full items-center gap-10 lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1fr)] lg:gap-16">
+          {/* ── Il corpo ─────────────────────────────────────── */}
+          <figure className="mx-auto w-full max-w-[380px] lg:max-w-none">
+            <video
+              ref={video}
+              className="os-lettura-video mx-auto h-auto max-h-[42svh] w-full lg:max-h-[78svh]"
+              src="/corpo-dati-scrub.mp4"
+              poster="/corpo-dati.jpg"
+              preload="none"
+              muted
+              playsInline
+              width={864}
+              height={1296}
+              aria-label="Una figura umana fatta di punti si scopre a poco a poco, ruota, e si riempie dei valori misurati: colesterolo, emoglobina, pressione, frequenza cardiaca, glucosio, vitamina D."
+            />
 
-        {/* L'elenco vero, per chi legge con lo schermo: il disegno qui
-            sopra è una composizione, non un contenuto. */}
-        <ul className="sr-only">
-          {SORGENTI.map((s) => (
-            <li key={s.nome}>
-              {s.nome} — {s.nota}
-            </li>
-          ))}
-          <li>Tutte convergono in Unique OS.</li>
-        </ul>
+            <figcaption className="mt-5 text-center lg:hidden">
+              <button type="button" onClick={guarda} className="os-lettura-avvia os-btn os-btn-vuoto">
+                Guarda il filmato
+              </button>
+            </figcaption>
+          </figure>
+
+          {/* ── Le battute ───────────────────────────────────── */}
+          <ol className="os-lettura-passi">
+            {PASSI.map((p) => (
+              <li key={p.chiave} data-passo="">
+                <p className="os-mono text-[color:var(--os-dato)]">{p.chiave}</p>
+                <p className="os-display mt-4 whitespace-pre-line text-[clamp(1.5rem,2.9vw,2.3rem)]">
+                  {p.titolo}
+                </p>
+                <p className="os-corpo mt-4 max-w-[40ch]">{p.testo}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
       </div>
     </section>
-  );
-}
-
-/* ── Il centro ────────────────────────────────────────────────────── */
-
-function Centro({ compatto = false }: { compatto?: boolean }) {
-  return (
-    <div
-      className={cx(
-        "relative flex flex-col items-center",
-        compatto ? "gap-2.5" : "gap-3",
-      )}
-    >
-      <div
-        data-aureola=""
-        aria-hidden="true"
-        className={cx(
-          "os-alone absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2",
-          compatto ? "h-40 w-40" : "h-64 w-64",
-        )}
-        style={{
-          background:
-            "radial-gradient(closest-side, var(--os-alone-mente-forte), var(--os-alone-mente) 60%, transparent)",
-        }}
-      />
-
-      <div data-centro="" className="relative flex flex-col items-center gap-3">
-        <span
-          aria-hidden="true"
-          className={cx(
-            "absolute rounded-full",
-            compatto ? "-inset-6" : "-inset-9",
-          )}
-          style={{ boxShadow: "inset 0 0 0 1px var(--os-riga)" }}
-        />
-        <Marchio className={compatto ? "h-11 w-auto" : "h-14 w-auto"} />
-        <p className="os-mono text-[color:var(--os-piena)]">Unique OS</p>
-      </div>
-    </div>
-  );
-}
-
-/* ── Convergenza radiale, su schermo largo ────────────────────────── */
-
-function Radiale() {
-  return (
-    <div
-      data-radiale=""
-      className="relative hidden aspect-[1440/840] w-full xl:block"
-      aria-hidden="true"
-    >
-      <svg
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-        className="absolute inset-0 h-full w-full"
-      >
-        <g fill="none" strokeLinecap="round">
-          {SORGENTI.map((s) => (
-            <path
-              key={s.nome}
-              data-linea=""
-              d={tracciato(s)}
-              pathLength={1}
-              stroke="var(--os-dato)"
-              strokeWidth="1"
-              strokeOpacity="0.34"
-              // Senza, il tratto si stirerebbe insieme al viewBox e le
-              // linee orizzontali sarebbero più spesse delle verticali.
-              vectorEffect="non-scaling-stroke"
-            />
-          ))}
-          {SORGENTI.map((s) => (
-            <path
-              key={`p-${s.nome}`}
-              data-impulso=""
-              d={tracciato(s)}
-              pathLength={1}
-              stroke="var(--os-mente)"
-              strokeWidth="1.6"
-              strokeOpacity="0.85"
-              vectorEffect="non-scaling-stroke"
-              // A riposo l'impulso non esiste: è l'unico elemento della
-              // pagina che senza movimento non ha niente da dire, e una
-              // linea piena rosa sopra quella di base sarebbe rumore.
-              strokeDasharray="0 1"
-            />
-          ))}
-        </g>
-      </svg>
-
-      {SORGENTI.map((s) => (
-        <div
-          key={s.nome}
-          data-sorgente=""
-          className={cx(
-            "absolute flex -translate-y-1/2 items-center gap-3",
-            // Il pallino resta esattamente sull'ancoraggio da cui parte
-            // la linea; l'etichetta cresce verso l'esterno.
-            s.lato === "sx" ? "-translate-x-full flex-row-reverse" : "translate-x-0",
-          )}
-          style={{ left: `${s.x}%`, top: `${s.y}%` }}
-        >
-          <span
-            className="h-1.5 w-1.5 shrink-0 rounded-full"
-            style={{ background: "var(--os-dato)" }}
-          />
-          <span
-            className={cx(
-              "w-[168px] shrink-0",
-              s.lato === "sx" ? "text-right" : "text-left",
-            )}
-          >
-            <span className="block text-[15px] font-medium leading-tight text-[color:var(--os-piena)]">
-              {s.nome}
-            </span>
-            <span className="os-mono mt-1.5 block text-[color:var(--os-appena)]">
-              {s.nota}
-            </span>
-          </span>
-        </div>
-      ))}
-
-      <div
-        className="absolute -translate-x-1/2 -translate-y-1/2"
-        style={{ left: `${CX}%`, top: `${CY}%` }}
-      >
-        <Centro />
-      </div>
-    </div>
-  );
-}
-
-/* ── La regia della spina ─────────────────────────────────────────── */
-
-/**
- * Le stesse tre battute della radiale — le linee si disegnano, le
- * sorgenti arrivano, il centro si accende — ancorate però al disegno.
- *
- * Ed è tutta qui la differenza, che non è una taratura ma un errore di
- * geometria. La radiale sta subito sotto il titolo: legarla al bordo
- * alto della sezione — `top 68%`, `top 52%` — la fa partire quando è già
- * in campo, e infatti su schermo largo funziona. La spina sta in fondo,
- * sotto un titolo e una chiosa che in colonna valgono quasi una
- * schermata, dentro una sezione alta più di una e mezza. Con gli stessi
- * ancoraggi, su un telefono da 812 punti, il centro finiva di accendersi
- * a 1104 di scorrimento ed entrava nel viewport a 1144: quaranta punti
- * troppo tardi, cioè mai, per chiunque.
- *
- * Da qui l'impressione che prima del film non si muovesse niente. Non
- * era un'impressione: non si muoveva.
- *
- * Le sorgenti, poi, non arrivano più in blocco ma una per una, quando
- * toccano il bordo basso. Su una colonna alta quanto lo schermo è la
- * stessa idea di prima — «arrivano una alla volta» — detta però nella
- * direzione in cui il pollice sta già andando.
- */
-function scenaSpina(gsap: Regia["gsap"], spina: HTMLElement) {
-  const q = gsap.utils.selector(spina);
-
-  /* La dorsale si disegna scendendo. Sul telefono è l'unica linea che
-     ci sia, e fa il lavoro degli otto archi: la convergenza non è
-     dichiarata, è compiuta da chi scorre. */
-  gsap.fromTo(
-    q("[data-dorsale]"),
-    { scaleY: 0, transformOrigin: "50% 0%" },
-    {
-      scaleY: 1,
-      ease: "none",
-      scrollTrigger: {
-        trigger: spina,
-        start: "top 84%",
-        end: "bottom 68%",
-        scrub: 0.6,
-      },
-    },
-  );
-
-  for (const sorgente of q<HTMLElement>("[data-sorgente]")) {
-    gsap.from(sorgente, {
-      opacity: 0,
-      y: 14,
-      duration: 0.9,
-      ease: "expo.out",
-      scrollTrigger: { trigger: sorgente, start: "top 90%", once: true },
-    });
-  }
-
-  /* Il centro si accende quando è arrivato tutto — e adesso «tutto»
-     vuol dire anche che il centro è davanti agli occhi. */
-  const centro = q<HTMLElement>("[data-centro]")[0];
-  if (!centro) return;
-
-  gsap.fromTo(
-    q("[data-aureola]"),
-    { scale: 0.6, opacity: 0 },
-    {
-      scale: 1,
-      opacity: 1,
-      ease: "none",
-      scrollTrigger: { trigger: centro, start: "top 96%", end: "top 52%", scrub: 1 },
-    },
-  );
-
-  gsap.fromTo(
-    centro,
-    { scale: 0.86, opacity: 0.25 },
-    {
-      scale: 1,
-      opacity: 1,
-      ease: "expo.out",
-      scrollTrigger: { trigger: centro, start: "top 92%", end: "top 48%", scrub: 1 },
-    },
-  );
-}
-
-/* ── La spina dorsale, su telefono ────────────────────────────────── */
-
-/**
- * Le stesse otto sorgenti, ma lette scendendo.
- *
- * Su uno schermo di 375 pixel la radiale diventerebbe un groviglio di
- * archi lungo trenta pixel. Qui le sorgenti entrano alternate su una
- * linea verticale che scende verso il marchio: la convergenza resta —
- * è la stessa idea — ma detta nella direzione in cui il pollice si
- * muove già.
- */
-function Spina() {
-  return (
-    <div data-spina="" className="relative xl:hidden" aria-hidden="true">
-      {/* La spina: parte trasparente in alto — il sistema non comincia
-          da nessuna parte — e arriva calda in basso, dove c'è il centro. */}
-      <div
-        data-dorsale=""
-        className="absolute bottom-14 left-1/2 top-1 w-px -translate-x-1/2"
-        style={{
-          background:
-            "linear-gradient(180deg, transparent, var(--color-unique-500) 14%, var(--os-mente) 94%)",
-          opacity: 0.45,
-        }}
-      />
-
-      <ul className="relative space-y-6 sm:space-y-7">
-        {SORGENTI.map((s, i) => {
-          const sinistra = i % 2 === 0;
-          return (
-            <li
-              key={s.nome}
-              data-sorgente=""
-              className={cx(
-                "relative flex items-center",
-                sinistra ? "justify-start pr-[54%]" : "justify-end pl-[54%]",
-              )}
-            >
-              {/* Il ramo che entra nella spina: dice che la sorgente
-                  *confluisce*, invece di stare in un elenco accanto. */}
-              <span
-                className={cx(
-                  "absolute top-1/2 h-px",
-                  sinistra ? "left-[46%] right-1/2" : "left-1/2 right-[46%]",
-                )}
-                style={{
-                  background:
-                    "linear-gradient(90deg, var(--color-unique-500), transparent)",
-                  opacity: 0.5,
-                  transform: sinistra ? "scaleX(-1)" : undefined,
-                }}
-              />
-              <span className={sinistra ? "text-left" : "text-right"}>
-                <span className="block text-[15px] font-medium leading-tight text-[color:var(--os-piena)]">
-                  {s.nome}
-                </span>
-                <span className="os-mono mt-1.5 block text-[color:var(--os-appena)]">
-                  {s.nota}
-                </span>
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-
-      <div className="relative mt-12 flex justify-center">
-        <Centro compatto />
-      </div>
-    </div>
   );
 }
