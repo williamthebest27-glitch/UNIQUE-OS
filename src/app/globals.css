@@ -723,7 +723,11 @@
   /* ── Il film ─────────────────────────────────────
      Una pausa nella pagina bianca: lo schermo si riempie di buio, il
      filmato avanza col dito, e quando arriva in fondo la pagina riprende
-     a scendere. È l'unico momento scuro, e dura quanto un respiro. */
+     a scendere. È l'unico momento scuro, e dura quanto un respiro.
+
+     Su schermo largo. Sul telefono il buio è tolto — il fotogramma è
+     alto un quarto dello schermo e il resto sarebbe un rettangolo vuoto:
+     vedi il blocco «Il film sul telefono» in fondo a questa sezione. */
   .os-film {
     position: relative;
   }
@@ -829,6 +833,89 @@
 
   .os-film[data-scorre] .os-film-avvia {
     display: none;
+  }
+
+  /* ── Il film sul telefono: la sala si accende ───────────────────
+     Su schermo largo il filmato riempie la scena e il buio attorno è la
+     sala. Sul telefono no: il filmato è largo quanto lo schermo e alto
+     un quarto, e il resto del riquadro — due terzi di altezza — resta
+     nero e vuoto. Non è più una sala, è un buco nella pagina bianca, con
+     dentro una banda di immagine.
+
+     Perciò qui il contenitore torna bianco come tutto il resto e la
+     scritta torna nera: il filmato si legge come una figura posata sulla
+     pagina, non come una stanza in cui si entra e da cui si esce. Le
+     bande sopra e sotto il fotogramma restano, ma non si vedono più —
+     che è il modo migliore di toglierle.
+
+     La condizione è la stessa che `lib/landing/capacita.ts` usa per
+     riconoscere un telefono: il dito da solo non basta — un iPad Pro ha
+     spazio da vendere — e nemmeno lo schermo stretto da solo, che è
+     anche una finestra rimpicciolita su un portatile. */
+  @media (pointer: coarse) and (max-width: 900px) {
+    .os-film-palco {
+      background: var(--os-vuoto);
+    }
+
+    /* Il velo serviva a tenere la scritta leggibile sopra un filmato che
+       cambia luminosità. Qui la scritta sta sul bianco e in verticale il
+       fotogramma non la raggiunge nemmeno: il velo resta per il telefono
+       girato di lato, dove il filmato riempie l'altezza e la scritta gli
+       finisce sopra davvero. Stessa funzione, colore rovesciato — e
+       l'attacco spostato in basso, sotto il bordo del fotogramma, così
+       in verticale non gli lava l'ultimo quinto. */
+    .os-film-velo {
+      background: linear-gradient(
+        180deg,
+        rgb(255 255 255 / 0) 0%,
+        rgb(255 255 255 / 0) 58%,
+        rgb(255 255 255 / 0.94) 100%
+      );
+    }
+
+    /* I token del buio, rimessi come li ha la pagina: `Etichetta` legge
+       `--os-dato` e non deve sapere di essere tornata sulla carta. */
+    .os-film-testo {
+      --os-dato: var(--color-unique-500);
+      --os-tenue: var(--color-ink-500);
+      --os-appena: var(--color-ink-500);
+      color: var(--os-piena);
+    }
+
+    .os-film-riga {
+      color: var(--os-media);
+    }
+
+    .os-film-nastro {
+      background: var(--os-riga);
+    }
+
+    /* Bianco su bianco non è un pulsante. */
+    .os-film-avvia {
+      color: var(--os-btn-testo);
+      background: var(--os-btn-fondo);
+    }
+
+    /* Il film è l'unica sezione della landing senza `os-filo` attorno:
+       la banda scura separava da sé, e una riga prima del buio sarebbe
+       stata un inciampo. Tolto il buio resta il compito, e torna alla
+       riga — la stessa che divide tutte le altre sezioni, disegnata qui
+       perché il markup attorno al film non ne ha nessuna. Solo in alto:
+       in basso il filo c'è già, ed è il nastro d'avanzamento. */
+    .os-film-palco::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto;
+      z-index: 1;
+      height: 1px;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        var(--os-riga-viva) 22%,
+        var(--os-riga-viva) 78%,
+        transparent
+      );
+    }
   }
 
   /* ── Reticolo ───────────────────────────────────────────────────

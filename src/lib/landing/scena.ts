@@ -28,6 +28,23 @@ import { inMovimento, livello } from "@/lib/landing/capacita";
  * definizione c'è solo quando può anche toglierli.
  */
 
+/**
+ * Quanto più svelta va la coreografia sul telefono.
+ *
+ * Non è una taratura estetica ma un conto di secondi. Sul telefono
+ * l'accensione dell'hero non parte al montaggio: aspetta che il sipario
+ * d'avvio si alzi — vedi `components/brand/sipario.ts` — e il sipario da
+ * solo dura fra i due secondi e i tre. Raccontata al passo del desktop,
+ * l'accensione finirebbe intorno al sesto secondo, cioè molto dopo il
+ * momento in cui chi tiene un telefono in mano decide che il sito è
+ * fermo e comincia a scorrere.
+ *
+ * Stessa coreografia, stessi rapporti fra le battute: solo detta più
+ * svelta. Su schermo largo il numero non si usa — lì l'accensione parte
+ * subito e ha tutto il tempo che le serve.
+ */
+export const RITMO_TELEFONO = 1.55;
+
 let registrato = false;
 
 function registra() {

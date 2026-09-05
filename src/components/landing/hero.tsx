@@ -7,7 +7,7 @@ import { CampoVivo } from "@/components/landing/campo";
 import { Comando, Freccia, Titolo } from "@/components/landing/primitive";
 import { useRegia } from "@/components/landing/regia";
 import { arco, campo, legami } from "@/lib/landing/geometria";
-import { useScena } from "@/lib/landing/scena";
+import { RITMO_TELEFONO, useScena } from "@/lib/landing/scena";
 import { cx } from "@/components/ui/primitives";
 
 /**
@@ -161,41 +161,60 @@ export function HeroSystem({
     /* Su telefono la sezione non si fissa: i browser mobili cambiano
        l'altezza del viewport mentre la barra degli indirizzi entra ed
        esce, e una sezione fissata in quel momento sobbalza. Lì la scena
-       si allontana scorrendo, senza pin — stessa regia, meno pretese. */
-    const uscita = gsap.timeline({
-      scrollTrigger: {
-        trigger: radice,
-        start: "top top",
-        end: ridotta ? "bottom top" : "+=105%",
-        scrub: 0.7,
-        pin: !ridotta,
-        pinSpacing: !ridotta,
-        anticipatePin: 1,
-        invalidateOnRefresh: true,
-      },
-      defaults: { ease: "none" },
-    });
+       si allontana scorrendo, senza pin — stessa regia, meno pretese.
 
-    uscita
-      // La camera entra: il campo si apre verso di noi e passa oltre.
-      .to(q("[data-rete]"), { scale: 1.55, opacity: 0, y: -40 }, 0)
-      .to(q("[data-campo]"), { scale: 1.3, opacity: 0 }, 0)
-      // Il marchio cresce fino a superare l'obiettivo, e si dissolve
-      // nell'istante in cui lo attraversiamo.
-      .to(q("[data-marchio]"), { scale: 3.4, opacity: 0, y: -30 }, 0)
-      .to(q("[data-parola-os]"), { opacity: 0, y: -30 }, 0)
-      // Il titolo si ritira verso l'alto e si stringe: non sparisce,
-      // arretra — è quello che fa un oggetto quando lo si oltrepassa.
-      .to(q("[data-titolo]"), { y: "-42%", scale: 0.82, opacity: 0 }, 0.05)
-      .to(q("[data-sotto]"), { y: -70, opacity: 0 }, 0)
-      .to(q("[data-comandi]"), { y: -50, opacity: 0 }, 0)
-      .to(q("[data-stato]"), { y: 40, opacity: 0 }, 0)
-      // Il vuoto si chiude sopra la scena: è la porta fra l'accensione e
-      // la prima sezione, e le dà un bordo netto invece di una sfumatura.
-      .fromTo(q("[data-buio]"), { opacity: 0 }, { opacity: 1 }, 0.55);
+       **Si costruisce, non si dichiara.** Sul telefono l'attraversamento
+       nasce più tardi dell'accensione — vedi «Il via» qui sotto — e
+       nascere più tardi significa nascere fuori dal `gsap.context` di
+       `useScena`, che conosce solo ciò che è stato creato durante la sua
+       chiamata: da lì in poi lo smontaggio è a carico nostro. */
+    let uscita: ReturnType<typeof gsap.timeline> | null = null;
+
+    const attraversamento = () => {
+      if (uscita) return;
+
+      uscita = gsap.timeline({
+        scrollTrigger: {
+          trigger: radice,
+          start: "top top",
+          end: ridotta ? "bottom top" : "+=105%",
+          scrub: 0.7,
+          pin: !ridotta,
+          pinSpacing: !ridotta,
+          anticipatePin: 1,
+          invalidateOnRefresh: true,
+        },
+        defaults: { ease: "none" },
+      });
+
+      uscita
+        // La camera entra: il campo si apre verso di noi e passa oltre.
+        .to(q("[data-rete]"), { scale: 1.55, opacity: 0, y: -40 }, 0)
+        .to(q("[data-campo]"), { scale: 1.3, opacity: 0 }, 0)
+        // Il marchio cresce fino a superare l'obiettivo, e si dissolve
+        // nell'istante in cui lo attraversiamo.
+        .to(q("[data-marchio]"), { scale: 3.4, opacity: 0, y: -30 }, 0)
+        .to(q("[data-parola-os]"), { opacity: 0, y: -30 }, 0)
+        // Il titolo si ritira verso l'alto e si stringe: non sparisce,
+        // arretra — è quello che fa un oggetto quando lo si oltrepassa.
+        .to(q("[data-titolo]"), { y: "-42%", scale: 0.82, opacity: 0 }, 0.05)
+        .to(q("[data-sotto]"), { y: -70, opacity: 0 }, 0)
+        .to(q("[data-comandi]"), { y: -50, opacity: 0 }, 0)
+        .to(q("[data-stato]"), { y: 40, opacity: 0 }, 0)
+        // Il vuoto si chiude sopra la scena: è la porta fra l'accensione
+        // e la prima sezione, e le dà un bordo netto invece di una
+        // sfumatura.
+        .fromTo(q("[data-buio]"), { opacity: 0 }, { opacity: 1 }, 0.55);
+    };
 
     /* ── Il via ─────────────────────────────────────────────────── */
-    if (!ridotta) return;
+    /* Su schermo largo l'accensione parte al montaggio e non aspetta
+       nessuno: quando si scorre è finita da un pezzo, e l'attraversamento
+       può nascere subito insieme a lei. */
+    if (!ridotta) {
+      attraversamento();
+      return;
+    }
 
     /* `pause(0)` e non `paused: true` alla costruzione: il fotogramma
        iniziale va disegnato *adesso*, sincrono. Affidarlo
@@ -204,7 +223,71 @@ export function HeroSystem({
        sipario si vedrebbe la scena già montata sbiancare di colpo e
        riaccendersi. Sotto al sipario dev'essere già al buio. */
     avvio.pause(0);
-    return aSiparioAperto(() => avvio.play());
+
+    /* Il sipario dura da solo quasi tre secondi, e l'accensione comincia
+       dopo di lui: al passo del desktop finirebbe verso il sesto, cioè
+       molto dopo il momento in cui chi tiene un telefono in mano decide
+       che il sito è fermo. Stesse battute, stessi rapporti, detti più
+       svelti. */
+    avvio.timeScale(RITMO_TELEFONO);
+
+    /*
+     * **L'attraversamento nasce quando l'accensione è finita, mai prima.**
+     *
+     * Le due scene scrivono sulle stesse proprietà degli stessi elementi
+     * — il marchio, il sottotitolo, i comandi, il campo — una animandoli
+     * in ingresso, l'altra portandoli via con lo scorrimento. Su schermo
+     * largo non si incontrano mai, perché l'ingresso è già finito prima
+     * che ci sia qualcosa da scorrere.
+     *
+     * Sul telefono si incontravano sempre. L'accensione resta ferma sotto
+     * al sipario con marchio, sottotitolo e comandi a opacità zero; un
+     * dito che sfiora lo schermo in quei secondi — e li sfiora, perché
+     * non si vede muovere niente — fa registrare allo scrub *quello* come
+     * stato di riposo. Da lì in poi tornare in cima non riportava indietro
+     * nulla: il marchio restava invisibile, il sottotitolo pure, e i due
+     * pulsanti della pagina sparivano per sempre. Non era un'animazione
+     * lenta, era la pagina rotta.
+     *
+     * Costruire l'uscita alla fine dell'accensione toglie di mezzo la
+     * corsa: quando lo scrub legge i valori di partenza, la scena è al
+     * suo stato finale — che è anche il suo stato di riposo.
+     */
+    function via() {
+      smettiScorrimento();
+      attraversamento();
+    }
+
+    /* E chi scorre prima della fine ha detto che vuole andare avanti:
+       l'accensione si chiude di colpo e l'attraversamento comincia da lì.
+       Meglio una battuta saltata che due scene che si contendono lo
+       stesso elemento fotogramma per fotogramma. */
+    const alPrimoScorrimento = () => {
+      // Il rimbalzo elastico di iOS manda `scrollY` a uno o due da solo:
+      // non è una richiesta di andare avanti.
+      if (scrollY < 3) return;
+      // `progress` non richiama `onComplete`: il via si dà a mano.
+      avvio.progress(1);
+      via();
+    };
+
+    const smettiScorrimento = () =>
+      removeEventListener("scroll", alPrimoScorrimento);
+
+    addEventListener("scroll", alPrimoScorrimento, { passive: true });
+    avvio.eventCallback("onComplete", via);
+
+    const smettiSipario = aSiparioAperto(() => avvio.play());
+
+    return () => {
+      smettiSipario();
+      smettiScorrimento();
+      // Nata fuori dal contesto, muore fuori dal contesto: `revert()`
+      // rimette anche le proprietà scritte inline, come farebbe il
+      // `gsap.context` per tutto il resto.
+      uscita?.scrollTrigger?.kill();
+      uscita?.revert();
+    };
   });
 
   return (

@@ -64,7 +64,9 @@ export function UniqueLanding({
           <SystemVisualization />
 
           {/* Nessun filo attorno al film: la banda scura separa da sé,
-              e una riga sottile prima del buio sarebbe un inciampo. */}
+              e una riga sottile prima del buio sarebbe un inciampo. Sul
+              telefono il buio non c'è — il film è bianco come il resto —
+              e il filo se lo disegna il palco: vedi `globals.css`. */}
           <DnaFilm />
 
           <DataIntelligence />

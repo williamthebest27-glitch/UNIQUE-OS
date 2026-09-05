@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { aSiparioAperto } from "@/components/brand/sipario";
 import { cx } from "@/components/ui/primitives";
 import { inMovimento } from "@/lib/landing/capacita";
-import { useScena } from "@/lib/landing/scena";
+import { RITMO_TELEFONO, useScena } from "@/lib/landing/scena";
 
 /**
  * Il vocabolario della landing.
@@ -129,20 +129,45 @@ export function Titolo({
     // farlo sparire e riportarlo su un istante dopo.
     salita.pause(0);
 
+    // Il titolo è una battuta dell'accensione che gli sta attorno, e
+    // quella sul telefono va più svelta: al passo di prima resterebbe
+    // indietro da sola, sopra una scena già montata.
+    salita.timeScale(RITMO_TELEFONO);
+
     /* Il ritardo non è un'attesa ma una posizione nella coreografia — il
        titolo sale dopo il marchio — e va conservato. Un `play()` nudo lo
        brucerebbe: la partenza nel tempo globale è passata da un pezzo, e
        il titolo salirebbe insieme al marchio invece che dietro di lui.
+       Accorciato nella stessa proporzione di tutto il resto, resta la
+       stessa posizione nella coreografia.
 
        Il rinvio nasce fuori dal contesto GSAP — la richiamata arriva
        dopo — quindi il revert non lo conosce e va spento a mano. */
     let rinvio: ReturnType<typeof gsap.delayedCall> | null = null;
     const smetti = aSiparioAperto(() => {
-      rinvio = gsap.delayedCall(ritardo, () => salita.play());
+      rinvio = gsap.delayedCall(ritardo / RITMO_TELEFONO, () => salita.play());
     });
+
+    /* E come l'accensione attorno — vedi `landing/hero.tsx` — chi scorre
+       prima che il titolo sia salito ha detto che vuole andare avanti: le
+       parole si mettono su di colpo invece di arrivare dentro una scena
+       che sta già uscendo di campo, cioè invisibili. */
+    const alPrimoScorrimento = () => {
+      if (scrollY < 3) return;
+      smettiScorrimento();
+      rinvio?.kill();
+      salita.progress(1);
+    };
+
+    function smettiScorrimento() {
+      removeEventListener("scroll", alPrimoScorrimento);
+    }
+
+    addEventListener("scroll", alPrimoScorrimento, { passive: true });
 
     return () => {
       smetti();
+      smettiScorrimento();
       rinvio?.kill();
     };
   });
