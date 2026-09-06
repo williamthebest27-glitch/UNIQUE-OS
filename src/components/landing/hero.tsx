@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { Marchio } from "@/components/brand/marchio";
 import { aSiparioAperto } from "@/components/brand/sipario";
 import { CampoVivo } from "@/components/landing/campo";
-import { FiguraUmana } from "@/components/landing/figura";
+import { CorpoDiPunti } from "@/components/landing/corpo";
 import { Comando, Freccia, Titolo } from "@/components/landing/primitive";
 import { useRegia } from "@/components/landing/regia";
 import { arco, campo, legami } from "@/lib/landing/geometria";
@@ -196,9 +196,28 @@ export function HeroSystem({
         // La camera entra: il campo si apre verso di noi e passa oltre.
         .to(q("[data-rete]"), { scale: 1.55, opacity: 0, y: -40 }, 0)
         .to(q("[data-campo]"), { scale: 1.3, opacity: 0 }, 0)
-        // La figura si avvicina più piano di tutto il resto: è il corpo
-        // che si attraversa per ultimo, e per un istante resta sola.
-        .to(q("[data-figura]"), { scale: 1.16, opacity: 0 }, 0.12)
+        /* La figura si avvicina più piano di tutto il resto: è il corpo
+           che si attraversa per ultimo, e per un istante resta solo.
+
+           E non svanisce: viene *consumato*. Il piano di luce sale da
+           terra e gli toglie le gambe, poi il cuore si apre e lo mangia
+           dall'interno verso fuori; quel che resta si spegne un attimo
+           prima che il bianco chiuda la scena, così l'ultima cosa che si
+           attraversa è il petto. Sono due trasformazioni e un'opacità —
+           niente maschere da ridisegnare mentre la sezione è fissata. */
+        .to(q("[data-figura]"), { scale: 1.22, yPercent: -6, duration: 1.05 }, 0)
+        .to(
+          q("[data-suolo]"),
+          { yPercent: -82, duration: 0.62, ease: "power1.in" },
+          0,
+        )
+        .fromTo(
+          q("[data-cuore]"),
+          { scale: 0 },
+          { scale: 4.2, duration: 0.72, ease: "power1.in" },
+          0.22,
+        )
+        .to(q("[data-figura]"), { opacity: 0, duration: 0.33 }, 0.62)
         // Il marchio cresce fino a superare l'obiettivo, e si dissolve
         // nell'istante in cui lo attraversiamo.
         .to(q("[data-marchio]"), { scale: 3.4, opacity: 0, y: -30 }, 0)
@@ -334,23 +353,18 @@ export function HeroSystem({
         <CampoVivo className="h-full w-full" />
       </div>
 
-      {/* ── La figura ────────────────────────────────────────────── */}
+      {/* ── Il corpo ─────────────────────────────────────────────── */}
       {/* La persona, fatta di punti, dietro tutto il resto. Sta *sopra*
-          il campo e *sotto* la rete di misura: i fili e i numeri le si
-          agganciano addosso, che è esattamente il racconto — un corpo
-          che genera dati.
+          il campo — e continua a lasciarlo respirare, perché il bianco
+          dell'immagine si moltiplica sulla carta invece di coprirla — e
+          *sotto* la rete di misura: i fili e i numeri le si agganciano
+          addosso, che è esattamente il racconto — un corpo che genera
+          dati.
 
           Non entra nell'accensione. Tutto il resto della scena nasce dal
-          vuoto e si accende in ordine; lei c'è dal primo fotogramma, e
-          si scopre da sé con la sua dissolvenza. Il sistema si accende
-          attorno a una persona che c'era già. */}
-      <div
-        data-figura=""
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-[6]"
-      >
-        <FiguraUmana className="h-full w-full" />
-      </div>
+          vuoto e si accende in ordine; lui c'è dal primo fotogramma. Il
+          sistema si accende attorno a una persona che c'era già. */}
+      <CorpoDiPunti className="pointer-events-none absolute inset-0 -z-[6]" />
 
       <div className="os-reticolo -z-10" aria-hidden="true" />
 
