@@ -297,6 +297,8 @@ Postgres non restituirebbe comunque righe che l’utente non ha diritto di veder
   attribuzione, CPL, CAC, ROAS, e come nasce un contenuto che rispetta il brand.
 - [Sicurezza e dati sanitari](docs/sicurezza-e-gdpr.md) — modello dei permessi,
   segregazione dei ruoli, tracciamento e adempimenti aperti.
+- [Continuare da un altro computer](docs/nuovo-computer.md) — cosa non arriva
+  con `git clone`: le chiavi, gli script compilati, il collegamento a Vercel.
 
 ## Prossimi passi
 
