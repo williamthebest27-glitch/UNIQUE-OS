@@ -4,6 +4,12 @@ import { requireProfile } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getComandoClinico } from "@/lib/data/comando";
 import { getRiepilogoComunicazioni } from "@/lib/data/comunicazioni";
+import {
+  getDiagnostica,
+  getIdentitaOperativa,
+  getInfermieristica,
+} from "@/lib/data/reparto";
+import { DOMANDA_PROFILO, ETICHETTE_PROFILO } from "@/lib/clinical/profili";
 import { DISCIPLINE_LABELS } from "@/lib/professionals/disciplines";
 import { ETICHETTE_CATEGORIA } from "@/lib/clinical/attenzione";
 import { formatRelativeDays, formatTime, formatWeekdayDayMonth } from "@/lib/format";
@@ -20,6 +26,14 @@ import {
   Striscia,
 } from "@/components/clinical/command-center";
 import { GestiSegnale } from "@/components/clinical/gesti-segnale";
+import {
+  Consegne,
+  DaValidare,
+  ParametriDaRegistrare,
+  RefertiInLavorazione,
+  RichiesteEsami,
+  Somministrazioni,
+} from "@/components/clinical/blocchi-reparto";
 import { RicercaGlobale } from "@/components/clinical/ricerca-globale";
 import {
   Badge,
@@ -121,9 +135,27 @@ export default async function ComandoClinicoPage() {
   const profile = await requireProfile();
   if (profile.role === "patient") redirect("/dashboard");
 
-  const [c, comunicazioni] = await Promise.all([
+  /*
+   * Chi sta guardando decide quale schermata comporre.
+   *
+   * L'identità operativa si legge per prima e da sola: due letture
+   * povere — disciplina e reparti — che costano poco e risparmiano
+   * tutto il resto. Chiedere in parallelo i dati di tutti e tre i
+   * profili avrebbe voluto dire tre volte il lavoro per mostrarne uno.
+   *
+   * **Il profilo cambia la composizione, mai i permessi.** Se qualcuno
+   * arrivasse qui con un profilo che non gli spetta vedrebbe dei
+   * riquadri vuoti, non dei dati altrui: a decidere cosa può leggere
+   * resta la Row Level Security.
+   */
+  const identita = await getIdentitaOperativa();
+  const profilo = identita?.profilo ?? "clinico";
+
+  const [c, comunicazioni, infermieristica, diagnostica] = await Promise.all([
     isSupabaseConfigured() ? getComandoClinico() : Promise.resolve(null),
     getRiepilogoComunicazioni(),
+    profilo === "infermiere" ? getInfermieristica() : Promise.resolve(null),
+    profilo === "diagnostica" ? getDiagnostica() : Promise.resolve(null),
   ]);
 
   return (
@@ -137,6 +169,29 @@ export default async function ComandoClinicoPage() {
           <p className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-ink-400 first-letter:uppercase">
             {formatWeekdayDayMonth(new Date().toISOString())}
             {c ? <Badge>{DISCIPLINE_LABELS[c.discipline]}</Badge> : null}
+            {/*
+              Il profilo si dice solo quando non è quello generico: una
+              pastiglia «Area clinica» accanto alla disciplina non
+              aggiungerebbe niente, e quella che conta — «Diagnostica» —
+              si perderebbe fra le due.
+            */}
+            {profilo !== "clinico" ? (
+              <Badge tone="brand">{ETICHETTE_PROFILO[profilo]}</Badge>
+            ) : null}
+            {identita && identita.nomiReparti.length > 0 ? (
+              <span className="text-xs text-ink-300">
+                {identita.nomiReparti.join(" · ")}
+              </span>
+            ) : null}
+          </p>
+
+          {/*
+            A cosa serve questa schermata, in una riga. Una dashboard che
+            non lo dice viene letta come «tutto quello che il sistema sa»,
+            e allora ogni assenza sembra un guasto.
+          */}
+          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-ink-500">
+            {DOMANDA_PROFILO[profilo]}
           </p>
         </div>
 
@@ -216,7 +271,25 @@ export default async function ComandoClinicoPage() {
           </Striscia>
 
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
-            {/* ── Adesso ───────────────────────────────────── */}
+            {/* ── La colonna principale, che cambia con il profilo ──
+                Infermieristica e diagnostica non aprono la giornata su
+                una coda di segnali clinici: la loro prima domanda è
+                «cosa c'è da fare adesso su chi entra oggi» e «cosa
+                aspetta la mia firma». Sono due lavori diversi, e la
+                stessa schermata per entrambi ne serve male uno. */}
+            {infermieristica ? (
+              <div className="space-y-6">
+                <Somministrazioni righe={infermieristica.somministrazioni} />
+                <ParametriDaRegistrare righe={infermieristica.parametriDaRegistrare} />
+                <Consegne righe={infermieristica.consegne} />
+              </div>
+            ) : diagnostica ? (
+              <div className="space-y-6">
+                <RichiesteEsami righe={diagnostica.richieste} />
+                <DaValidare righe={diagnostica.daValidare} />
+                <RefertiInLavorazione righe={diagnostica.referti} />
+              </div>
+            ) : (
             <Riquadro
               titolo="Adesso"
               nota="Le cose più importanti, in ordine. Ognuna porta con sé i fatti che l’hanno accesa."
@@ -295,6 +368,7 @@ export default async function ComandoClinicoPage() {
                 </p>
               ) : null}
             </Riquadro>
+            )}
 
             {/* ── La giornata ──────────────────────────────── */}
             <div className="space-y-6">
