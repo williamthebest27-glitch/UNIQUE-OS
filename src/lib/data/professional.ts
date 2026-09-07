@@ -1,5 +1,6 @@
 import { getCurrentProfile } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { contaNonLette } from "@/lib/data/comunicazioni";
 
 /**
  * Le sezioni dell'area clinica: agenda, documenti, task.
@@ -91,10 +92,11 @@ export async function getProNavCounts(): Promise<{
   task: number;
   documenti: number;
   messaggi: number;
+  comunicazioni: number;
 }> {
   const supabase = await createSupabaseServerClient();
 
-  const [revisioni, task, documenti, messaggi] = await Promise.all([
+  const [revisioni, task, documenti, messaggi, comunicazioni] = await Promise.all([
     supabase
       .from("measurement_proposals")
       .select("id", { count: "exact", head: true })
@@ -113,6 +115,13 @@ export async function getProNavCounts(): Promise<{
       .select("id", { count: "exact", head: true })
       .eq("from_patient", true)
       .is("read_by_staff_at", null),
+    // Le comunicazioni interne non si contano con un `count`: la
+    // visibilità di una conversazione dipende dai partecipanti e dai
+    // reparti, e ricostruirla con dei `filter` qui sarebbe una seconda
+    // copia della Row Level Security. Il conteggio lo fa il database, e
+    // chi lo chiede è una funzione sola — vive accanto alle altre
+    // letture delle comunicazioni, non qui.
+    contaNonLette(),
   ]);
 
   return {
@@ -120,6 +129,7 @@ export async function getProNavCounts(): Promise<{
     task: task.count ?? 0,
     documenti: documenti.count ?? 0,
     messaggi: messaggi.count ?? 0,
+    comunicazioni,
   };
 }
 

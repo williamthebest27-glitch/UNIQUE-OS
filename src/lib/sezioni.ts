@@ -38,6 +38,21 @@ export const SEZIONI_PRO: Record<string, Sezione> = {
     subtitle:
       "Fatti già avvenuti che qualcuno voleva farti sapere. Il lavoro che aspetta sta nel centro di attenzione: sono due code diverse.",
   },
+  "/pro/comunicazioni": {
+    title: "Comunicazioni",
+    subtitle:
+      "Le conversazioni fra colleghi e reparti, e i consulti specialistici. Il paziente non le vede: la conversazione con lui sta in «Messaggi».",
+  },
+  "/pro/comunicazioni/consulti": {
+    title: "Consulti specialistici",
+    subtitle:
+      "Le richieste di parere che ti riguardano, con lo stato: aperto, preso in carico, in valutazione, risposto, chiuso.",
+  },
+  "/pro/comunicazioni/registro": {
+    title: "Registro delle comunicazioni",
+    subtitle:
+      "Chi ha scritto, chi ha letto, chi ha preso in carico un consulto. Le righe le produce il database e nessuno le può riscrivere.",
+  },
   "/pro/documenti": {
     title: "Documenti",
     subtitle:
@@ -111,6 +126,11 @@ export const SEZIONI_CONTROL: Record<string, Sezione> = {
   "/control/professionisti": {
     title: "Professionisti",
     subtitle: "La squadra, gli orari settimanali e le disponibilità pubblicate.",
+  },
+  "/control/reparti": {
+    title: "Reparti",
+    subtitle:
+      "Le unità che comunicano fra loro, e chi ne fa parte. Un reparto decide chi legge una comunicazione e a chi si può chiedere un consulto.",
   },
   "/control/economia": { title: "Unit economics" },
   "/control/capacita": { title: "Capacità" },

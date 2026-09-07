@@ -6,6 +6,7 @@ import { getProNavCounts } from "@/lib/data/professional";
 import { ProSidebarNav, ProTabBar, type ProCounts } from "@/components/shell/pro-nav";
 import { BarraSuperiore } from "@/components/shell/barra-utente";
 import { Marchio } from "@/components/brand/marchio";
+import { ScorciatoiaComunicazioni } from "@/components/comunicazioni/scorciatoia-barra";
 
 /**
  * L'area clinica.
@@ -66,7 +67,7 @@ export default async function ProLayout({
   const demo = !isSupabaseConfigured();
   // Senza database non c'è nulla da contare, e la query fallirebbe.
   const counts: ProCounts = demo
-    ? { revisioni: 0, task: 0, documenti: 0, messaggi: 0 }
+    ? { revisioni: 0, task: 0, documenti: 0, messaggi: 0, comunicazioni: 0 }
     : await getProNavCounts();
 
   return (
@@ -89,7 +90,11 @@ export default async function ProLayout({
       {/* Barra e contenuto in colonna: così la barra resta in cima al
           contenuto, a fianco del menu e non sopra di esso. */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <BarraSuperiore simbolo={<Simbolo />} nome={profile.fullName} />
+        <BarraSuperiore
+          simbolo={<Simbolo />}
+          nome={profile.fullName}
+          azioni={<ScorciatoiaComunicazioni nonLette={counts.comunicazioni} />}
+        />
 
         {/* pb-24 lascia spazio alla tab bar su telefono. */}
         <main className="min-w-0 flex-1 px-5 pt-6 pb-24 sm:px-8 md:pb-12 lg:px-12 lg:pt-10">

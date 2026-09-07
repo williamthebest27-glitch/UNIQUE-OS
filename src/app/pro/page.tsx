@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getComandoClinico } from "@/lib/data/comando";
+import { getRiepilogoComunicazioni } from "@/lib/data/comunicazioni";
 import { DISCIPLINE_LABELS } from "@/lib/professionals/disciplines";
 import { ETICHETTE_CATEGORIA } from "@/lib/clinical/attenzione";
 import { formatRelativeDays, formatTime, formatWeekdayDayMonth } from "@/lib/format";
@@ -63,11 +64,67 @@ export const unstable_dynamicStaleTime = 0;
 /** Quante ne mostra la coda principale. Cinque, come la domanda pone. */
 const QUANTE_ADESSO = 5;
 
+/**
+ * Un numero del riquadro delle comunicazioni.
+ *
+ * Una versione stretta di `Numero`: la striscia della giornata è larga
+ * quanto la pagina e può permettersi sei colonne, questo riquadro sta in
+ * una colonna sola e ne regge tre. Zero non si clicca — un collegamento
+ * verso un elenco vuoto è una promessa che non viene mantenuta.
+ */
+function NumeroComunicazioni({
+  etichetta,
+  valore,
+  nota,
+  href,
+  tono = "neutro",
+}: {
+  etichetta: string;
+  valore: number;
+  nota?: string;
+  href: string;
+  tono?: "neutro" | "attenzione" | "urgente";
+}) {
+  const corpo = (
+    <>
+      <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-ink-400">
+        {etichetta}
+      </p>
+      <p
+        className={cx(
+          "mt-1 font-display text-[24px] leading-none tnum",
+          valore === 0
+            ? "text-ink-300"
+            : tono === "urgente"
+              ? "text-signal-alert"
+              : tono === "attenzione"
+                ? "text-signal-attention"
+                : "text-ink-900",
+        )}
+      >
+        {valore}
+      </p>
+      {nota ? <p className="mt-1 text-[11px] leading-snug text-ink-400">{nota}</p> : null}
+    </>
+  );
+
+  if (valore === 0) return <div className="px-4 py-3">{corpo}</div>;
+
+  return (
+    <NavLink href={href} className="block px-4 py-3 transition-colors hover:bg-bone-50">
+      {corpo}
+    </NavLink>
+  );
+}
+
 export default async function ComandoClinicoPage() {
   const profile = await requireProfile();
   if (profile.role === "patient") redirect("/dashboard");
 
-  const c = isSupabaseConfigured() ? await getComandoClinico() : null;
+  const [c, comunicazioni] = await Promise.all([
+    isSupabaseConfigured() ? getComandoClinico() : Promise.resolve(null),
+    getRiepilogoComunicazioni(),
+  ]);
 
   return (
     <div>
@@ -241,6 +298,86 @@ export default async function ComandoClinicoPage() {
 
             {/* ── La giornata ──────────────────────────────── */}
             <div className="space-y-6">
+              {/*
+                Le comunicazioni stanno **sopra** l'agenda, e non è una
+                svista: l'agenda dice cosa succederà, un consulto non
+                preso in carico dice cosa è rimasto fermo. Il secondo non
+                lo mostra nessun calendario, ed è per questo che va
+                guardato prima.
+              */}
+              <Riquadro
+                titolo="Comunicazioni"
+                nota="Fra colleghi e reparti. Non è la conversazione con il paziente."
+                tutto={{ label: "Apri", href: "/pro/comunicazioni" }}
+              >
+                <div className="grid grid-cols-3 gap-px border-y border-bone-200 bg-bone-200 [&>*]:bg-white">
+                  <NumeroComunicazioni
+                    etichetta="Non lette"
+                    valore={comunicazioni.nonLette}
+                    href="/pro/comunicazioni?vista=non-lette"
+                  />
+                  <NumeroComunicazioni
+                    etichetta="Consulti aperti"
+                    valore={comunicazioni.consultiAperti}
+                    nota={
+                      comunicazioni.consultiDaPrendereInCarico > 0
+                        ? `${comunicazioni.consultiDaPrendereInCarico} da prendere`
+                        : undefined
+                    }
+                    href="/pro/comunicazioni/consulti"
+                    tono="attenzione"
+                  />
+                  <NumeroComunicazioni
+                    etichetta="Urgenti"
+                    valore={comunicazioni.urgenti}
+                    href="/pro/comunicazioni?vista=urgenti"
+                    tono="urgente"
+                  />
+                </div>
+
+                {comunicazioni.ultime.length === 0 ? (
+                  <Niente>
+                    Nessuna comunicazione. Si aprono da «Comunicazioni», e i
+                    consulti specialistici da lì.
+                  </Niente>
+                ) : (
+                  <ul className="divide-y divide-bone-200/80">
+                    {comunicazioni.ultime.map((v) => (
+                      <li key={v.id}>
+                        <NavLink
+                          href={`/pro/comunicazioni/${v.id}`}
+                          className="block px-6 py-3 transition-colors hover:bg-bone-50"
+                        >
+                          <div className="flex items-baseline justify-between gap-3">
+                            <p
+                              className={cx(
+                                "min-w-0 truncate text-[15px]",
+                                v.nonLetti > 0
+                                  ? "font-medium text-ink-900"
+                                  : "text-ink-900",
+                              )}
+                            >
+                              {v.titolo}
+                            </p>
+                            {v.nonLetti > 0 ? (
+                              <Badge tone="attention">{v.nonLetti}</Badge>
+                            ) : null}
+                          </div>
+                          <p className="mt-0.5 truncate text-sm text-ink-400">
+                            {[...v.con.slice(0, 2), v.paziente]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </p>
+                          <p className="mt-1 text-xs text-ink-300 first-letter:uppercase">
+                            {formatRelativeDays(v.ultimoIl)}
+                          </p>
+                        </NavLink>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Riquadro>
+
               <Riquadro
                 titolo="La giornata"
                 conta={c.oggi.length}

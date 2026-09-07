@@ -488,6 +488,25 @@
   .animate-score-draw {
     animation: score-draw 1.4s var(--ease-out-expo) forwards;
   }
+
+  /* ── Comunicazioni ────────────────────────────────────────────
+     L'avviso che compare quando arriva qualcosa mentre si sta
+     guardando un'altra cosa. Sale di sei pixel e sfuma: abbastanza
+     perché l'occhio lo prenda, abbastanza poco da non chiedere di
+     essere guardato. Chi ha chiesto meno movimento lo trova già
+     arrivato. */
+  @keyframes comms-arriva {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .animate-comms-arriva {
+    animation: comms-arriva 200ms var(--ease-out-expo) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-comms-arriva { animation: none; }
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════

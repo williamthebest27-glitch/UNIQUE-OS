@@ -156,6 +156,33 @@ export function invalidaMessaggiClinici(patientId?: string | null): void {
 }
 
 /**
+ * È cambiata una comunicazione interna: un messaggio, un consulto, un
+ * reparto, un partecipante.
+ *
+ * L'elenco è lungo perché una comunicazione interna si affaccia in
+ * cinque punti che non si assomigliano: la inbox, la conversazione, la
+ * lavagna dei consulti, il riquadro nella schermata di apertura e il
+ * pallino nel menu. Il pallino è quello che si dimentica sempre — vive
+ * nel layout, e `revalidatePath` su una pagina non lo tocca.
+ *
+ * Le rotte con un segmento dinamico vogliono il secondo argomento:
+ * senza, `revalidatePath` non invalida niente e non lo dice.
+ */
+export function invalidaComunicazioni(patientId?: string | null): void {
+  revalidatePath("/pro/comunicazioni");
+  revalidatePath("/pro/comunicazioni/[id]", "page");
+  revalidatePath("/pro/comunicazioni/consulti");
+  revalidatePath("/pro/comunicazioni/registro");
+
+  // Il riquadro «Comunicazioni» e il contatore accanto alla voce di menu.
+  revalidatePath("/pro");
+  revalidatePath("/pro/notifiche");
+  revalidatePath("/control/reparti");
+
+  if (patientId) revalidatePath(`/pro/pazienti/${patientId}`, "layout");
+}
+
+/**
  * È cambiato un appuntamento: creato, spostato, disdetto, concluso.
  *
  * Tocca tre mondi che di solito non si parlano — il paziente che ha

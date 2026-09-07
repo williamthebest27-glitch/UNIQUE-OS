@@ -234,6 +234,196 @@ if (conSeed) {
   await comeRuolo("reception", "verifica.reception@esempio.it");
 }
 
+// ── Le comunicazioni interne ────────────────────────────────────────
+/*
+ * La promessa: un medico non legge le comunicazioni dell'intera clinica.
+ *
+ * È la sola cosa che rende usabile uno strumento in cui si scrive di
+ * persone. La difesa non è che l'interfaccia non mostri il pulsante — è
+ * che una riga di una conversazione a cui non si partecipa non esiste
+ * per quella sessione, qualunque query si scriva.
+ *
+ * Il secondo controllo è più sottile e vale quanto il primo: chiedere un
+ * consulto **apre** la cartella allo specialista destinatario. È voluto —
+ * un parere dato senza guardare gli esami vale quanto un'opinione al
+ * telefono — ma va provato che si apra a lui e a nessun altro.
+ */
+if (conSeed) {
+  console.log("\n── comunicazioni interne ──");
+
+  const come = async (profilo, fn) => {
+    await db.exec(`set request.jwt.claim.sub = '${profilo}'`);
+    await db.exec("set role authenticated");
+    try {
+      return await fn();
+    } finally {
+      await db.exec("reset role");
+    }
+  };
+
+  const interno = async (email, reparto) => {
+    const [{ id }] = await q("insert into auth.users (email) values ($1) returning id", [
+      email,
+    ]);
+    await q("update public.profiles set role = 'professional', full_name = $2 where id = $1", [
+      id,
+      email.split("@")[0],
+    ]);
+    await q("insert into public.professionals (profile_id, discipline) values ($1, 'physician')", [
+      id,
+    ]);
+    if (reparto) {
+      await q(
+        `insert into public.department_members (department_id, profile_id)
+         select id, $2 from public.departments where slug = $1
+         on conflict do nothing`,
+        [reparto, id],
+      );
+    }
+    return id;
+  };
+
+  const chiede = await interno("verifica.medicina@esempio.it", "medicina");
+  const risponde = await interno("verifica.diagnostica@esempio.it", "diagnostica");
+  const estraneo = await interno("verifica.estraneo@esempio.it", null);
+
+  const controlli = [];
+  const verifica = (nome, atteso, ottenuto) => {
+    controlli.push({ nome, ok: atteso === ottenuto });
+  };
+
+  // ── Una comunicazione indirizzata a un reparto ──
+  const [{ open_conversation: conv }] = await come(chiede, () =>
+    q(`select public.open_conversation(
+         'Verifica della segregazione', 'Prima riga.', 'department', 'normal',
+         (select id from public.departments where slug = 'diagnostica'),
+         null, '{}'::uuid[],
+         array[(select id from public.departments where slug = 'diagnostica')],
+         'info')`),
+  );
+
+  const vede = async (profilo) =>
+    (
+      await come(profilo, () =>
+        q("select id from public.conversations where id = $1", [conv]),
+      )
+    ).length > 0;
+
+  verifica("chi apre vede la propria comunicazione", true, await vede(chiede));
+  verifica("il reparto destinatario la vede", true, await vede(risponde));
+  verifica("chi non c'entra non la vede", false, await vede(estraneo));
+
+  // Nemmeno i messaggi: la policy dei messaggi passa dalla stessa funzione.
+  const righe = await come(estraneo, () =>
+    q("select id from public.conversation_messages where conversation_id = $1", [conv]),
+  );
+  verifica("chi non c'entra non ne legge i messaggi", true, righe.length === 0);
+
+  // ── Scrivere dove non si partecipa ──
+  let respinto = false;
+  try {
+    await come(estraneo, () =>
+      q("select public.post_message($1, 'Non dovrei riuscirci.')", [conv]),
+    );
+  } catch {
+    respinto = true;
+  }
+  verifica("chi non c'entra non può scriverci", true, respinto);
+
+  // ── Il consulto come motivo di cura ──
+  const [paziente] = await q(
+    "select id from public.patients order by created_at limit 1",
+  );
+
+  const cartella = async (profilo) =>
+    (
+      await come(profilo, () =>
+        q("select id from public.patients where id = $1", [paziente.id]),
+      )
+    ).length > 0;
+
+  verifica("prima del consulto lo specialista non vede la cartella", false, await cartella(risponde));
+
+  // Chi chiede deve avere titolo sul paziente: lo si mette nel care team,
+  // che è la strada normale, non una scorciatoia del test.
+  await q(
+    `insert into public.care_team_members (patient_id, professional_id)
+     select $1, id from public.professionals where profile_id = $2
+     on conflict do nothing`,
+    [paziente.id, chiede],
+  );
+
+  const [{ request_consultation: consulto }] = await come(chiede, () =>
+    q(
+      `select public.request_consultation(
+         $1,
+         (select id from public.departments where slug = 'diagnostica'),
+         'Verifica dell''accesso per consulto', null, 'normal', null, null)`,
+      [paziente.id],
+    ),
+  );
+
+  verifica("il consulto apre la cartella allo specialista", true, await cartella(risponde));
+  verifica("e non la apre a nessun altro", false, await cartella(estraneo));
+
+  /*
+   * La macchina a stati, percorsa per intero.
+   *
+   * `advance_consultation` è la funzione più lunga della migrazione e
+   * fa cinque cose in una transazione. Un corpo plpgsql viene analizzato
+   * alla creazione ma non eseguito: un errore in un ramo che nessuno
+   * percorre si scopre in produzione, il giorno in cui uno specialista
+   * prova a rispondere.
+   */
+  const stato = async () =>
+    (
+      await q("select status from public.clinical_consultations where id = $1", [
+        consulto,
+      ])
+    )[0]?.status;
+
+  await come(risponde, () =>
+    q("select public.advance_consultation($1, 'taken')", [consulto]),
+  );
+  verifica("prendere in carico porta a «taken»", "taken", await stato());
+
+  await come(risponde, () =>
+    q("select public.advance_consultation($1, 'answered', $2)", [
+      consulto,
+      "Nessuna controindicazione al carico progressivo.",
+    ]),
+  );
+  verifica("rispondere porta a «answered»", "answered", await stato());
+
+  const [{ count: quante }] = await q(
+    `select count(*)::int from public.conversation_messages m
+      join public.clinical_consultations k on k.conversation_id = m.conversation_id
+     where k.id = $1`,
+    [consulto],
+  );
+  verifica("la risposta resta collegata alla richiesta", true, quante >= 2);
+
+  await come(chiede, () =>
+    q("select public.advance_consultation($1, 'closed')", [consulto]),
+  );
+  verifica("chiudere porta a «closed»", "closed", await stato());
+
+  let chiusoRespinge = false;
+  try {
+    await come(risponde, () =>
+      q("select public.advance_consultation($1, 'taken')", [consulto]),
+    );
+  } catch {
+    chiusoRespinge = true;
+  }
+  verifica("un consulto chiuso non si riapre di lato", true, chiusoRespinge);
+
+  const falliti = controlli.filter((c) => !c.ok);
+  for (const c of controlli.filter((c) => c.ok)) console.log(`✔ ${c.nome}`);
+  for (const c of falliti) console.log(`✘ ${c.nome}`);
+  if (falliti.length > 0) uscita = 1;
+}
+
 // ── I controlli che contano ─────────────────────────────────────────
 console.log("\n── sicurezza dello schema ──");
 

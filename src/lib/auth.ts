@@ -172,6 +172,9 @@ export const CONTROL_SECTIONS: Record<string, AppRole[]> = {
   "/control/incassi": ["admin", "owner", "reception"],
   "/control/servizi": ["admin", "owner"],
   "/control/professionisti": ["admin", "owner", "reception"],
+  // I reparti decidono chi legge una comunicazione clinica: cambiarli è
+  // cambiare dei permessi, e resta alla direzione.
+  "/control/reparti": ["admin", "owner"],
   "/control/marketing": ["admin", "owner", "marketing"],
   "/control/contenuti": ["admin", "owner", "marketing"],
   "/control/conoscenza": ["admin", "owner", "marketing"],

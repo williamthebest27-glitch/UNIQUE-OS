@@ -45,6 +45,8 @@ export interface ProCounts {
   documenti: number;
   /** Messaggi dei pazienti senza risposta. */
   messaggi: number;
+  /** Righe non lette nelle comunicazioni fra colleghi e reparti. */
+  comunicazioni: number;
 }
 
 type Voce = {
@@ -82,6 +84,32 @@ function MessageIcon() {
         d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 3.5v-3.6A2.5 2.5 0 0 1 4 13.5z"
         stroke="currentColor"
         strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/**
+ * Le comunicazioni interne.
+ *
+ * Due fumetti sovrapposti e non uno: la voce accanto è «Messaggi», che è
+ * la conversazione con il paziente, e due icone identiche in due voci di
+ * fila avrebbero costretto a leggere l'etichetta ogni volta.
+ */
+function ComunicazioniIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M3 6.2A2.2 2.2 0 0 1 5.2 4h8.6A2.2 2.2 0 0 1 16 6.2v4.6a2.2 2.2 0 0 1-2.2 2.2H8l-3.6 2.7v-2.8A2.2 2.2 0 0 1 3 10.8z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M18.5 9h.3A2.2 2.2 0 0 1 21 11.2v4.6a2.2 2.2 0 0 1-2.2 2.2h-.3v2.4L15 18h-2.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
         strokeLinejoin="round"
       />
     </svg>
@@ -163,6 +191,12 @@ const GRUPPI: Gruppo[] = [
         label: "Messaggi",
         icon: <MessageIcon />,
         badge: "messaggi",
+      },
+      {
+        href: "/pro/comunicazioni",
+        label: "Comunicazioni",
+        icon: <ComunicazioniIcon />,
+        badge: "comunicazioni",
       },
       { href: "/pro/team", label: "Team", icon: <TeamIcon /> },
     ],
