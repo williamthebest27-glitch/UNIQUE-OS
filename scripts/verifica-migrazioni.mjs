@@ -418,6 +418,77 @@ if (conSeed) {
   }
   verifica("un consulto chiuso non si riapre di lato", true, chiusoRespinge);
 
+  /*
+   * ── La timeline non è una scorciatoia ──────────────────────────
+   *
+   * `patient_timeline` unisce dieci tabelle, fra cui le conversazioni
+   * interne. È `security_invoker`, quindi ogni pezzo della union porta
+   * con sé la Row Level Security della tabella da cui viene — ma è
+   * esattamente il genere di garanzia che si dà per scontata e che, se
+   * saltasse, farebbe leggere al paziente il consulto in cui si discute
+   * di lui. Una riga in questo file costa meno di quella telefonata.
+   */
+  const categorie = async (profilo, paziente) =>
+    new Set(
+      (
+        await come(profilo, () =>
+          q("select distinct category from public.patient_timeline where patient_id = $1", [
+            paziente,
+          ]),
+        )
+      ).map((r) => r.category),
+    );
+
+  const dalMedico = await categorie(chiede, paziente.id);
+  const [{ profile_id: suoProfilo }] = await q(
+    "select profile_id from public.patients where id = $1",
+    [paziente.id],
+  );
+  const dalPaziente = await categorie(suoProfilo, paziente.id);
+
+  verifica(
+    "il medico vede le comunicazioni nella timeline",
+    true,
+    dalMedico.has("comunicazioni"),
+  );
+  verifica(
+    "la timeline del medico ha più di una categoria",
+    true,
+    dalMedico.size > 1,
+  );
+
+  /*
+   * Il paziente una riga «comunicazioni» ce l'ha, ed è giusta: sono i
+   * *suoi* fili con la clinica. Quello che non deve esserci è la
+   * conversazione interna, e si controlla per titolo — è l'unico modo di
+   * distinguerle, visto che condividono la categoria.
+   */
+  const interneAlPaziente = await come(suoProfilo, () =>
+    q(
+      `select count(*)::int as n from public.patient_timeline
+        where patient_id = $1 and kind in ('internal', 'consultation')`,
+      [paziente.id],
+    ),
+  );
+  verifica(
+    "il paziente non vede le comunicazioni interne che lo riguardano",
+    0,
+    interneAlPaziente[0]?.n ?? 0,
+  );
+
+  const interneAlMedico = await come(chiede, () =>
+    q(
+      `select count(*)::int as n from public.patient_timeline
+        where patient_id = $1 and kind in ('internal', 'consultation')`,
+      [paziente.id],
+    ),
+  );
+  verifica(
+    "il medico che partecipa le vede",
+    true,
+    (interneAlMedico[0]?.n ?? 0) > 0,
+  );
+
   const falliti = controlli.filter((c) => !c.ok);
   for (const c of controlli.filter((c) => c.ok)) console.log(`✔ ${c.nome}`);
   for (const c of falliti) console.log(`✘ ${c.nome}`);

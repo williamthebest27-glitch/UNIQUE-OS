@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { getPatientTimeline } from "@/lib/data/timeline";
+import { contaPerCategoria, getPatientTimeline } from "@/lib/data/timeline";
+import { isCategoriaTimeline } from "@/lib/clinical/timeline";
 import { accessiAlPaziente, etichettaAudit } from "@/lib/audit";
 import { recentEvents } from "@/lib/events/emit";
 import { traccia } from "@/lib/audit";
@@ -17,11 +18,18 @@ export const unstable_dynamicStaleTime = 0;
  * Non è ridondanza: sono tre domande che nessuno dei tre può rispondere
  * da solo.
  *
- *   **La Health Timeline** racconta la storia clinica — punteggi,
- *   visite, referti, percorsi — ed è quella che si guarda per capire
- *   una persona. Viene da una vista sulle tabelle di dominio: non
- *   esiste una tabella di eventi da tenere allineata, e una vista non
- *   può andare fuori sincrono con sé stessa.
+ *   **La Health Timeline** racconta la storia clinica — esami, visite,
+ *   terapie, referti, note, comunicazioni, punteggi, percorsi — ed è
+ *   quella che si guarda per capire una persona in trenta secondi.
+ *   Viene da una vista sulle tabelle di dominio: non esiste una tabella
+ *   di eventi da tenere allineata, e una vista non può andare fuori
+ *   sincrono con sé stessa.
+ *
+ *   I filtri stanno in `?vista=`, non in uno stato di React: «gli esami
+ *   di questa persona» diventa un indirizzo che si manda a un collega.
+ *   E il filtro agisce nel `where` della query, non sulle righe già
+ *   lette — filtrare in memoria avrebbe detto «nessun referto» quando i
+ *   referti ci sono ma stanno oltre la sessantesima riga.
  *
  *   **Gli eventi di dominio** dicono cosa è *cambiato*, al passato e
  *   nell'ordine in cui è successo. Sono il sistema nervoso da cui
@@ -34,13 +42,21 @@ export const unstable_dynamicStaleTime = 0;
  */
 export default async function TimelinePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ vista?: string }>;
 }) {
   const { id } = await params;
+  const { vista } = await searchParams;
+  const categoria = vista && isCategoriaTimeline(vista) ? vista : null;
 
-  const [eventi, accessi, dominio] = await Promise.all([
-    getPatientTimeline(id, 60),
+  const [eventi, conteggi, accessi, dominio] = await Promise.all([
+    // Con un filtro attivo si guarda più indietro: sessanta righe di
+    // tutto sono un mese, sessanta righe di soli referti sono anni — ed
+    // è esattamente il motivo per cui si è filtrato.
+    getPatientTimeline(id, { categoria, limite: categoria ? 120 : 60 }),
+    contaPerCategoria(id),
     accessiAlPaziente(id, 40),
     recentEvents({ patientId: id, limit: 30 }).catch(() => []),
   ]);
@@ -57,7 +73,12 @@ export default async function TimelinePage({
       <Timeline
         events={eventi}
         title="Health Timeline"
-        hint="Punteggi, visite, referti e percorsi, dal più recente. Ricostruita dalle tabelle di dominio, non da un registro a parte."
+        hint="Esami, visite, terapie, referti, comunicazioni e percorsi, dal più recente. Ricostruita dalle tabelle di dominio, non da un registro a parte."
+        filtri={{
+          base: `/pro/pazienti/${id}/timeline`,
+          attiva: categoria,
+          conteggi,
+        }}
       />
 
       <Riquadro

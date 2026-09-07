@@ -242,10 +242,25 @@ export interface AppNotification {
   createdAt: string;
 }
 
+/**
+ * Da quale tabella viene una riga di timeline.
+ *
+ * Decide l'icona e il colore del pallino, e basta: a decidere sotto
+ * quale filtro finisce è `CategoriaTimeline`, che raggruppa in un altro
+ * modo. Vedi `lib/clinical/timeline.ts`.
+ */
 export type TimelineKind =
   | "score"
   | "appointment"
   | "document"
+  | "report"
+  | "prescription"
+  | "measurement"
+  | "therapy"
+  | "note"
+  | "thread"
+  | "consultation"
+  | "internal"
   | "program_start"
   | "program_end";
 
@@ -254,8 +269,12 @@ export interface TimelineEvent {
   id: string;
   occurredAt: string;
   kind: TimelineKind;
+  /** Il raggruppamento su cui agiscono i filtri. */
+  category: string;
   title: string;
   detail: string | null;
+  /** L'id della riga sorgente: serve ad aprirla, dove si può. */
+  refId: string;
 }
 
 /** Un risultato concreto ottenuto nel percorso, da celebrare in home. */
