@@ -351,7 +351,31 @@ export async function notifiche(limite = 40): Promise<Notifica[]> {
 
 /* ── Profilo e consensi ───────────────────────────────────────────── */
 
-export type TipoConsenso = "privacy_policy" | "health_data" | "marketing" | "research";
+/*
+ * Il vocabolario dei consensi vive in `clinical/consensi.ts`.
+ *
+ * Stava qui, e finché a leggerlo erano solo pagine server andava bene.
+ * Il primo componente client che ne ha avuto bisogno ha trascinato nel
+ * bundle del browser `next/headers` e il client di sessione — questo
+ * file ne è pieno — e la build si è fermata.
+ *
+ * La ri-esportazione resta perché una dozzina di punti importano da qui
+ * e spostarli tutti sarebbe stato un cambio più grande del problema.
+ */
+import {
+  CONSENSI_OBBLIGATORI,
+  ETICHETTE_CONSENSO,
+  type TipoConsenso,
+} from "@/lib/clinical/consensi";
+
+export {
+  CONSENSI_OBBLIGATORI,
+  ETICHETTE_CONSENSO,
+  ORIGINI_CONSENSO,
+  TIPI_CONSENSO,
+  isTipoConsenso,
+  type TipoConsenso,
+} from "@/lib/clinical/consensi";
 
 export interface Consenso {
   tipo: TipoConsenso;
@@ -359,29 +383,6 @@ export interface Consenso {
   versione: string;
   decisoIl: string;
 }
-
-/** I consensi obbligatori per usare Unique OS. Gli altri sono una scelta. */
-export const CONSENSI_OBBLIGATORI: TipoConsenso[] = ["privacy_policy", "health_data"];
-
-export const ETICHETTE_CONSENSO: Record<TipoConsenso, { titolo: string; spiegazione: string }> = {
-  privacy_policy: {
-    titolo: "Informativa privacy",
-    spiegazione: "Come trattiamo i tuoi dati e per quanto tempo li conserviamo.",
-  },
-  health_data: {
-    titolo: "Trattamento dei dati sanitari",
-    spiegazione:
-      "Senza questo consenso non possiamo calcolare il tuo punteggio né conservare referti e misure.",
-  },
-  marketing: {
-    titolo: "Comunicazioni commerciali",
-    spiegazione: "Novità, iniziative ed eventi. Puoi revocarlo quando vuoi, senza perdere nulla.",
-  },
-  research: {
-    titolo: "Ricerca in forma anonima",
-    spiegazione: "I tuoi dati, privati del nome, contribuiscono a migliorare il modello dello Score.",
-  },
-};
 
 export interface Preferenze {
   email: boolean;

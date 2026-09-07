@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireProfile } from "@/lib/auth";
+import { requireProfile, requireSecondoFattore } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { contatoriNav } from "@/lib/data/paziente-sezioni";
 import { ColonnaPaziente, PatientTabBar } from "@/components/shell/patient-nav";
@@ -80,6 +80,13 @@ export default async function PatientLayout({
   children: React.ReactNode;
 }) {
   const profile = await requireProfile();
+
+  // Chi ha attivato il secondo fattore lo deve usare anche qui. La
+  // cartella di una persona merita la stessa porta di quella di un'altra:
+  // proteggere l'area clinica e lasciare aperta la propria sarebbe stato
+  // dire che i dati contano solo quando li guarda un medico.
+  await requireSecondoFattore("/dashboard");
+
   const demo = !isSupabaseConfigured();
   const contatori = await contatoriNav();
 

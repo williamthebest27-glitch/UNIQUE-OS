@@ -106,9 +106,105 @@ Brain: `brain.proposal_created`, `brain.proposal_approved`, `brain.action_execut
 `brain.action_failed`. La domanda "chi ha cambiato il prezzo della visita il 14
 settembre" ha una risposta ricostruibile per intero.
 
-`audit_log` resta per il tracciamento degli **accessi** ai dati sanitari, che è
-un'altra cosa: gli eventi dicono cosa è cambiato, l'audit chi ha guardato. È il
-punto ancora aperto (vedi sotto).
+`audit_log` risponde all'altra domanda: **chi ha fatto cosa a questa persona.**
+Ci finiscono gli accessi — aprire una cartella non cambia niente e quindi non
+produce nessun evento, ed è esattamente l'accesso che l'art. 32 chiede di poter
+mostrare — e da poco anche le scritture: sei tabelle (terapie, dosi, esami, note,
+misure, documenti) scrivono una riga per trigger. L'elenco è corto di proposito:
+tracciare ogni scrittura di ogni tabella produrrebbe un registro in cui la riga
+che conta sta fra diecimila che non contano, e un registro che non si può
+leggere è un archivio.
+
+Si legge da `/control/registro`, una frase per riga: «William ha aperto la
+cartella di Marta Bellini, 10:42». Ciascuno vede il proprio da `/pro/sicurezza` —
+chi è tracciato deve poter vedere la propria traccia, e un registro leggibile
+solo dall'alto è sorveglianza mentre uno che ciascuno legge su di sé è
+trasparenza.
+
+### Perché è credibile
+
+Non basta che un registro sia difficile da cambiare: deve essere possibile
+**dimostrare** che non è stato cambiato.
+
+Un trigger rifiuta ogni `update` e ogni `delete` su `audit_log`. Non una policy —
+quelle valgono per i client — un trigger, che vale anche per la chiave di
+servizio e per il proprietario della tabella.
+
+E ogni riga porta l'impronta della precedente dentro la propria: cambiarne una
+rompe tutte quelle dopo, e `verify_audit_chain()` dice da quale riga comincia la
+rottura. Resta scavalcabile da un superuser che disabiliti il trigger — niente in
+un database lo impedisce a chi ha le chiavi — ma a quel punto la catena si spezza,
+e la rottura è visibile. È l'unica proprietà ottenibile, ed è quella che serve
+davanti a chi deve giudicare.
+
+Il trigger prende un advisory lock: due inserimenti simultanei leggerebbero la
+stessa «ultima riga» e produrrebbero una catena biforcata. Serializzare le
+scritture di un registro è un costo che si può pagare; una catena biforcata non è
+una catena.
+
+Il test in `npm run db:verifica -- seed` lo prova nel solo modo in cui si può
+provare: disabilita il trigger — cioè si mette nei panni di chi ha le chiavi —
+riscrive una riga, e controlla che la verifica se ne accorga.
+
+## Il secondo fattore
+
+Si attiva da `/pro/sicurezza` con un'app di autenticazione (TOTP), e **chi lo ha
+attivato lo deve usare**: i layout dell'area clinica, della control room e
+dell'app del paziente chiedono `aal2` e mandano a `/verifica` chi è entrato con
+la sola password.
+
+Quest'ultima parte è ciò che rende utile la prima. Senza, attivare il secondo
+fattore aggiungerebbe una spunta verde in una pagina di impostazioni e niente
+altro: un cookie di sessione rubato porterebbe dentro esattamente come prima.
+
+Chi un fattore non ce l'ha entra lo stesso, e la scelta è deliberata. Un blocco
+duro su tutti chiuderebbe fuori chi deve ancora configurarlo, e la prima volta
+che succede a un medico alle otto del mattino la funzionalità viene disattivata
+da qualcuno. Il promemoria sta in pagina; l'obbligo vale per chi ha già scelto di
+proteggersi.
+
+Il controllo sta nei layout e non nel proxy: lì si avrebbero i claim ma non i
+fattori dell'account, e stabilirlo costerebbe una chiamata di rete su ogni
+prefetch di ogni collegamento.
+
+Dalla stessa pagina si chiudono tutte le altre sessioni. L'elenco dei dispositivi
+collegati non c'è: Supabase lo espone solo all'API di amministrazione, non alla
+persona, e un elenco dedotto sarebbe stato peggio di nessun elenco — lo si guarda
+proprio quando si sospetta che ce ne sia uno di troppo.
+
+## I diritti della persona
+
+**Portabilità** (art. 20): `/api/pazienti/[id]/esporta` restituisce un JSON con
+anagrafica, punteggi, misure, referti, terapie, esami, appuntamenti, consensi e
+conversazioni con la clinica. Lascia una riga nel registro — un accesso massivo
+ai dati di una persona va tracciato anche quando è legittimo, e vale anche quando
+a chiederlo è quella persona.
+
+**Cancellazione** (art. 17): `erase_patient()` toglie ciò che identifica — nome,
+recapiti, codice fiscale, la corrispondenza — e **conserva la storia clinica**.
+
+Non è un limite del software. Il comma 3 lettera h sospende il diritto alla
+cancellazione quando il trattamento è necessario per medicina preventiva,
+diagnosi e cura: una cartella ha obblighi di conservazione che non sono
+negoziabili con la persona che riguarda, e cancellarla su richiesta non sarebbe
+conformità — sarebbe distruzione di documentazione sanitaria. Quello che si può e
+si deve fare è togliere la persona dal dato, ed è ciò che questa funzione fa.
+
+Il gesto chiede di ricopiare il nome della persona. Una finestra «sei sicuro?» si
+clicca senza leggerla — è il gesto che si compie per farla sparire; ricopiare un
+nome costringe a guardare *quale*.
+
+**Consensi**: `patient_consents` è append-only con la versione dell'informativa su
+ogni riga. Revocare scrive una riga, non ne cancella una — perché la domanda utile
+non è «ha acconsentito?» ma «*quando*, e a *quale versione*». Si registrano
+dall'app del paziente e, da poco, dalla cartella: chi raccoglie una firma durante
+la prima visita è chi visita, e prima non poteva scriverla da nessuna parte.
+
+La reception resta fuori, ed è una decisione. `patient_consents` dice anche a cosa
+una persona ha aderito — la ricerca, per esempio — e la promessa che il banco non
+vede dati sanitari è verificata a ogni esecuzione della suite. Romperla per una
+comodità sarebbe il modo in cui una garanzia smette di valere: non con una
+decisione, con un'eccezione.
 
 ## Dove finiscono i dati clinici
 
@@ -147,7 +243,14 @@ autorizza solo la direzione, e il controllo sta anche nel database — in
   esecuzione di `npm run db:verifica -- seed`.
 - Bucket dei documenti privato, con policy allineate a quelle del database.
 - Registro eventi append-only, con le azioni del Brain tracciate una per una.
-- Tabella `audit_log` per tracciare accessi e modifiche (art. 30 e 32 GDPR).
+- **Registro degli accessi e delle modifiche** (art. 30 e 32 GDPR), immutabile per
+  trigger e con catena di impronte verificabile. Le letture le scrive
+  `log_clinical_access`, le scritture sei trigger sulle tabelle cliniche.
+- **Secondo fattore TOTP**, imposto a chi lo ha attivato su tutte e tre le aree.
+- **Portabilità** (art. 20) e **cancellazione con conservazione della cartella**
+  (art. 17 comma 3h).
+- **Consensi** raccolti e revocati dall'app del paziente e dalla cartella, con
+  versione dell'informativa e origine su ogni riga.
 - Header di sicurezza in `next.config.ts`: `X-Frame-Options`, `X-Content-Type-Options`,
   `Referrer-Policy`, `Permissions-Policy`.
 - `robots: noindex` su tutte le pagine.
@@ -166,24 +269,23 @@ autorizza solo la direzione, e il controllo sta anche nel database — in
    lei.
 3. **Registro dei trattamenti** e valutazione d’impatto (DPIA): con dati sanitari su
    larga scala è verosimilmente obbligatoria.
-4. **Popolare `audit_log` davvero.** La tabella esiste; vanno scritte le chiamate a
-   ogni lettura e modifica di dati clinici, lato server.
-5. **Autenticazione a due fattori** per i profili `professional`, `admin` e
-   `owner`. Con l’accesso a password è diventata più urgente, non meno: finché
-   c’era solo il link via email, entrare richiedeva l’accesso a una casella;
-   adesso basta una stringa, e una stringa si riusa, si scrive su un foglio e si
-   ritrova nelle violazioni altrui. Supabase supporta il TOTP: va acceso per chi
-   vede dati clinici.
-6. **Politica di conservazione e cancellazione** — diritto all’oblio, tempi di
-   conservazione della documentazione sanitaria, esportazione dei dati su richiesta
-   del paziente (portabilità, art. 20).
-7. **Consensi.** Il tipo di documento `consent` è previsto nello schema; va costruito
-   il flusso di raccolta e revoca, con data e versione del testo firmato.
-8. **I webhook in uscita.** Gli eventi che escono da Unique OS portano
+4. **Rendere obbligatorio il secondo fattore**, non solo disponibile. Oggi chi lo
+   attiva lo deve usare, ma nessuno è costretto ad attivarlo: manca la decisione
+   organizzativa — da quale data, con quale preavviso, e cosa succede a chi non
+   l’ha fatto — e finché non c’è, imporla nel codice significherebbe chiudere
+   fuori qualcuno un martedì mattina.
+5. **I tempi di conservazione.** La cancellazione conserva la cartella, come
+   deve; manca il rovescio della medaglia, cioè per quanto. La documentazione
+   sanitaria ha termini che dipendono dal tipo di atto e dalla regione, e vanno
+   scritti in una politica prima che il primo referto compia dieci anni.
+6. **La prova del ripristino.** Supabase tiene i backup con conservazione a punto
+   nel tempo; nessuno ha mai provato a ripristinarli. Un backup non verificato è
+   un’ipotesi, e il giorno in cui serve non è il giorno per scoprirlo.
+7. **I webhook in uscita.** Gli eventi che escono da Unique OS portano
    identificativi, mai nomi — ma un `patient_id` associato a un evento
    `appointment.completed` resta un dato personale. Ogni endpoint iscritto va
    messo sotto accordo sul trattamento come qualunque altro fornitore, e la
    scelta degli eventi a cui iscriverlo va fatta al minimo necessario.
-9. **Le conversazioni con il Brain.** Sono private di chi le ha avute, ma restano
+8. **Le conversazioni con il Brain.** Sono private di chi le ha avute, ma restano
    nel database: vanno incluse nella politica di conservazione, e nella
    cancellazione su richiesta se contengono riferimenti a una persona.

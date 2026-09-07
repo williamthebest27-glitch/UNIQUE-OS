@@ -140,6 +140,32 @@ distinti.
 - **Task e notifiche** — un elenco solo per tutta Unique, con incaricato,
   priorità, scadenza e origine; tre livelli di notifica in cui l’informativo
   finisce nel digest del mattino e non suona mai.
+- **Comunicazioni interne** — medico → medico, verso un reparto, fra due reparti,
+  e **consulti specialistici con uno stato**: aperto, preso in carico, in
+  valutazione, risposto, chiuso. Il paziente non le vede mai — vivono in tabelle
+  separate proprio perché la sua Row Level Security non possa arrivarci — e
+  chiedere un consulto è un motivo di cura che apre la cartella allo specialista
+  per la durata della richiesta, in modo tracciato e a scadenza.
+- **La giornata cambia con chi la apre** — l’area clinica si compone dal profilo
+  operativo di chi guarda: medico, infermieristica, diagnostica. Il profilo
+  cambia la composizione, mai i permessi.
+- **Terapia** — cosa è stato deciso e cosa è stato davvero dato, in due tabelle.
+  Una riga per ogni orario previsto, che nasce prima del gesto e resta anche se
+  nessuno la tocca: una dose mancante si distingue da una mai programmata.
+  Prescrivere è un atto medico, somministrare no, e a imporlo è il database.
+- **Laboratorio** — dalla richiesta al valore in cartella, con un timestamp per
+  passaggio. Fra «risultati» e «validato» c’è una firma: un numero uscito da uno
+  strumento non è un numero di cui qualcuno risponde.
+- **Timeline clinica con filtri** — undici fonti in una vista sola, e la serie
+  storica di ogni parametro: `13,8 → 13,1 → 12,4 → 11,9`, che è la cosa che due
+  valori a confronto non sanno dire.
+- **Analizza paziente** — cosa è cambiato dall’ultima visita, valori fuori range,
+  andamenti, terapia in corso, domande da approfondire. **Assemblata da query,
+  non generata**: ogni riga è un dato con la sua data, e il copilot sta in fondo.
+- **Registro immutabile** — accessi e modifiche nello stesso elenco, in una frase
+  per riga. Un trigger rifiuta ogni riscrittura anche alla chiave di servizio, e
+  ogni riga porta l’impronta della precedente: una manomissione spezza la catena
+  e resta visibile.
 - **Eventi di dominio** — ogni fatto rilevante lascia una riga append-only, e da
   lì esce firmato verso i sistemi collegati. È ciò che rende possibili le
   automazioni senza doverle prevedere una per una.
@@ -295,8 +321,15 @@ Postgres non restituirebbe comunque righe che l’utente non ha diritto di veder
   un’informazione ha una versione, e come si sa quale è vera oggi.
 - [Marketing intelligence e Content Brain](docs/marketing-e-contenuti.md) —
   attribuzione, CPL, CAC, ROAS, e come nasce un contenuto che rispetta il brand.
+- [Comunicazioni interne](docs/comunicazioni-interne.md) — reparti, consulti con
+  uno stato, chi vede cosa, e perché non si potevano riusare le tabelle dei
+  messaggi con il paziente.
+- [Terapia, laboratorio, timeline](docs/terapia-e-laboratorio.md) — cosa è stato
+  deciso e cosa è stato davvero dato, la catena dalla richiesta al valore, e
+  l’analisi assemblata dai dati invece che generata.
 - [Sicurezza e dati sanitari](docs/sicurezza-e-gdpr.md) — modello dei permessi,
-  segregazione dei ruoli, tracciamento e adempimenti aperti.
+  segregazione dei ruoli, registro immutabile con catena di impronte, secondo
+  fattore, portabilità e cancellazione.
 - [Continuare da un altro computer](docs/nuovo-computer.md) — cosa non arriva
   con `git clone`: le chiavi, gli script compilati, il collegamento a Vercel.
 

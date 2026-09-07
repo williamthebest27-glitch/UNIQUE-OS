@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { requireProfile } from "@/lib/auth";
+import { requireProfile, requireSecondoFattore } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getProNavCounts } from "@/lib/data/professional";
 import { ProSidebarNav, ProTabBar, type ProCounts } from "@/components/shell/pro-nav";
@@ -63,6 +63,20 @@ export default async function ProLayout({
 
   // Un paziente qui non ci deve arrivare: ha una sua home.
   if (profile.role === "patient") redirect("/dashboard");
+
+  /*
+   * Chi ha un secondo fattore lo deve aver usato.
+   *
+   * Sta nel layout e non nel proxy perché lì si avrebbero i claim ma non
+   * i fattori dell'account, e stabilirlo costerebbe una chiamata di rete
+   * su ogni prefetch di ogni collegamento. Qui è una lettura locale del
+   * token, e vale per tutte le pagine dell'area.
+   *
+   * Senza questo, attivare l'MFA aggiungeva una spunta verde in una
+   * pagina di impostazioni e niente altro: un cookie rubato portava
+   * dentro esattamente come prima.
+   */
+  await requireSecondoFattore("/pro");
 
   const demo = !isSupabaseConfigured();
   // Senza database non c'è nulla da contare, e la query fallirebbe.

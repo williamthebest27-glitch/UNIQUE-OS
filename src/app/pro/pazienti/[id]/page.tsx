@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { Consensi } from "@/components/clinical/consensi";
+import type { TipoConsenso } from "@/lib/data/paziente-sezioni";
 import { getIntestazione } from "@/lib/data/cartella";
 import { getPatientSignals } from "@/lib/data/nba";
 import { getPatientTimeline } from "@/lib/data/timeline";
@@ -45,13 +48,43 @@ export default async function PanoramicaPage({
 }) {
   const { id } = await params;
 
-  const [p, segnali, briefing, eventi, attenzione] = await Promise.all([
-    getIntestazione(id),
-    getPatientSignals(id),
-    getLatestBriefing(id),
-    getPatientTimeline(id, 8),
-    getAttenzione(),
-  ]);
+  const [p, segnali, briefing, eventi, attenzione, consensi, puoRegistrare] =
+    await Promise.all([
+      getIntestazione(id),
+      getPatientSignals(id),
+      getLatestBriefing(id),
+      getPatientTimeline(id, 8),
+      getAttenzione(),
+
+      /*
+       * I consensi correnti.
+       *
+       * `consent_current` è una vista `distinct on` che tiene l'ultima
+       * riga per tipo: la tabella è append-only — revocare scrive, non
+       * cancella — e senza la vista bisognerebbe ordinare e scartare a
+       * mano ogni volta.
+       */
+      (async () => {
+        const supabase = await createSupabaseServerClient();
+        const { data } = await supabase
+          .from("consent_current")
+          .select("kind, granted, policy_version, decided_at, source")
+          .eq("patient_id", id);
+        return (data ?? []) as {
+          kind: TipoConsenso;
+          granted: boolean;
+          policy_version: string;
+          decided_at: string;
+          source: string;
+        }[];
+      })().catch(() => []),
+
+      (async () => {
+        const supabase = await createSupabaseServerClient();
+        const { data } = await supabase.rpc("can_write_clinical", { target: id });
+        return data === true;
+      })().catch(() => false),
+    ]);
 
   const capacita = capacitaAttive();
   const suoi = segnaliDelPaziente(attenzione.segnali, id);
@@ -258,6 +291,33 @@ export default async function PanoramicaPage({
           </dl>
         </Riquadro>
       ) : null}
+
+      {/*
+        I consensi.
+        Stanno in fondo e non in cima perché non sono un lavoro da fare:
+        si guardano quando si prende in carico una persona nuova, o
+        quando qualcuno chiede di essere tolto dal marketing. Ma stanno
+        *qui* e non solo nell'app del paziente, perché chi raccoglie una
+        firma durante la prima visita è chi visita.
+      */}
+      <Riquadro
+        titolo="Consensi"
+        nota="Un consenso non si modifica: se ne registra uno nuovo. Revocare scrive una riga, non ne cancella una."
+        apribile
+        aperto={consensi.length === 0}
+      >
+        <Consensi
+          pazienteId={id}
+          puoRegistrare={puoRegistrare}
+          correnti={consensi.map((c) => ({
+            tipo: c.kind,
+            concesso: c.granted,
+            versione: c.policy_version,
+            decisoIl: c.decided_at,
+            origine: c.source,
+          }))}
+        />
+      </Riquadro>
     </div>
   );
 }

@@ -768,6 +768,63 @@ if (conSeed) {
   verifica("e i recapiti", null, dopoCancellazione.email);
   verifica("ma conserva la storia clinica", misurePrima, dopoCancellazione.misure);
 
+  /*
+   * ── I consensi ─────────────────────────────────────────────────
+   *
+   * Chi raccoglie una firma durante la visita è il professionista, e
+   * prima non poteva registrarla. Il controllo che conta però è
+   * l'altro: **la reception resta fuori.** È una promessa scritta nel
+   * documento di sicurezza, e allargare la policy per comodità è
+   * esattamente il modo in cui una garanzia smette di valere — non con
+   * una decisione, con un'eccezione.
+   */
+  const consensoDiCura = await come(chiede, () =>
+    q("select public.record_consent($1, 'health_data', true, 'v2', 'paper') as id", [
+      paziente.id,
+    ]),
+  );
+  verifica("un medico del team registra un consenso", true, consensoDiCura.length === 1);
+
+  const [corrente] = await q(
+    `select granted, policy_version, source, decided_by is not null as firmato
+       from public.patient_consents
+      where patient_id = $1 and kind = 'health_data'
+      order by decided_at desc limit 1`,
+    [paziente.id],
+  );
+  verifica("con la versione dell'informativa", "v2", corrente.policy_version);
+  verifica("e l'origine dichiarata", "paper", corrente.source);
+  verifica("e il nome di chi lo registra", true, corrente.firmato);
+
+  const [{ n: tracciaConsenso }] = await q(
+    "select count(*)::int as n from public.audit_log where action = 'consent.granted'",
+  );
+  verifica("registrare un consenso lascia una traccia", true, tracciaConsenso > 0);
+
+  // Revocare scrive, non cancella: le due righe devono restare entrambe.
+  await come(chiede, () =>
+    q("select public.record_consent($1, 'health_data', false, 'v2', 'clinical')", [
+      paziente.id,
+    ]),
+  );
+  const [{ n: righeConsenso }] = await q(
+    "select count(*)::int as n from public.patient_consents where patient_id = $1 and kind = 'health_data'",
+    [paziente.id],
+  );
+  verifica("revocare aggiunge una riga invece di toglierne una", true, righeConsenso >= 2);
+
+  let consensoInfermiere = true;
+  try {
+    await come(estraneo, () =>
+      q("select public.record_consent($1, 'marketing', true, 'v1', 'clinical')", [
+        paziente.id,
+      ]),
+    );
+  } catch {
+    consensoInfermiere = false;
+  }
+  verifica("chi non ha titolo sul paziente non registra consensi", false, consensoInfermiere);
+
   const falliti = controlli.filter((c) => !c.ok);
   for (const c of controlli.filter((c) => c.ok)) console.log(`✔ ${c.nome}`);
   for (const c of falliti) console.log(`✘ ${c.nome}`);

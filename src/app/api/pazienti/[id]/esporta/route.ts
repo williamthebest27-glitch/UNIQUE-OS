@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -24,7 +24,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
  * quando quella persona è chi lo sta chiedendo.
  */
 export async function GET(
-  _richiesta: Request,
+  richiesta: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;

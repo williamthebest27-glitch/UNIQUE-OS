@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { canSeeControlSection, homePathForRole, requireProfile } from "@/lib/auth";
+import {
+  canSeeControlSection,
+  homePathForRole,
+  requireProfile,
+  requireSecondoFattore,
+} from "@/lib/auth";
 import { esci } from "@/lib/auth-actions";
 import { ControlNav } from "@/components/control/control-nav";
 import { Marchio } from "@/components/brand/marchio";
@@ -48,6 +53,10 @@ export default async function ControlLayout({
   if (!["admin", "owner", "reception", "marketing"].includes(profile.role)) {
     redirect(homePathForRole(profile.role));
   }
+
+  // Chi ha un secondo fattore lo deve aver usato: la control room legge
+  // incassi, anagrafica e — per la direzione — tutta la cartella.
+  await requireSecondoFattore("/control");
 
   const voci = SEZIONI.filter((s) => canSeeControlSection(profile.role, s.href));
 

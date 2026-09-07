@@ -132,6 +132,91 @@ export async function requireProfile(): Promise<Profile> {
   return profile;
 }
 
+/* ── Il secondo fattore ───────────────────────────────────────────── */
+
+export interface LivelloAccesso {
+  /** `aal1` password soltanto, `aal2` password più secondo fattore. */
+  attuale: string | null;
+  /** Il livello che questo account **può** raggiungere. */
+  raggiungibile: string | null;
+  /** Vero se ha un fattore configurato e non l'ha usato in questa sessione. */
+  deveVerificare: boolean;
+  /** Vero se non ne ha nessuno: si può entrare, e va detto che manca. */
+  senzaSecondoFattore: boolean;
+}
+
+/**
+ * A che livello è entrato chi sta guardando.
+ *
+ * Serve a chiudere il buco che l'iscrizione da sola lascia aperto:
+ * **attivare un secondo fattore non protegge niente se poi non viene
+ * chiesto.** Un cookie di sessione rubato porta dentro con `aal1`, e
+ * senza questo controllo l'unica differenza fra chi ha attivato l'MFA e
+ * chi no sarebbe una spunta verde in una pagina di impostazioni.
+ *
+ * `getAuthenticatorAssuranceLevel` non fa viaggi di rete: legge il
+ * claim `aal` dal token e i fattori dalla sessione, che sono già nel
+ * cookie. Girando su ogni pagina dell'area clinica, un round trip qui
+ * sarebbe stato un ritardo su tutto.
+ *
+ * Chi un fattore non ce l'ha **entra lo stesso**. È deliberato: un gate
+ * duro su tutti bloccherebbe fuori chi deve ancora configurarlo, e la
+ * prima volta che succede a un medico alle otto del mattino la
+ * funzionalità viene disattivata da qualcuno. Il nudge sta in pagina,
+ * l'obbligo vale per chi ha già scelto di proteggersi.
+ */
+export const livelloAccesso = cache(async (): Promise<LivelloAccesso> => {
+  const vuoto: LivelloAccesso = {
+    attuale: null,
+    raggiungibile: null,
+    deveVerificare: false,
+    senzaSecondoFattore: true,
+  };
+
+  if (!isSupabaseConfigured()) return vuoto;
+
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+    if (error || !data) return vuoto;
+
+    const { currentLevel, nextLevel } = data;
+
+    return {
+      attuale: currentLevel,
+      raggiungibile: nextLevel,
+      // Il caso che conta: può salire e non è salito.
+      deveVerificare: nextLevel === "aal2" && currentLevel === "aal1",
+      senzaSecondoFattore: nextLevel !== "aal2",
+    };
+  } catch {
+    /*
+     * Muto, e permissivo.
+     *
+     * Se non si riesce a stabilire il livello, si lascia passare invece
+     * di chiudere: un errore qui — libreria che cambia, sessione in una
+     * forma inattesa — chiuderebbe fuori tutta la clinica. Il rischio è
+     * asimmetrico e la scelta pure.
+     */
+    return vuoto;
+  }
+});
+
+/**
+ * Chiude fuori chi ha un secondo fattore e non l'ha usato.
+ *
+ * Va chiamata nei layout delle aree che leggono dati sanitari. Non nel
+ * proxy: lì si avrebbero i claim ma non i fattori, e servirebbe una
+ * chiamata di rete su ogni prefetch di ogni collegamento.
+ */
+export async function requireSecondoFattore(daDove: string): Promise<void> {
+  const livello = await livelloAccesso();
+  if (!livello.deveVerificare) return;
+
+  redirect(`/verifica?da=${encodeURIComponent(daDove)}`);
+}
+
 /** Il percorso in cui vive ciascun ruolo. */
 export function homePathForRole(role: AppRole): string {
   switch (role) {
