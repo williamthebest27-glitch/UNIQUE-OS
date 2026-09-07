@@ -29,22 +29,28 @@ import type { Diagnostica, Infermieristica } from "@/lib/data/reparto";
 /* ── Infermieristica ──────────────────────────────────────────────── */
 
 /**
- * Cosa c'è da somministrare.
+ * Le azioni del piano di cura in scadenza.
  *
- * Le arretrate stanno in cima e portano un segno: una terapia in ritardo
- * non è una terapia con una data più vecchia — è l'unica riga della
- * schermata che qualcuno deve guardare adesso.
+ * **Non sono i farmaci.** Quelli stanno nel giro delle somministrazioni,
+ * che ha una tabella sua, degli orari e un registro di cosa è stato
+ * dato. Qui c'è l'altra metà del piano — «cammina trenta minuti»,
+ * «prenota il controllo» — che è la stessa riga che il paziente vede
+ * nella sua applicazione. Tenerle in due riquadri costa una riga di
+ * spazio e impedisce la cosa peggiore: un consiglio sullo stile di vita
+ * accanto a una dose di ramipril, con sotto lo stesso pulsante.
+ *
+ * Le arretrate stanno in cima e portano un segno.
  */
-export function Somministrazioni({
+export function AzioniPiano({
   righe,
 }: {
-  righe: Infermieristica["somministrazioni"];
+  righe: Infermieristica["azioniPiano"];
 }) {
   const arretrate = righe.filter((r) => r.arretrata).length;
 
   return (
     <Riquadro
-      titolo="Da somministrare"
+      titolo="Azioni del piano"
       conta={righe.length}
       nota={
         arretrate > 0

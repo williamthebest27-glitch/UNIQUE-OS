@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { profiloDi, type ProfiloOperativo } from "@/lib/clinical/profili";
 import type { Discipline } from "@/lib/professionals/disciplines";
 import type { Priorita, StatoConsulto } from "@/lib/comunicazioni/tipi";
+import { getGiro, type VoceGiro } from "@/lib/data/terapie";
 
 /**
  * Il lavoro di chi non passa la giornata in ambulatorio.
@@ -85,7 +86,7 @@ export async function getIdentitaOperativa(): Promise<Identita | null> {
 
 /* ── La giornata dell'infermieristica ─────────────────────────────── */
 
-export interface Somministrazione {
+export interface AzionePiano {
   id: string;
   patientId: string;
   paziente: string;
@@ -110,7 +111,10 @@ export interface Consegna {
 }
 
 export interface Infermieristica {
-  somministrazioni: Somministrazione[];
+  /** Le dosi vere, dalle prescrizioni. */
+  giro: VoceGiro[];
+  /** Le azioni del piano di cura in scadenza: un'altra coda, un altro mestiere. */
+  azioniPiano: AzionePiano[];
   consegne: Consegna[];
   /** Pazienti di oggi che non hanno ancora nessuna misura registrata oggi. */
   parametriDaRegistrare: { patientId: string; paziente: string; ora: string }[];
@@ -130,13 +134,19 @@ function oggiRoma(): string {
 /**
  * Cosa c'è da somministrare, da registrare e da passare al turno dopo.
  *
- * Le tre code di una giornata infermieristica, e nessuna delle tre è una
- * tabella nuova:
+ * Quattro code, e la differenza fra le prime due è quella che conta:
  *
- *   **Somministrazioni** sono le azioni del piano di cura in scadenza
- *   (`recommended_actions`). È la stessa riga che il paziente vede nella
- *   sua applicazione come «cosa devo fare»: qui la si guarda dall'altro
- *   lato, con il nome della persona davanti.
+ *   **Il giro** sono le dosi vere — farmaco, dose, via, orario — che
+ *   nascono dalle prescrizioni. È la coda del carrello: si porta alle
+ *   otto, si registra riga per riga, e ogni riga resta anche se nessuno
+ *   la tocca.
+ *
+ *   **Le azioni del piano** (`recommended_actions`) sono un'altra cosa e
+ *   un altro mestiere: «cammina trenta minuti», «prenota il controllo».
+ *   È la stessa riga che il paziente vede nella sua applicazione, qui
+ *   guardata dall'altro lato. Mescolarle con i farmaci avrebbe messo un
+ *   consiglio sullo stile di vita accanto a una dose di ramipril, con lo
+ *   stesso pulsante sotto.
  *
  *   **Parametri** non è una coda a sé: è l'agenda di oggi meno chi ha
  *   già una misura registrata oggi. Una tabella «parametri da
@@ -151,7 +161,8 @@ function oggiRoma(): string {
  */
 export async function getInfermieristica(): Promise<Infermieristica> {
   const vuoto: Infermieristica = {
-    somministrazioni: [],
+    giro: [],
+    azioniPiano: [],
     consegne: [],
     parametriDaRegistrare: [],
   };
@@ -170,7 +181,12 @@ export async function getInfermieristica(): Promise<Infermieristica> {
   const inizioGiornata = `${oggi}T00:00:00Z`;
   const fineGiornata = `${oggi}T23:59:59Z`;
 
-  const [azioniRes, visiteRes, misureRes, consegneRes] = await Promise.all([
+  const [giro, azioniRes, visiteRes, misureRes, consegneRes] = await Promise.all([
+    // Il giro passa da `medication_round`, che ordina già arretrate
+    // prima e poi per orario: l'ordine è parte della risposta, e
+    // rifarlo qui sarebbe stato un secondo ordinamento da allineare.
+    getGiro(),
+
     supabase
       .from("recommended_actions")
       .select(
@@ -212,7 +228,7 @@ export async function getInfermieristica(): Promise<Infermieristica> {
       .limit(12),
   ]);
 
-  const somministrazioni = ((azioniRes.data ?? []) as unknown as {
+  const azioniPiano = ((azioniRes.data ?? []) as unknown as {
     id: string;
     patient_id: string;
     title: string;
@@ -276,7 +292,8 @@ export async function getInfermieristica(): Promise<Infermieristica> {
   }));
 
   return {
-    somministrazioni: somministrazioni.sort(
+    giro,
+    azioniPiano: azioniPiano.sort(
       (a, b) =>
         Number(b.arretrata) - Number(a.arretrata) ||
         a.priorita - b.priorita ||

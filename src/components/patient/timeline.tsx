@@ -42,6 +42,7 @@ const KIND_STYLE: Record<
   report: { icon: <DocumentIcon />, dot: "bg-brand-500", label: "Referto" },
   appointment: { icon: <CalendarIcon />, dot: "bg-gold-500", label: "Visita" },
   prescription: { icon: <DocumentIcon />, dot: "bg-gold-500", label: "Prescrizione" },
+  medication: { icon: <PathIcon />, dot: "bg-gold-500", label: "Terapia" },
   therapy: { icon: <PathIcon />, dot: "bg-gold-500", label: "Terapia" },
   note: { icon: <DocumentIcon />, dot: "bg-ink-400", label: "Nota" },
   thread: { icon: <DocumentIcon />, dot: "bg-ink-400", label: "Conversazione" },

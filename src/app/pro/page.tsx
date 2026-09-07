@@ -27,13 +27,14 @@ import {
 } from "@/components/clinical/command-center";
 import { GestiSegnale } from "@/components/clinical/gesti-segnale";
 import {
+  AzioniPiano,
   Consegne,
   DaValidare,
   ParametriDaRegistrare,
   RefertiInLavorazione,
   RichiesteEsami,
-  Somministrazioni,
 } from "@/components/clinical/blocchi-reparto";
+import { GiroSomministrazioni } from "@/components/clinical/elenco-terapie";
 import { RicercaGlobale } from "@/components/clinical/ricerca-globale";
 import {
   Badge,
@@ -279,7 +280,8 @@ export default async function ComandoClinicoPage() {
                 stessa schermata per entrambi ne serve male uno. */}
             {infermieristica ? (
               <div className="space-y-6">
-                <Somministrazioni righe={infermieristica.somministrazioni} />
+                <GiroSomministrazioni righe={infermieristica.giro} />
+                <AzioniPiano righe={infermieristica.azioniPiano} />
                 <ParametriDaRegistrare righe={infermieristica.parametriDaRegistrare} />
                 <Consegne righe={infermieristica.consegne} />
               </div>

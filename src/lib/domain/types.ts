@@ -255,6 +255,7 @@ export type TimelineKind =
   | "document"
   | "report"
   | "prescription"
+  | "medication"
   | "measurement"
   | "therapy"
   | "note"

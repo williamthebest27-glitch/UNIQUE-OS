@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 import { getPiano } from "@/lib/data/cartella";
+import { getTerapie } from "@/lib/data/terapie";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { traccia } from "@/lib/audit";
 import { decidiStep } from "@/lib/clinical/actions";
 import { StepProposalForm } from "@/components/clinical/clinical-forms";
+import { ElencoTerapie } from "@/components/clinical/elenco-terapie";
+import { ModuloPrescrizione } from "@/components/clinical/terapie";
 import { formatCredits, formatShortDate } from "@/lib/format";
 import { NavLink } from "@/components/shell/nav-link";
 import { Niente, Riquadro } from "@/components/clinical/command-center";
@@ -49,7 +53,27 @@ export default async function PianoPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const p = await getPiano(id);
+
+  /*
+   * Chi può prescrivere si chiede al database e non si deduce dal ruolo.
+   *
+   * `can_prescribe` è la stessa funzione che protegge la scrittura:
+   * chiederla qui serve solo a non disegnare un modulo che verrebbe
+   * rifiutato dopo il clic. Se la risposta non arriva si assume di no —
+   * un modulo mancante si nota e si chiede, uno che rifiuta insegna a
+   * non fidarsi.
+   */
+  const [p, terapie, permesso] = await Promise.all([
+    getPiano(id),
+    getTerapie(id, { includiChiuse: true }),
+    (async () => {
+      const supabase = await createSupabaseServerClient();
+      const { data } = await supabase.rpc("can_prescribe", { target: id });
+      return data === true;
+    })().catch(() => false),
+  ]);
+
+  const puoPrescrivere = permesso;
 
   traccia({
     azione: "patient.section.view",
@@ -73,6 +97,38 @@ export default async function PianoPage({
 
   return (
     <div className="space-y-6">
+      {/*
+        ── La terapia, prima di tutto il resto ──────────────────
+        Sta in cima perché è la sola cosa di questa pagina che
+        qualcuno deve *fare oggi*: le dosi del giro nascono da qui, e
+        un farmaco sospeso di cui l'infermieristica non sa niente è il
+        genere di errore che una schermata deve rendere difficile.
+      */}
+      <Riquadro
+        titolo="Terapia"
+        conta={terapie.filter((t) => t.stato === "active").length}
+        nota="Farmaco, dose, via, frequenza. Dagli orari nascono le dosi che l’infermieristica trova nel giro."
+      >
+        <ElencoTerapie
+          terapie={terapie}
+          pazienteId={id}
+          puoPrescrivere={puoPrescrivere}
+        />
+      </Riquadro>
+
+      {puoPrescrivere ? (
+        <Riquadro
+          titolo="Nuova prescrizione"
+          nota="Prescrivere è un atto medico: il database accetta la scrittura solo da un medico del care team."
+          apribile
+          aperto={terapie.length === 0}
+        >
+          <div className="px-6 pb-6 pt-4">
+            <ModuloPrescrizione pazienteId={id} />
+          </div>
+        </Riquadro>
+      ) : null}
+
       {/* ── Il percorso ──────────────────────────────────────── */}
       <Riquadro
         titolo="Percorso"

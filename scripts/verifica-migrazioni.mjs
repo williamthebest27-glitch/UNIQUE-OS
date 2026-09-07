@@ -489,6 +489,106 @@ if (conSeed) {
     (interneAlMedico[0]?.n ?? 0) > 0,
   );
 
+  /*
+   * ── La terapia ─────────────────────────────────────────────────
+   *
+   * Due promesse, e la seconda è quella che rende la funzionalità
+   * utilizzabile: **prescrivere è un atto medico, somministrare no.**
+   * Un infermiere deve poter registrare cosa ha dato e non deve poter
+   * cambiare la dose. Senza questo controllo la distinzione resterebbe
+   * una convenzione dell'interfaccia.
+   */
+  const [{ prescribe: ricetta }] = await come(chiede, () =>
+    q(
+      `select public.prescribe(
+         $1, 'Ramipril', '5 mg', 'Una compressa al mattino',
+         'oral'::medication_route, array['08:00'::time], current_date, null, null)`,
+      [paziente.id],
+    ),
+  );
+
+  const dosi = await q(
+    "select count(*)::int as n from public.medication_administrations where prescription_id = $1",
+    [ricetta],
+  );
+  verifica("prescrivere genera le dosi dei prossimi giorni", true, (dosi[0]?.n ?? 0) > 0);
+
+  // L'infermiere: fuori dal care team non vede niente, dentro somministra.
+  const infermiere = await interno("verifica.infermiere@esempio.it", "infermieristica");
+  await q("update public.professionals set discipline = 'nurse' where profile_id = $1", [
+    infermiere,
+  ]);
+  await q(
+    `insert into public.care_team_members (patient_id, professional_id)
+     select $1, id from public.professionals where profile_id = $2
+     on conflict do nothing`,
+    [paziente.id, infermiere],
+  );
+
+  let prescriveInfermiere = false;
+  try {
+    await come(infermiere, () =>
+      q(
+        `select public.prescribe(
+           $1, 'Non dovrei', '1 cp', 'ogni tanto',
+           'oral'::medication_route, '{}'::time[], current_date, null, null)`,
+        [paziente.id],
+      ),
+    );
+    prescriveInfermiere = true;
+  } catch {
+    // Rifiutato: è il comportamento giusto.
+  }
+  verifica("un infermiere non può prescrivere", false, prescriveInfermiere);
+
+  const [prima] = await q(
+    "select id from public.medication_administrations where prescription_id = $1 order by scheduled_at limit 1",
+    [ricetta],
+  );
+
+  await come(infermiere, () =>
+    q("select public.record_administration($1, 'given')", [prima.id]),
+  );
+  const [dopo] = await q(
+    "select status::text, given_at is not null as segnata from public.medication_administrations where id = $1",
+    [prima.id],
+  );
+  verifica("un infermiere può somministrare", "given", dopo.status);
+  verifica("l'ora del gesto la mette il database", true, dopo.segnata);
+
+  // Una dose non data senza motivo non si registra.
+  const [seconda] = await q(
+    "select id from public.medication_administrations where prescription_id = $1 and status = 'due' limit 1",
+    [ricetta],
+  );
+
+  let senzaMotivo = false;
+  try {
+    await come(infermiere, () =>
+      q("select public.record_administration($1, 'refused')", [seconda.id]),
+    );
+    senzaMotivo = true;
+  } catch {
+    // Rifiutato: il motivo è obbligatorio, ed è il punto.
+  }
+  verifica("un rifiuto senza motivo viene respinto", false, senzaMotivo);
+
+  // Sospendere toglie le dosi future e lascia quelle passate.
+  await come(chiede, () =>
+    q("select public.set_prescription_status($1, 'suspended', 'Tosse persistente.')", [
+      ricetta,
+    ]),
+  );
+  const [residue] = await q(
+    `select
+       count(*) filter (where status = 'due' and scheduled_at > now())::int as future,
+       count(*) filter (where status = 'given')::int as fatte
+     from public.medication_administrations where prescription_id = $1`,
+    [ricetta],
+  );
+  verifica("sospendere toglie le dosi future", 0, residue.future);
+  verifica("e lascia quelle già somministrate", true, residue.fatte > 0);
+
   const falliti = controlli.filter((c) => !c.ok);
   for (const c of controlli.filter((c) => c.ok)) console.log(`✔ ${c.nome}`);
   for (const c of falliti) console.log(`✘ ${c.nome}`);
