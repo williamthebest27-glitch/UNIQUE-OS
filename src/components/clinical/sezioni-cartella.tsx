@@ -36,6 +36,9 @@ export function SezioniCartella({
 
   const voci = [
     { href: base, label: "Panoramica" },
+    // Subito dopo la panoramica: è la sezione che si apre quando la
+    // cartella non la si conosce, e quella si apre per prima.
+    { href: `${base}/analisi`, label: "Analisi" },
     { href: `${base}/clinico`, label: "Clinico" },
     { href: `${base}/score`, label: "Longevity Score" },
     { href: `${base}/documenti`, label: "Documenti", conta: conte.documenti },
