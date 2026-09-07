@@ -1,5 +1,11 @@
 import type { Metadata } from "next";
 import { getPanoramicaClinica } from "@/lib/data/cartella";
+import { getAndamenti, getRichieste } from "@/lib/data/laboratorio";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { METRIC_DEFINITIONS } from "@/lib/score/metrics";
+import { Andamenti } from "@/components/clinical/andamento";
+import { EsamiDelPaziente } from "@/components/clinical/esami";
+import { ModuloRichiestaEsame } from "@/components/clinical/laboratorio";
 import { traccia } from "@/lib/audit";
 import { SOGLIA_VARIAZIONE, type Variazione } from "@/lib/clinical/cartella-domande";
 import { formatDelta, formatShortDate, formatWeekdayDayMonth } from "@/lib/format";
@@ -39,13 +45,48 @@ export const unstable_dynamicStaleTime = 0;
 /** Quante righe per elenco prima che diventi uno scorrimento. */
 const QUANTE = 8;
 
+/**
+ * I nomi leggibili dei parametri, dal catalogo che alimenta il punteggio.
+ *
+ * Serve al modulo di richiesta, che manda dei codici e deve mostrare
+ * delle parole. Si costruisce una volta sola all'avvio: è una costante,
+ * e rifarla a ogni richiesta sarebbe stato trentacinque iterazioni per
+ * disegnare quattro pastiglie.
+ */
+const etichetteMetriche: Record<string, string> = Object.fromEntries(
+  METRIC_DEFINITIONS.map((m) => [m.code, m.label]),
+);
+
 export default async function ClinicoPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const c = await getPanoramicaClinica(id);
+
+  /*
+   * Quattro letture in parallelo, e la seconda è quella nuova.
+   *
+   * La panoramica confronta le **ultime due** rilevazioni; gli andamenti
+   * sono la **serie**. Sono due domande diverse, e la seconda è quella a
+   * cui due valori a confronto non sanno rispondere: tre discese di fila
+   * sono un'altra cosa da una discesa sola.
+   *
+   * `can_write_clinical` decide se disegnare i pulsanti degli esami.
+   * Chiederlo qui non è un controllo di accesso — quello lo fa la policy
+   * — è il modo di non mostrare gesti che il database rifiuterebbe dopo
+   * il clic.
+   */
+  const [c, andamenti, esami, puoAgire] = await Promise.all([
+    getPanoramicaClinica(id),
+    getAndamenti(id, { punti: 12 }),
+    getRichieste({ pazienteId: id, limite: 30 }),
+    (async () => {
+      const supabase = await createSupabaseServerClient();
+      const { data } = await supabase.rpc("can_write_clinical", { target: id });
+      return data === true;
+    })().catch(() => false),
+  ]);
 
   traccia({ azione: "patient.section.view", entita: "patient", patientId: id, dettagli: { sezione: "clinico" } });
 
@@ -61,6 +102,29 @@ export default async function ClinicoPage({
 
   return (
     <div className="space-y-6">
+      {/*
+        L'andamento sta sopra il confronto, e l'ordine è una decisione.
+        Il confronto dice cosa è cambiato dall'ultima volta; la serie
+        dice dove sta andando — e su una persona seguita da anni la
+        seconda domanda viene prima.
+      */}
+      <Andamenti andamenti={andamenti} />
+
+      <EsamiDelPaziente richieste={esami} puoAgire={puoAgire} />
+
+      {puoAgire ? (
+        <Riquadro
+          titolo="Chiedi un esame"
+          nota="La richiesta avvisa la Diagnostica e compare nella loro coda, con lo stato."
+          apribile
+          aperto={esami.length === 0}
+        >
+          <div className="px-6 pb-6 pt-4">
+            <ModuloRichiestaEsame pazienteId={id} etichette={etichetteMetriche} />
+          </div>
+        </Riquadro>
+      ) : null}
+
       {/* ── La situazione, in una riga ───────────────────────── */}
       <Riquadro titolo="Situazione attuale">
         <div className="px-6 pb-5 pt-3">

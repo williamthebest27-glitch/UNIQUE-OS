@@ -5,6 +5,7 @@ import { profiloDi, type ProfiloOperativo } from "@/lib/clinical/profili";
 import type { Discipline } from "@/lib/professionals/disciplines";
 import type { Priorita, StatoConsulto } from "@/lib/comunicazioni/tipi";
 import { getGiro, type VoceGiro } from "@/lib/data/terapie";
+import { getRichieste, type RichiestaEsameLab } from "@/lib/data/laboratorio";
 
 /**
  * Il lavoro di chi non passa la giornata in ambulatorio.
@@ -345,6 +346,9 @@ export interface RefertoInLavorazione {
 }
 
 export interface Diagnostica {
+  /** Le richieste di esame vere, con la loro catena di stati. */
+  esami: RichiestaEsameLab[];
+  /** Le richieste di parere: un consulto è un'altra cosa da un prelievo. */
   richieste: RichiestaEsame[];
   daValidare: DaValidare[];
   referti: RefertoInLavorazione[];
@@ -368,7 +372,7 @@ export interface Diagnostica {
  * resto della schermata.
  */
 export async function getDiagnostica(): Promise<Diagnostica> {
-  const vuoto: Diagnostica = { richieste: [], daValidare: [], referti: [] };
+  const vuoto: Diagnostica = { esami: [], richieste: [], daValidare: [], referti: [] };
 
   if (!isSupabaseConfigured()) return vuoto;
 
@@ -377,7 +381,9 @@ export async function getDiagnostica(): Promise<Diagnostica> {
 
   const supabase = await createSupabaseServerClient();
 
-  const [richiesteRes, validareRes, refertiRes] = await Promise.all([
+  const [esami, richiesteRes, validareRes, refertiRes] = await Promise.all([
+    getRichieste({ soloAperte: true, limite: 60 }),
+
     // I consulti arrivati ai reparti di chi guarda: la RLS di
     // `clinical_consultations` passa da `conversation_visible`, quindi
     // qui non serve filtrare per reparto — arrivano già solo i propri.
@@ -485,5 +491,5 @@ export async function getDiagnostica(): Promise<Diagnostica> {
     immagine: d.kind === "imaging",
   }));
 
-  return { richieste, daValidare, referti };
+  return { esami, richieste, daValidare, referti };
 }

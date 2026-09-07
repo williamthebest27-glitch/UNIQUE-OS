@@ -35,6 +35,7 @@ import {
   RichiesteEsami,
 } from "@/components/clinical/blocchi-reparto";
 import { GiroSomministrazioni } from "@/components/clinical/elenco-terapie";
+import { CodaLaboratorio } from "@/components/clinical/esami";
 import { RicercaGlobale } from "@/components/clinical/ricerca-globale";
 import {
   Badge,
@@ -287,6 +288,13 @@ export default async function ComandoClinicoPage() {
               </div>
             ) : diagnostica ? (
               <div className="space-y-6">
+                {/*
+                  La coda del laboratorio prima delle richieste di parere:
+                  un prelievo fermo da tre giorni è un lavoro non fatto,
+                  un consulto aperto è una domanda che aspetta. Il primo
+                  ha una scadenza vera, il secondo una conversazione.
+                */}
+                <CodaLaboratorio richieste={diagnostica.esami} />
                 <RichiesteEsami righe={diagnostica.richieste} />
                 <DaValidare righe={diagnostica.daValidare} />
                 <RefertiInLavorazione righe={diagnostica.referti} />

@@ -589,6 +589,74 @@ if (conSeed) {
   verifica("sospendere toglie le dosi future", 0, residue.future);
   verifica("e lascia quelle già somministrate", true, residue.fatte > 0);
 
+  /*
+   * ── Il laboratorio ─────────────────────────────────────────────
+   *
+   * La catena ha due passaggi che non sono clic: il prelievo, che vuole
+   * una persona, e la **validazione**, che vuole una firma. Il secondo è
+   * quello da provare: è ciò che fa entrare un valore in cartella e da
+   * lì nel Longevity Score, e se lo potesse dare chiunque il punteggio
+   * si fonderebbe su numeri di cui nessuno risponde.
+   */
+  const [{ request_lab_order: ordine }] = await come(chiede, () =>
+    q(
+      `select public.request_lab_order(
+         $1, 'Profilo lipidico', array['ldl','hdl'],
+         'Controllo a sei mesi.', 'normal'::comms_priority, null)`,
+      [paziente.id],
+    ),
+  );
+
+  const [statoIniziale] = await q(
+    "select status::text from public.lab_orders where id = $1",
+    [ordine],
+  );
+  verifica("una richiesta nasce «richiesta»", "requested", statoIniziale.status);
+
+  await come(infermiere, () =>
+    q("select public.advance_lab_order($1, 'collected')", [ordine]),
+  );
+  await come(infermiere, () =>
+    q("select public.advance_lab_order($1, 'resulted')", [ordine]),
+  );
+  const [dopoPrelievo] = await q(
+    "select status::text, collected_at is not null as segnato from public.lab_orders where id = $1",
+    [ordine],
+  );
+  verifica("l'infermiere può portarla avanti", "resulted", dopoPrelievo.status);
+  verifica("e il prelievo resta datato", true, dopoPrelievo.segnato);
+
+  let validaInfermiere = false;
+  try {
+    await come(infermiere, () => q("select public.validate_lab_order($1)", [ordine]));
+    validaInfermiere = true;
+  } catch {
+    // Rifiutato: validare è una firma.
+  }
+  verifica("un infermiere non può validare", false, validaInfermiere);
+
+  await come(chiede, () => q("select public.validate_lab_order($1)", [ordine]));
+  const [validato] = await q(
+    "select status::text, validated_by is not null as firmato from public.lab_orders where id = $1",
+    [ordine],
+  );
+  verifica("un medico sì", "validated", validato.status);
+  verifica("e la firma resta attaccata alla riga", true, validato.firmato);
+
+  // La serie storica: la window function deve dare la variazione, non
+  // solo i valori. Con una misura sola il delta è null, ed è giusto.
+  const serie = await come(chiede, () =>
+    q("select metric_code, value, delta from public.metric_series($1, null, 12)", [
+      paziente.id,
+    ]),
+  );
+  verifica("la serie storica restituisce dei punti", true, serie.length > 0);
+  verifica(
+    "il primo punto di ogni parametro non ha variazione",
+    true,
+    serie.length === 0 || serie.some((r) => r.delta === null),
+  );
+
   const falliti = controlli.filter((c) => !c.ok);
   for (const c of controlli.filter((c) => c.ok)) console.log(`✔ ${c.nome}`);
   for (const c of falliti) console.log(`✘ ${c.nome}`);
