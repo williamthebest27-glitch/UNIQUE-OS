@@ -330,6 +330,9 @@ Postgres non restituirebbe comunque righe che l’utente non ha diritto di veder
 - [Il Command Center](docs/command-center.md) — lo stato operativo della clinica,
   le code che si aprono sulle proprie righe, e perché i conteggi hanno i diritti
   di chi guarda invece che quelli del server.
+- **[SECURITY.md](SECURITY.md)** — l’audit di sicurezza per area, cosa è
+  verificato, i rischi residui dichiarati, e cosa va configurato o provato prima
+  di mettere Unique OS davanti a pazienti veri.
 - [Sicurezza e dati sanitari](docs/sicurezza-e-gdpr.md) — modello dei permessi,
   segregazione dei ruoli, registro immutabile con catena di impronte, secondo
   fattore, portabilità e cancellazione.

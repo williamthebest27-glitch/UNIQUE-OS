@@ -904,6 +904,94 @@ if (conSeed) {
   );
   verifica("una coda che non esiste non ne restituisce un'altra", 0, codaInventata.length);
 
+  /*
+   * ── Il registro delle sessioni ─────────────────────────────────
+   *
+   * `audit_log` sapeva chi ha guardato una cartella e non chi è
+   * entrato. Sono due domande diverse e la seconda è quella che si fa
+   * per prima quando si sospetta un accesso abusivo.
+   */
+  await come(chiede, () =>
+    q("select public.record_auth_event('auth.login', 'Mario@Esempio.IT', '203.0.113.9', 'Prova/1.0')"),
+  );
+
+  const [sessione] = await q(
+    `select metadata ->> 'email' as email,
+            metadata ->> 'ip'    as ip,
+            metadata ->> 'esito' as esito,
+            entry_hash is not null as sigillata
+       from public.audit_log
+      where entity = 'session' and action = 'auth.login'
+      order by id desc limit 1`,
+  );
+  verifica("l'entrata lascia una riga", true, sessione != null);
+  // L'email si normalizza nel database: due maiuscole di differenza
+  // renderebbero irriconoscibili due righe sullo stesso account.
+  verifica("con l'email normalizzata", "mario@esempio.it", sessione?.email);
+  verifica("e l'indirizzo", "203.0.113.9", sessione?.ip);
+  verifica("marcata come riuscita", "riuscito", sessione?.esito);
+
+  /*
+   * **Il controllo che giustifica la scelta di non aggiungere colonne.**
+   *
+   * Indirizzo e browser stanno in `metadata`, che `audit_sigilla`
+   * include nell'impronta. Una colonna nuova sarebbe stata fuori dalla
+   * formula, cioè modificabile senza rompere la catena: avremmo avuto un
+   * IP dentro una riga che si dichiara sigillata e non lo è per quel
+   * campo.
+   */
+  verifica("e sigillata come tutte le altre", true, sessione?.sigillata);
+
+  await come(chiede, () =>
+    q("select public.record_auth_event('auth.login_failed', 'ignoto@esempio.it')"),
+  );
+  const [{ n: fallitiRegistrati }] = await q(
+    "select count(*)::int as n from public.audit_log where action = 'auth.login_failed'",
+  );
+  verifica("un tentativo fallito lascia una riga", true, fallitiRegistrati > 0);
+
+  const [{ recent_failed_logins: quantiFalliti }] = await come(direzione, () =>
+    q("select public.recent_failed_logins('IGNOTO@esempio.it', 24)"),
+  );
+  verifica("e si conta per account, senza badare alle maiuscole", 1, quantiFalliti);
+
+  // L'elenco delle azioni è chiuso: il registro non è un posto dove
+  // chiunque scrive la frase che preferisce.
+  await come(chiede, () => q("select public.record_auth_event('scherzo.mio', 'x@y.it')"));
+  const [{ n: inventate }] = await q(
+    "select count(*)::int as n from public.audit_log where action = 'scherzo.mio'",
+  );
+  verifica("un'azione inventata non entra nel registro", 0, inventate);
+
+  /*
+   * ── Il tripwire multi-tenant ───────────────────────────────────
+   *
+   * Unique OS è **a struttura singola**, e va detto invece che
+   * lasciato dedurre: `organization_id` esiste su alcune tabelle e non
+   * compare in **nessuna** policy. Finché l'organizzazione è una, non
+   * cambia niente. Il giorno in cui qualcuno ne inserisce una seconda,
+   * i dati delle due si mescolano — e nessun errore lo direbbe.
+   *
+   * Questo controllo è quel errore. Non impedisce la seconda
+   * organizzazione: fallisce, forte, il giorno in cui arriva.
+   */
+  const [{ n: quanteOrg }] = await q(
+    "select count(*)::int as n from public.organizations",
+  );
+  const [{ n: policyConOrg }] = await q(
+    `select count(*)::int as n from pg_policies
+      where schemaname = 'public'
+        and (coalesce(qual, '') || coalesce(with_check, '')) like '%organization_id%'`,
+  );
+
+  verifica(
+    quanteOrg <= 1
+      ? "una sola struttura: l'isolamento fra strutture non serve ancora"
+      : "PIÙ STRUTTURE: servono policy su organization_id, e non ci sono",
+    true,
+    quanteOrg <= 1 || policyConOrg > 0,
+  );
+
   const falliti = controlli.filter((c) => !c.ok);
   for (const c of controlli.filter((c) => c.ok)) console.log(`✔ ${c.nome}`);
   for (const c of falliti) console.log(`✘ ${c.nome}`);

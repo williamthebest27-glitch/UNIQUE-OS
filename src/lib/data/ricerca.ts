@@ -1,3 +1,4 @@
+import { chiediPassaggio } from "@/lib/sicurezza/freno";
 import { getCurrentProfile } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -121,6 +122,24 @@ export async function cerca(query: string): Promise<Risultati> {
 
   const profile = await getCurrentProfile();
   if (!profile || profile.role === "patient") return vuoto;
+
+  /*
+   * Il freno, e non perché la ricerca sia pericolosa.
+   *
+   * La Row Level Security fa già il suo: chi cerca vede i propri
+   * pazienti e nessun altro. Ma ogni ricerca legge quattrocento righe da
+   * sei tabelle, e un ciclo su un dizionario di cognomi è il modo in cui
+   * un account compromesso porta via, una lettera alla volta, l'elenco
+   * di tutto ciò a cui ha diritto — lentamente, e senza fare nulla di
+   * proibito. Trenta al minuto sono più di quante ne faccia una persona
+   * che digita; mille no.
+   *
+   * Il limite è per profilo e non per indirizzo: qui una sessione c'è
+   * già, e l'indirizzo di un intero ambulatorio dietro un router sarebbe
+   * una finestra sola per dieci persone.
+   */
+  const passaggio = chiediPassaggio("ricerca", `profilo:${profile.id}`);
+  if (!passaggio.passa) return vuoto;
 
   const supabase = await createSupabaseServerClient();
   const cercati = termini(query);

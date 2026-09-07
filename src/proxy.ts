@@ -5,6 +5,7 @@ import {
   supabaseAnonKey,
   supabaseUrl,
 } from "@/lib/supabase/config";
+import { INTESTAZIONI_FISSE, politicaContenuti } from "@/lib/sicurezza/intestazioni";
 
 /**
  * In Next 16 il file `middleware.ts` è stato rinominato `proxy.ts`.
@@ -53,12 +54,51 @@ function isPublicPath(pathname: string): boolean {
 }
 
 export async function proxy(request: NextRequest) {
-  // Modalità dimostrativa: nessun database, nessuna sessione da proteggere.
+  /*
+   * Il nonce nasce qui, uno per richiesta.
+   *
+   * Deve essere imprevedibile: se si ripetesse, chi riuscisse a
+   * iniettare uno script in una pagina potrebbe riusarlo nella
+   * successiva, e la Content Security Policy tornerebbe a essere una
+   * decorazione. `crypto.randomUUID()` viene dal generatore del sistema.
+   */
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const csp = politicaContenuti({
+    nonce,
+    supabaseUrl,
+    sviluppo: process.env.NODE_ENV === "development",
+  });
+
+  /*
+   * Le intestazioni vanno su **ogni** risposta, rinvii compresi.
+   *
+   * Un 307 verso `/accedi` è comunque una risposta che il browser
+   * riceve, e lasciarla scoperta significa che la sola pagina che tutti
+   * vedono — quella d'accesso, che ha un campo password — arriverebbe
+   * senza policy nel caso in cui il rinvio fosse l'ultima tappa.
+   */
+  const vestita = <T extends NextResponse>(risposta: T): T => {
+    risposta.headers.set("Content-Security-Policy", csp);
+    for (const [nome, valore] of INTESTAZIONI_FISSE) {
+      risposta.headers.set(nome, valore);
+    }
+    return risposta;
+  };
+
+  // Next legge il nonce dall'intestazione della *richiesta* e lo applica
+  // ai propri script in linea: senza questo passaggio l'idratazione
+  // verrebbe bloccata dalla policy che abbiamo appena scritto.
+  const intestazioniRichiesta = new Headers(request.headers);
+  intestazioniRichiesta.set("x-nonce", nonce);
+  intestazioniRichiesta.set("Content-Security-Policy", csp);
+
+  // Modalità dimostrativa: nessun database, nessuna sessione da
+  // proteggere — ma le intestazioni servono lo stesso.
   if (!isSupabaseConfigured()) {
-    return NextResponse.next();
+    return vestita(NextResponse.next({ request: { headers: intestazioniRichiesta } }));
   }
 
-  let response = NextResponse.next({ request });
+  let response = NextResponse.next({ request: { headers: intestazioniRichiesta } });
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
@@ -69,7 +109,18 @@ export async function proxy(request: NextRequest) {
         for (const { name, value } of cookiesToSet) {
           request.cookies.set(name, value);
         }
-        response = NextResponse.next({ request });
+        /*
+         * Le intestazioni si ricostruiscono qui e non si riusano quelle
+         * di prima: `request.cookies.set` ha appena riscritto
+         * l'intestazione `cookie` della richiesta, e una copia fatta
+         * poco fa porterebbe avanti il token vecchio. Il nonce invece è
+         * lo stesso — è della richiesta, non del cookie.
+         */
+        const aggiornate = new Headers(request.headers);
+        aggiornate.set("x-nonce", nonce);
+        aggiornate.set("Content-Security-Policy", csp);
+
+        response = NextResponse.next({ request: { headers: aggiornate } });
         for (const { name, value, options } of cookiesToSet) {
           response.cookies.set(name, value, options);
         }
@@ -100,7 +151,7 @@ export async function proxy(request: NextRequest) {
     url.search = "";
     // Ricordiamo dove voleva andare, per riportarlo lì dopo l’accesso.
     if (pathname !== "/") url.searchParams.set("da", pathname);
-    return NextResponse.redirect(url);
+    return vestita(NextResponse.redirect(url));
   }
 
   // Chi è già dentro e apre il modulo d'accesso va al proprio livello,
@@ -110,10 +161,10 @@ export async function proxy(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/app";
     url.search = "";
-    return NextResponse.redirect(url);
+    return vestita(NextResponse.redirect(url));
   }
 
-  return response;
+  return vestita(response);
 }
 
 export const config = {

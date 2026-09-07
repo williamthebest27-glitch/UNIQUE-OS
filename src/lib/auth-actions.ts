@@ -5,6 +5,7 @@ import { messaggioPerErrore, messaggioPerPassword } from "@/lib/auth-errors";
 import { appUrl, isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PASSWORD_MINIMA, type StatoAccesso, type StatoPassword } from "@/lib/auth-state";
+import { frena, registraSessione, sciogliFreno } from "@/lib/sicurezza/sessione";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -57,15 +58,28 @@ export async function accediConPassword(
     };
   }
 
+  // Il freno viene prima della verifica, non dopo: chiamare Supabase
+  // per poi scartarne la risposta significherebbe aver già pagato il
+  // viaggio, ed è proprio ciò che chi prova mille password vuole farci
+  // fare.
+  const freno = await frena("accesso", email);
+  if (!freno.passa) {
+    return { esito: "errore", messaggio: freno.messaggio, email };
+  }
+
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
     // La password non finisce nei log, mai. Solo il codice dell'errore.
     console.error("[accesso] password rifiutata:", error.code, error.message);
+    await registraSessione("auth.login_failed", email);
     const { messaggio, codice } = messaggioPerPassword(error.code, error.message);
     return { esito: "errore", messaggio, codice, email };
   }
+
+  await registraSessione("auth.login", email);
+  await sciogliFreno("accesso", email);
 
   redirect(destinazione(formData));
 }
@@ -102,6 +116,14 @@ export async function richiediReimpostazione(
     };
   }
 
+  // Ogni tentativo manda posta a un indirizzo che chi lo scrive non
+  // possiede necessariamente: senza freno, questo modulo è un mezzo per
+  // tempestare di email la casella di qualcun altro.
+  const freno = await frena("reimposta", email);
+  if (!freno.passa) {
+    return { esito: "errore", messaggio: freno.messaggio, email };
+  }
+
   const origine = appUrl();
   const supabase = await createSupabaseServerClient();
 
@@ -114,6 +136,8 @@ export async function richiediReimpostazione(
     const { messaggio, codice } = messaggioPerErrore(error.code, error.message);
     return { esito: "errore", messaggio, codice, email };
   }
+
+  await registraSessione("auth.password_reset_requested", email);
 
   return { esito: "reimpostazione", email, origine };
 }
@@ -175,6 +199,11 @@ export async function impostaPassword(
     return { esito: "errore", messaggio, codice };
   }
 
+  // Un cambio di password è il gesto che chi ruba un account fa per
+  // primo: se non lascia una riga, la vittima non ha modo di datare il
+  // momento in cui ha perso l'accesso.
+  await registraSessione("auth.password_changed", user.email ?? null);
+
   redirect("/app");
 }
 
@@ -210,6 +239,11 @@ export async function richiediAccesso(
     };
   }
 
+  const freno = await frena("link", email);
+  if (!freno.passa) {
+    return { esito: "errore", messaggio: freno.messaggio, email };
+  }
+
   // Dopo l’accesso riportiamo l’utente dove stava andando. Accettiamo solo
   // percorsi interni: un "next" che punta altrove sarebbe un redirect aperto.
   const next = destinazione(formData);
@@ -233,11 +267,17 @@ export async function richiediAccesso(
     return { esito: "errore", messaggio, codice, email };
   }
 
+  await registraSessione("auth.magic_link_requested", email);
+
   return { esito: "inviato", email, origine };
 }
 
 export async function esci() {
   if (isSupabaseConfigured()) {
+    // La riga si scrive **prima** di chiudere la sessione: dopo,
+    // `auth.uid()` è null e il registro non saprebbe chi è uscito.
+    await registraSessione("auth.logout");
+
     const supabase = await createSupabaseServerClient();
     await supabase.auth.signOut();
   }

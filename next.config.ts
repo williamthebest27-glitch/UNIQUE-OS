@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { INTESTAZIONI_FISSE } from "./src/lib/sicurezza/intestazioni";
 
 const nextConfig: NextConfig = {
   // pdfjs va lasciata fuori dal bundle: e una libreria Node con risorse
@@ -71,19 +72,25 @@ const nextConfig: NextConfig = {
   // Unique OS tratta dati sanitari: nessuna informazione di build
   // deve finire negli header di risposta.
   poweredByHeader: false,
+  /*
+   * Le intestazioni fisse, anche su ciò che il proxy non vede.
+   *
+   * Il `matcher` del proxy esclude di proposito immagini, font, filmati
+   * e i frammenti di codice di Next: se non lo facesse, li chiuderebbe
+   * tutti dietro l'autenticazione. Il prezzo è che quelle risposte non
+   * passano da `vestita()`, e senza questo blocco arriverebbero senza
+   * `nosniff` — che su un file caricato da un utente è esattamente
+   * l'intestazione che conta.
+   *
+   * Stesso elenco, una fonte sola. La Content Security Policy invece
+   * resta solo nel proxy: porta un nonce diverso a ogni richiesta, e qui
+   * si può scrivere soltanto un valore fisso.
+   */
   async headers() {
     return [
       {
         source: "/:path*",
-        headers: [
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "X-Frame-Options", value: "DENY" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          {
-            key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=()",
-          },
-        ],
+        headers: INTESTAZIONI_FISSE.map(([key, value]) => ({ key, value })),
       },
     ];
   },

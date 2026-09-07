@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { registraSecondoFattore } from "@/lib/sicurezza/azioni";
 import { cx } from "@/components/ui/primitives";
 
 /**
@@ -68,9 +69,15 @@ export function SfidaSecondoFattore({ destinazione }: { destinazione: string }) 
       setErrore(
         "Il codice non è valido. Se continua, controlla che l'orario del telefono sia esatto.",
       );
+      // Un codice sbagliato di seguito a un accesso riuscito è il
+      // segnale che qualcuno ha la password e non il telefono: è
+      // esattamente la riga che si va a cercare dopo.
+      void registraSecondoFattore(false);
       campo.current?.select();
       return;
     }
+
+    void registraSecondoFattore(true);
 
     /*
      * `refresh()` prima di `replace()`.
