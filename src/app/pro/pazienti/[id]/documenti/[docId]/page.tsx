@@ -117,6 +117,12 @@ export default async function DocumentoClinicoPage({
             {documento.dimensione ? formatFileSize(documento.dimensione) : ""}
             {documento.pagine ? ` · ${documento.pagine} pagine` : ""}
             {estrazione?.laboratorio ? ` · ${estrazione.laboratorio}` : ""}
+            {/*
+              Chi ha firmato, quando il documento lo dice. Serve a sapere a
+              chi chiedere: un valore strano su un referto firmato è una
+              telefonata, su uno anonimo è un'indagine.
+            */}
+            {estrazione?.medico ? ` · firma ${estrazione.medico}` : ""}
           </span>
 
           <StatoDocumento stato={documento.statoLavorazione} />

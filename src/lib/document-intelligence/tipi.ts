@@ -503,6 +503,8 @@ export interface DocumentoStrutturato {
   tipo_documento: TipoDocumento;
   data_documento: string | null;
   laboratorio: string | null;
+  /** Chi ha firmato il referto, quando il documento lo dice. */
+  medico: string | null;
   biomarcatori: Biomarcatore[];
   farmaci: Farmaco[];
   integratori: Integratore[];

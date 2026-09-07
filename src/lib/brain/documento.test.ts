@@ -172,6 +172,7 @@ function documento(biomarcatori: Biomarcatore[]): DocumentoStrutturato {
     tipo_documento: "LAB_REPORT",
     data_documento: "2026-08-10",
     laboratorio: null,
+    medico: null,
     biomarcatori,
     farmaci: [],
     integratori: [],

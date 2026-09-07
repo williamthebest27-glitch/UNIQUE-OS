@@ -34,6 +34,7 @@ const SEZIONI = [
   { href: "/control/servizi", label: "Servizi" },
   { href: "/control/professionisti", label: "Professionisti" },
   { href: "/control/reparti", label: "Reparti" },
+  { href: "/control/registro", label: "Registro" },
 ] as const;
 
 export default async function ControlLayout({

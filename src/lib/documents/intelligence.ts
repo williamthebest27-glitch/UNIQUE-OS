@@ -388,6 +388,7 @@ async function salva(
       document_type: strutturato.tipo_documento,
       document_date: strutturato.data_documento,
       laboratory: strutturato.laboratorio,
+      reporting_physician: strutturato.medico,
       source_format: formato,
       page_count: strutturato.documento.pagine,
       read_via: strutturato.lettura.via,

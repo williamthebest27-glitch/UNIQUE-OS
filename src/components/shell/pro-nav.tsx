@@ -145,6 +145,20 @@ function BookIcon() {
   );
 }
 
+function ScudoIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M12 3.5 19 6v6c0 4-3 7-7 8.5C8 19 5 16 5 12V6z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path d="m9.2 12.2 2 2 3.6-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function ReportIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -206,6 +220,7 @@ const GRUPPI: Gruppo[] = [
     voci: [
       { href: "/pro/conoscenza", label: "Conoscenza", icon: <BookIcon /> },
       { href: "/pro/report", label: "Report", icon: <ReportIcon /> },
+      { href: "/pro/sicurezza", label: "Sicurezza", icon: <ScudoIcon /> },
     ],
   },
 ];

@@ -56,6 +56,15 @@ export interface EsitoEstrazione {
   tipoDocumento: TipoDocumento;
   dataDocumento: string | null;
   laboratorio: string | null;
+  /**
+   * Chi ha firmato il referto, se il documento lo dice.
+   *
+   * Serve a sapere **a chi chiedere**: un valore strano su un referto
+   * firmato è una telefonata, su uno anonimo è un'indagine. Non serve a
+   * identificare né ad attribuire responsabilità — è un nome letto da
+   * un OCR, e vale quanto tale.
+   */
+  medico: string | null;
   paziente: { nome: string | null; dataNascita: string | null; confidenza: number };
   biomarcatori: Biomarcatore[];
   farmaci: Farmaco[];
@@ -134,6 +143,7 @@ export function estraiDatiClinici(
     tipoDocumento,
     dataDocumento,
     laboratorio: estraiLaboratorio(righe, contenuto),
+    medico: estraiMedico(righe),
     paziente: estraiPaziente(righe),
     biomarcatori,
     farmaci,
@@ -603,6 +613,104 @@ function estraiPaziente(righe: string[]): {
     // sarebbe l'errore più grave che questo modulo possa fare.
     confidenza: nome ? (dataNascita ? 0.8 : 0.6) : 0,
   };
+}
+
+/**
+ * Chi ha firmato il referto.
+ *
+ * Si cerca **in fondo**, non in cima: l'intestazione porta la struttura,
+ * la firma porta la persona. Cercare dall'alto avrebbe restituito il
+ * primo «Dott.» del documento, che in un referto di laboratorio è quasi
+ * sempre il medico richiedente — un'altra persona, con un altro ruolo,
+ * e attribuirle una firma che non ha messo è peggio che non avere il
+ * campo.
+ *
+ * Come tutto in questo file: se non si legge, resta null. Un nome
+ * plausibile dedotto da una riga ambigua entrerebbe in cartella come
+ * fatto, e un fatto sbagliato non lo ricontrolla nessuno proprio perché
+ * sembra normale.
+ */
+function estraiMedico(righe: string[]): string | null {
+  // Le etichette esplicite valgono ovunque nel documento: quando un
+  // referto dice «Medico refertante», sta dicendo esattamente questo.
+  const esplicita =
+    /\b(?:medico\s+(?:refertante|responsabile|firmatario)|refertato\s+da|firmato\s+(?:digitalmente\s+)?da|il\s+(?:medico|direttore\s+sanitario)|responsabile\s+di\s+laboratorio)\b\s*[:\-–]?\s*(.{3,60})/i;
+
+  for (const riga of righe) {
+    const m = riga.match(esplicita);
+    if (!m) continue;
+
+    const coda = m[1].replace(/\s+/g, " ").trim();
+    const candidato =
+      nomeDopoTitolo(coda) ?? coda.replace(/[.,;].*$/, "").trim();
+
+    if (sembraUnNome(candidato)) return candidato;
+  }
+
+  // Nessuna etichetta: si guardano le ultime righe, dove sta la firma.
+  for (const riga of righe.slice(-12).reverse()) {
+    const candidato = nomeDopoTitolo(riga);
+    if (candidato && sembraUnNome(candidato)) return candidato;
+  }
+
+  return null;
+}
+
+/**
+ * I titoli, tutti indifferenti alle maiuscole.
+ *
+ * L'ordine delle alternative non è estetico: le forme lunghe stanno
+ * prima delle corte, e `dott.ssa` prima di `dott.`. Un'espressione
+ * regolare prova le alternative in ordine e **non torna indietro** su
+ * un'alternativa che ha già consumato con successo: con `dott\.?` per
+ * primo, «Dott.ssa Chiara» faceva combaciare «Dott.» e poi si aspettava
+ * uno spazio dove c'era «ssa», e falliva l'intera riga. Il test lo ha
+ * scoperto; a occhio non si vedeva.
+ */
+const TITOLO_MEDICO =
+  /(?:dottoressa|dottore|dott\.?ssa|dott\.?|dr\.?ssa|dr\.?|professoressa|professore|prof\.?)\s+/i;
+
+/**
+ * Il nome che segue un titolo.
+ *
+ * Due espressioni e non una, e la ragione è che vogliono flag opposti:
+ * il **titolo** dev'essere indifferente alle maiuscole — «Dott.»,
+ * «dott.», «DOTT.» — mentre il **nome** non deve esserlo affatto, perché
+ * l'iniziale maiuscola è precisamente ciò che distingue un nome proprio
+ * dal resto della riga. Unirle sotto un unico `i` avrebbe fatto
+ * diventare un nome anche «firmato da un medico».
+ *
+ * `NOME_PROPRIO` è lo stesso che riconosce il nome del paziente, poche
+ * decine di righe più su. Definirne un secondo qui avrebbe voluto dire
+ * due idee di «come è fatto un nome italiano» nello stesso file, e la
+ * seconda sarebbe divergita al primo cognome con l'apostrofo.
+ */
+function nomeDopoTitolo(riga: string): string | null {
+  const m = riga.match(TITOLO_MEDICO);
+  if (!m || m.index === undefined) return null;
+
+  const resto = riga.slice(m.index + m[0].length);
+  return NOME_PROPRIO.exec(resto)?.[1] ?? null;
+}
+
+/**
+ * Da una a quattro parole capitalizzate, ciascuna di lunghezza umana.
+ *
+ * Il controllo di lunghezza da solo non basta, e il test lo ha
+ * dimostrato: «Firmato da» seguito da sessanta caratteri qualsiasi
+ * passava, perché sessanta è dentro il limite. Un nome ha una **forma**,
+ * non solo una taglia — e chiedere la forma è ciò che impedisce a una
+ * riga di intestazione di finire in cartella come firma.
+ */
+function sembraUnNome(candidato: string): boolean {
+  const parole = candidato.split(/\s+/).filter(Boolean);
+
+  if (parole.length === 0 || parole.length > 4) return false;
+  if (candidato.length < 4 || candidato.length > 60) return false;
+
+  return parole.every(
+    (p) => p.length >= 2 && p.length <= 20 && /^[A-ZÀ-Ù][\p{L}'’-]*$/u.test(p),
+  );
 }
 
 function estraiLaboratorio(righe: string[], contenuto: ContenutoEstratto): string | null {

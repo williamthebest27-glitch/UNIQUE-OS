@@ -657,6 +657,117 @@ if (conSeed) {
     serie.length === 0 || serie.some((r) => r.delta === null),
   );
 
+  /*
+   * ── Il registro ────────────────────────────────────────────────
+   *
+   * Tre promesse, e la terza è quella che rende credibili le prime due:
+   * le scritture cliniche lasciano una riga, la riga non si può
+   * riscrivere, e **se qualcuno la riscrivesse comunque si vedrebbe**.
+   *
+   * L'ultima si prova nel solo modo in cui si può provare: manomettendo
+   * il registro davvero. Il test disabilita il trigger — cosa che
+   * richiede i privilegi del proprietario, cioè il caso peggiore — e
+   * poi controlla che la verifica se ne accorga.
+   */
+  const [{ n: righeTerapia }] = await q(
+    `select count(*)::int as n from public.audit_log
+      where entity = 'prescriptions' and action like 'prescriptions.%'`,
+  );
+  verifica("una prescrizione lascia una riga nel registro", true, righeTerapia > 0);
+
+  const [{ n: sigillate }] = await q(
+    "select count(*)::int as n from public.audit_log where entry_hash is null",
+  );
+  verifica("ogni riga del registro è sigillata", 0, sigillate);
+
+  // La direzione serve a `verify_audit_chain`: la verifica non è una
+  // lettura come le altre.
+  const [{ id: direzione }] = await q(
+    "insert into auth.users (email) values ($1) returning id",
+    ["verifica.direzione@esempio.it"],
+  );
+  await q("update public.profiles set role = 'owner' where id = $1", [direzione]);
+
+  const rotture = await come(direzione, () =>
+    q("select id from public.verify_audit_chain()"),
+  );
+  verifica("la catena è integra", 0, rotture.length);
+
+  let modificaRespinta = false;
+  try {
+    await q("update public.audit_log set action = 'niente' where id = (select min(id) from public.audit_log)");
+  } catch {
+    modificaRespinta = true;
+  }
+  verifica("il registro non si modifica", true, modificaRespinta);
+
+  let cancellazioneRespinta = false;
+  try {
+    await q("delete from public.audit_log where id = (select min(id) from public.audit_log)");
+  } catch {
+    cancellazioneRespinta = true;
+  }
+  verifica("il registro non si cancella", true, cancellazioneRespinta);
+
+  /*
+   * La manomissione, fatta davvero.
+   *
+   * Disabilitare un trigger richiede di essere proprietari della
+   * tabella: è lo scenario peggiore, quello in cui chi manomette ha le
+   * chiavi. La catena non lo impedisce — niente lo impedisce — ma lo
+   * rende evidente, e «evidente» è l'unica proprietà che serve davanti
+   * a chi deve giudicare.
+   */
+  await db.exec("alter table public.audit_log disable trigger audit_log_immutabile");
+  await q(
+    `update public.audit_log
+        set action = 'patient.view'
+      where id = (select id from public.audit_log where entry_hash is not null order by id limit 1)`,
+  );
+  await db.exec("alter table public.audit_log enable trigger audit_log_immutabile");
+
+  const dopoManomissione = await come(direzione, () =>
+    q("select id from public.verify_audit_chain()"),
+  );
+  verifica("una manomissione si vede", true, dopoManomissione.length > 0);
+
+  /* ── I diritti della persona ───────────────────────────────── */
+
+  const esportazione = await come(chiede, () =>
+    q("select public.export_patient_data($1) as dati", [paziente.id]),
+  );
+  const dati = esportazione[0]?.dati ?? {};
+  verifica("l'esportazione contiene l'anagrafica", true, dati.paziente != null);
+  verifica("e le misure", true, Array.isArray(dati.misure));
+
+  const [{ n: tracce }] = await q(
+    "select count(*)::int as n from public.audit_log where action = 'patient.export'",
+  );
+  verifica("esportare lascia una traccia", true, tracce > 0);
+
+  // La cancellazione toglie chi, non cosa: la storia clinica resta.
+  const [{ n: misurePrima }] = await q(
+    "select count(*)::int as n from public.measurements where patient_id = $1",
+    [paziente.id],
+  );
+
+  await come(direzione, () =>
+    q("select public.erase_patient($1, 'Richiesta della persona interessata.')", [
+      paziente.id,
+    ]),
+  );
+
+  const [dopoCancellazione] = await q(
+    `select pr.full_name, pr.email,
+            (select count(*)::int from public.measurements m where m.patient_id = pa.id) as misure
+       from public.patients pa join public.profiles pr on pr.id = pa.profile_id
+      where pa.id = $1`,
+    [paziente.id],
+  );
+  verifica("la cancellazione toglie il nome", "Persona cancellata", dopoCancellazione.full_name);
+  verifica("e i recapiti", null, dopoCancellazione.email);
+  verifica("ma conserva la storia clinica", misurePrima, dopoCancellazione.misure);
+
   const falliti = controlli.filter((c) => !c.ok);
   for (const c of controlli.filter((c) => c.ok)) console.log(`✔ ${c.nome}`);
   for (const c of falliti) console.log(`✘ ${c.nome}`);

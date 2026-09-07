@@ -93,6 +93,11 @@ export const SEZIONI_PRO: Record<string, Sezione> = {
     subtitle:
       "I pazienti che segui stanno migliorando? Il perimetro è il tuo: lo stesso report letto da due persone dà due numeri.",
   },
+  "/pro/sicurezza": {
+    title: "Sicurezza",
+    subtitle:
+      "Il secondo fattore, le altre sessioni, e cosa il sistema ha registrato di te. Chi è tracciato deve poter vedere la propria traccia.",
+  },
   "/pro/cerca": {
     title: "Ricerca",
     subtitle:
@@ -126,6 +131,11 @@ export const SEZIONI_CONTROL: Record<string, Sezione> = {
   "/control/professionisti": {
     title: "Professionisti",
     subtitle: "La squadra, gli orari settimanali e le disponibilità pubblicate.",
+  },
+  "/control/registro": {
+    title: "Registro",
+    subtitle:
+      "Chi ha fatto cosa, e quando. Accessi e modifiche nello stesso elenco, con la catena di impronte che dimostra che nessuna riga è stata cambiata.",
   },
   "/control/reparti": {
     title: "Reparti",

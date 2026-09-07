@@ -116,6 +116,8 @@ export interface DocumentoCompleto {
     tipoDocumento: string;
     dataDocumento: string | null;
     laboratorio: string | null;
+    /** Il medico firmatario letto sul documento. Una lettura, non un'attribuzione. */
+    medico: string | null;
     letturaVia: string;
     motoreOcr: string | null;
     fiduciaTesto: number | null;
@@ -194,7 +196,7 @@ export const getDocumento = cache(async (documentId: string): Promise<DocumentoC
   const { data: estrazioni } = await supabase
     .from("document_extractions")
     .select(
-      "id, document_type, document_date, laboratory, read_via, ocr_engine, text_confidence, " +
+      "id, document_type, document_date, laboratory, reporting_physician, read_via, ocr_engine, text_confidence, " +
         "overall_confidence, requires_review, patient_name_on_document, warnings, " +
         "extracted_text, created_at, analysis:document_analyses(summary)",
     )
@@ -207,6 +209,7 @@ export const getDocumento = cache(async (documentId: string): Promise<DocumentoC
     document_type: string;
     document_date: string | null;
     laboratory: string | null;
+    reporting_physician: string | null;
     read_via: string;
     ocr_engine: string | null;
     text_confidence: number | null;
@@ -282,6 +285,7 @@ export const getDocumento = cache(async (documentId: string): Promise<DocumentoC
       tipoDocumento: estrazione.document_type,
       dataDocumento: estrazione.document_date,
       laboratorio: estrazione.laboratory,
+      medico: estrazione.reporting_physician,
       letturaVia: estrazione.read_via,
       motoreOcr: estrazione.ocr_engine,
       fiduciaTesto: estrazione.text_confidence,

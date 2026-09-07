@@ -18,6 +18,7 @@ import {
   registraIncasso,
   spostaAppuntamento,
 } from "@/lib/gestione/actions";
+import { cancellaDatiPaziente } from "@/lib/gestione/gdpr-actions";
 import {
   CANALI_INCASSO,
   DISCIPLINE,
@@ -461,6 +462,79 @@ export default async function SchedaPazientePage({ params }: { params: Promise<{
           </Campo>
         </ModuloAzione>
       </Panel>
+
+      {/* ── I diritti della persona ──────────────────────────── */}
+      {direzione ? (
+        <Panel
+          title="Dati personali"
+          hint="Portabilità e cancellazione. Due diritti, e il secondo non fa quello che sembra."
+        >
+          <div className="space-y-5 px-5 pb-5 pt-2">
+            <div>
+              <h3 className="text-sm text-bone-50/80">Esportazione</h3>
+              <p className="mt-1 max-w-[70ch] text-sm leading-relaxed text-bone-50/50">
+                Tutto ciò che sappiamo di questa persona in un file: anagrafica,
+                punteggi, misure, referti, terapie, esami, appuntamenti, consensi e
+                conversazioni. È l’art. 20 del GDPR, e lascia una riga nel registro
+                — un accesso massivo va tracciato anche quando è legittimo.
+              </p>
+              <a
+                href={`/api/pazienti/${scheda.id}/esporta`}
+                className="mt-3 inline-block rounded-lg border border-white/12 px-4 py-2 text-sm text-bone-50/70 transition-colors hover:text-bone-50"
+              >
+                Scarica i dati
+              </a>
+            </div>
+
+            <div className="border-t border-white/[0.07] pt-5">
+              <h3 className="text-sm text-bone-50/80">Cancellazione</h3>
+              <p className="mt-1 max-w-[70ch] text-sm leading-relaxed text-bone-50/50">
+                <strong className="font-medium text-bone-50/80">
+                  Non cancella la cartella clinica, e non è un limite di questo
+                  software.
+                </strong>{" "}
+                L’art. 17 dà il diritto alla cancellazione; il suo comma 3 lettera h
+                lo sospende quando il trattamento serve a medicina preventiva,
+                diagnosi e cura. Cancellare una cartella non sarebbe conformità,
+                sarebbe distruzione di documentazione sanitaria.
+              </p>
+              <p className="mt-2 max-w-[70ch] text-sm leading-relaxed text-bone-50/50">
+                Quello che questo gesto fa è togliere ciò che <em>identifica</em>:
+                nome, recapiti, codice fiscale, la corrispondenza con la clinica.
+                Resta una storia clinica senza una persona attaccata. È
+                irreversibile e non c’è un annulla.
+              </p>
+
+              <ModuloAzione
+                action={cancellaDatiPaziente}
+                invio="Cancella i dati identificativi"
+                variante="pericolo"
+                className="mt-4 grid gap-4"
+              >
+                <input type="hidden" name="pazienteId" value={scheda.id} />
+                <input type="hidden" name="nomeAtteso" value={scheda.nome} />
+
+                <Campo
+                  label="Motivo"
+                  hint="Per esteso: fra un anno questa riga è l'unica cosa che spiegherà perché."
+                >
+                  <Testo
+                    name="motivo"
+                    placeholder="Richiesta di cancellazione ricevuta via PEC il 3 settembre 2026."
+                  />
+                </Campo>
+
+                <Campo
+                  label="Conferma"
+                  hint={`Scrivi esattamente: ${scheda.nome}`}
+                >
+                  <Testo name="conferma" placeholder={scheda.nome} autoComplete="off" />
+                </Campo>
+              </ModuloAzione>
+            </div>
+          </div>
+        </Panel>
+      ) : null}
     </div>
   );
 }
