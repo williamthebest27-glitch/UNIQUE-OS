@@ -327,6 +327,9 @@ Postgres non restituirebbe comunque righe che l’utente non ha diritto di veder
 - [Terapia, laboratorio, timeline](docs/terapia-e-laboratorio.md) — cosa è stato
   deciso e cosa è stato davvero dato, la catena dalla richiesta al valore, e
   l’analisi assemblata dai dati invece che generata.
+- [Il Command Center](docs/command-center.md) — lo stato operativo della clinica,
+  le code che si aprono sulle proprie righe, e perché i conteggi hanno i diritti
+  di chi guarda invece che quelli del server.
 - [Sicurezza e dati sanitari](docs/sicurezza-e-gdpr.md) — modello dei permessi,
   segregazione dei ruoli, registro immutabile con catena di impronte, secondo
   fattore, portabilità e cancellazione.

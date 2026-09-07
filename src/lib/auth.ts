@@ -246,6 +246,9 @@ export function homePathForRole(role: AppRole): string {
  */
 export const CONTROL_SECTIONS: Record<string, AppRole[]> = {
   "/control": ["admin", "owner"],
+  // Le code sono cliniche: la reception e il marketing ci vedrebbero
+  // comunque zeri, e una schermata di zeri insegna a non fidarsi.
+  "/control/comando": ["admin", "owner"],
   "/control/economia": ["admin", "owner"],
   "/control/capacita": ["admin", "owner"],
   "/control/crm": ["admin", "owner", "reception", "marketing"],

@@ -24,6 +24,7 @@ import { Marchio } from "@/components/brand/marchio";
 
 const SEZIONI = [
   { href: "/control", label: "Oggi" },
+  { href: "/control/comando", label: "Comando" },
   { href: "/control/brain", label: "Brain" },
   { href: "/control/agenda", label: "Agenda" },
   { href: "/control/pazienti", label: "Pazienti" },

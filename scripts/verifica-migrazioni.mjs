@@ -825,6 +825,85 @@ if (conSeed) {
   }
   verifica("chi non ha titolo sul paziente non registra consensi", false, consensoInfermiere);
 
+  /*
+   * ── Il Command Center ──────────────────────────────────────────
+   *
+   * Un cruscotto è il posto più comodo in cui scavalcare la Row Level
+   * Security: i numeri servono «per la direzione», la scorciatoia è una
+   * riga (`security definer`), e nessuno se ne accorge finché un giorno
+   * la reception apre la pagina e legge quanti valori clinici sono in
+   * attesa.
+   *
+   * Questi controlli esistono per rendere quella riga impossibile da
+   * aggiungere in silenzio.
+   */
+  const [definer] = await q(
+    `select bool_or(prosecdef) as definer
+       from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public'
+        and p.proname in ('command_center', 'command_center_queue')`,
+  );
+  verifica("il Command Center non è security definer", false, definer.definer);
+
+  // Una richiesta di parere che nessuno ha ancora preso in carico: è la
+  // coda che la schermata mette in cima.
+  const [{ request_consultation: nuovoConsulto }] = await come(chiede, () =>
+    q(
+      `select public.request_consultation(
+         $1,
+         (select id from public.departments where slug = 'diagnostica'),
+         'Verifica del Command Center', null, 'urgent', null, null)`,
+      [paziente.id],
+    ),
+  );
+
+  const conta = async (profilo) =>
+    (await come(profilo, () => q("select public.command_center() as s")))[0].s;
+
+  const perDirezione = await conta(direzione);
+  verifica("la direzione conta i pazienti della clinica", true, perDirezione.pazienti > 0);
+  verifica("e vede la richiesta senza proprietario", true, perDirezione.code.consulti > 0);
+  verifica("una priorità urgente risulta urgente", true, perDirezione.urgenti > 0);
+
+  /*
+   * Il controllo che vale per tutti gli altri: **gli stessi conteggi,
+   * chiesti da chi non ha titolo, tornano zero.** Non perché la pagina
+   * lo controlli — perché la funzione ha i diritti dell'invocante e la
+   * RLS filtra le righe prima che vengano contate.
+   */
+  const perEstraneo = await conta(estraneo);
+  verifica("chi non ha pazienti non ne conta", 0, perEstraneo.pazienti);
+  verifica("e non vede le richieste altrui", 0, perEstraneo.code.consulti);
+
+  const codaDirezione = await come(direzione, () =>
+    q("select id, paziente, titolo from public.command_center_queue('consulti', 20)"),
+  );
+  verifica(
+    "la coda mostra la riga dietro il conteggio",
+    true,
+    codaDirezione.some((r) => r.id === nuovoConsulto),
+  );
+  verifica(
+    "con il motivo della richiesta",
+    true,
+    codaDirezione.some((r) => r.titolo === "Verifica del Command Center"),
+  );
+
+  const codaEstraneo = await come(estraneo, () =>
+    q("select id from public.command_center_queue('consulti', 20)"),
+  );
+  verifica("e non la mostra a chi non c'entra", 0, codaEstraneo.length);
+
+  /*
+   * `p_coda` è testo libero. Un valore ignoto deve tornare zero righe:
+   * se una condizione saltasse, il ramo `union all` successivo
+   * riverserebbe un'altra coda sotto l'etichetta sbagliata.
+   */
+  const codaInventata = await come(direzione, () =>
+    q("select id from public.command_center_queue('reparto-inesistente', 20)"),
+  );
+  verifica("una coda che non esiste non ne restituisce un'altra", 0, codaInventata.length);
+
   const falliti = controlli.filter((c) => !c.ok);
   for (const c of controlli.filter((c) => c.ok)) console.log(`✔ ${c.nome}`);
   for (const c of falliti) console.log(`✘ ${c.nome}`);
