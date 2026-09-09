@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import type { AppRole, Profile } from "@/lib/domain/types";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { inDimostrazione, isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { mockPatientDashboard } from "@/lib/mock/patient-dashboard";
 
@@ -90,8 +90,17 @@ async function identitaVerificata(): Promise<Identita | null> {
  * sola, e le altre cinquanta ricevono la stessa risposta.
  */
 export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
+  /*
+   * Il paziente di esempio esiste solo in sviluppo.
+   *
+   * Prima bastava `!isSupabaseConfigured()`, e in produzione voleva dire
+   * che una variabile d'ambiente mancante apriva l'area riservata a
+   * chiunque, nei panni di una persona finta. Fuori da `development`
+   * l'assenza di configurazione è un utente che non c'è: si finisce alla
+   * pagina d'accesso, che è la risposta giusta a «non so chi sei».
+   */
   if (!isSupabaseConfigured()) {
-    return mockPatientDashboard.profile;
+    return inDimostrazione() ? mockPatientDashboard.profile : null;
   }
 
   const identita = await identitaVerificata();

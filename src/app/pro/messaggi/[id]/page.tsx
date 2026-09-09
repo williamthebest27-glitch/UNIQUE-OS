@@ -9,6 +9,8 @@ import { formatShortDate, formatTime } from "@/lib/format";
 import { NavLink } from "@/components/shell/nav-link";
 import { Indietro, Riquadro } from "@/components/clinical/command-center";
 import { Rispondi } from "@/components/clinical/moduli-messaggio";
+import { AggiornamentoLive } from "@/components/comunicazioni/realtime";
+import { Allegato } from "@/components/comunicazioni/allegato";
 import { Badge, Card, EmptyState, cx } from "@/components/ui/primitives";
 
 export const metadata: Metadata = { title: "Conversazione" };
@@ -92,6 +94,15 @@ export default async function ConversazionePage({
         </p>
       </header>
 
+      {/*
+        Mentre si sta scrivendo la risposta il paziente può aggiungere
+        una riga: se non arriva da sé, si risponde a una domanda che nel
+        frattempo è cambiata.
+      */}
+      <div className="mt-4">
+        <AggiornamentoLive sorgente="paziente" profileId={profile.id} filoId={id} />
+      </div>
+
       {/* ── Le righe ─────────────────────────────────────────── */}
       <ol className="mt-6 space-y-3">
         {c.messaggi.map((m) => (
@@ -113,6 +124,13 @@ export default async function ConversazionePage({
               <p className="mt-1 whitespace-pre-line text-[15px] leading-relaxed text-ink-900">
                 {m.corpo}
               </p>
+              {m.allegato ? (
+                <Allegato
+                  id={m.allegato.id}
+                  titolo={m.allegato.titolo}
+                  mime={m.allegato.mime}
+                />
+              ) : null}
               <p className="mt-1.5 flex items-center gap-2 text-xs text-ink-300 tnum">
                 {formatShortDate(m.quando)} · {formatTime(m.quando)}
                 {!m.dalPaziente && m.lettoDalPaziente ? (

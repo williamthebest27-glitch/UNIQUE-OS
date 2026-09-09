@@ -5,6 +5,8 @@ import { conversazioni } from "@/lib/data/paziente-sezioni";
 import { apriConversazione } from "@/lib/patient/actions";
 import { SchedaInAttesa } from "@/components/patient/scheda-in-attesa";
 import { PageHeading } from "@/components/shell/page-heading";
+import { AggiornamentoLive } from "@/components/comunicazioni/realtime";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { Modulo } from "@/components/patient/modulo";
 import { sezioneDi } from "@/lib/patient/sezioni";
 import { formatRelativeDays } from "@/lib/format";
@@ -43,6 +45,17 @@ export default async function MessaggiPage() {
   return (
     <div className="space-y-6 lg:space-y-8">
       <PageHeading title={SEZIONE.titolo} subtitle={SEZIONE.sottotitolo} />
+
+      {/*
+        La risposta della clinica arriva mentre la pagina è aperta.
+        `attivo` è falso senza database: in modalità dimostrativa non c'è
+        nessun canale da aprire, e provarci butterebbe giù la pagina.
+      */}
+      <AggiornamentoLive
+        sorgente="paziente"
+        profileId={data.profile.id}
+        attivo={isSupabaseConfigured()}
+      />
 
       <Card>
         <CardHeader

@@ -94,10 +94,25 @@ if (conSeed) {
   console.log("\n── segregazione dei ruoli ──");
 
   await db.exec("grant usage on schema public to authenticated");
-  await db.exec(
-    "grant select, insert, update, delete on all tables in schema public to authenticated",
-  );
   await db.exec("grant execute on all functions in schema public to authenticated");
+
+  /*
+   * Qui c'era un `grant select, insert, update, delete on all tables`.
+   *
+   * Sembrava innocuo — «diamo a `authenticated` quello che Supabase gli
+   * dà comunque» — e invece rimetteva in piedi ogni privilegio che una
+   * migrazione avesse revocato di proposito. I permessi di colonna sono
+   * l'unico modo che Postgres ha di dire «questa riga sì, questo campo
+   * no»: revocarli in migrazione e riconcederli qui significa provare uno
+   * schema che non è quello che va in produzione.
+   *
+   * Non serve nemmeno: il preambolo imposta le `default privileges` dello
+   * schema public esattamente come Supabase, quindi ogni tabella nasce
+   * già con i suoi privilegi. Le revoche restano revocate.
+   *
+   * Se un giorno quel meccanismo cambiasse, il controllo subito sotto lo
+   * direbbe: «il paziente non vede nemmeno i propri dati».
+   */
 
   const CLINICO = [
     ["misure cliniche", "select id from public.measurements"],
@@ -996,6 +1011,559 @@ if (conSeed) {
   for (const c of controlli.filter((c) => c.ok)) console.log(`✔ ${c.nome}`);
   for (const c of falliti) console.log(`✘ ${c.nome}`);
   if (falliti.length > 0) uscita = 1;
+}
+
+// ── Le scritture che non devono riuscire ────────────────────────────
+/*
+ * La lettura è metà del problema.
+ *
+ * I controlli qui sopra provano che un paziente non *vede* i dati di un
+ * altro. Questi provano la metà che mancava: che non li **scriva**, e
+ * soprattutto che non riscriva i propri in modi che l'interfaccia non
+ * offre ma la rete sì.
+ *
+ * Ogni caso qui sotto è un tentativo reale eseguito come `authenticated`
+ * contro le stesse policy e gli stessi privilegi che vanno in
+ * produzione. Non si controlla che esista una policy: si prova a fare la
+ * cosa, e si pretende che Postgres dica di no.
+ *
+ * Perché è questa la parte che sfugge: una policy si legge e sembra
+ * giusta. `messages_mark_read` diceva «l'unica modifica ammessa è
+ * segnare per letto», e per undici migrazioni ha permesso a un paziente
+ * di riscrivere il corpo di un messaggio del proprio medico — perché una
+ * policy guarda le righe e nessuno le aveva detto niente sulle colonne.
+ */
+if (conSeed) {
+  console.log("\n── scritture non consentite ──");
+
+  const prove = [];
+  const respinge = async (nome, profilo, sql, params) => {
+    await db.exec(`set request.jwt.claim.sub = '${profilo}'`);
+    await db.exec("set role authenticated");
+    let ok = false;
+    let esito = "riuscita";
+    try {
+      const righe = await q(sql, params);
+      // Un update che non trova righe non è un permesso negato, ma è lo
+      // stesso il risultato voluto: niente è cambiato.
+      ok = Array.isArray(righe) && righe.length === 0;
+      if (ok) esito = "nessuna riga toccata";
+    } catch (errore) {
+      ok = true;
+      esito = errore.message.split("\n")[0];
+    } finally {
+      await db.exec("reset role");
+    }
+    prove.push({ nome, ok, esito });
+  };
+
+  const riesce = async (nome, profilo, sql, params) => {
+    await db.exec(`set request.jwt.claim.sub = '${profilo}'`);
+    await db.exec("set role authenticated");
+    let ok = false;
+    let esito = "";
+    try {
+      await q(sql, params);
+      ok = true;
+    } catch (errore) {
+      esito = errore.message.split("\n")[0];
+    } finally {
+      await db.exec("reset role");
+    }
+    prove.push({ nome, ok, esito: ok ? "riuscita" : esito });
+  };
+
+  /*
+   * Il paziente su cui si prova: il primo che ha un care team.
+   *
+   * Serve che ne abbia uno, perché metà di questi controlli riguarda
+   * proprio l'avviso che deve raggiungerlo. Il filo invece si apre qui
+   * se non c'è: aprirlo con `open_thread`, come paziente, è già il primo
+   * pezzo dello scenario che si vuole verificare.
+   */
+  const [pz] = await q(
+    `select p.id, p.profile_id from public.patients p
+      where exists (
+        select 1 from public.care_team_members ctm
+         where ctm.patient_id = p.id and ctm.ended_at is null
+      )
+      order by p.created_at limit 1`,
+  );
+
+  if (!pz) {
+    console.log("✘ nessun paziente con care team: le scritture non sono verificabili");
+    uscita = 1;
+  } else {
+    let [filo] = await q(
+      "select id from public.message_threads where patient_id = $1 and is_closed = false limit 1",
+      [pz.id],
+    );
+
+    if (!filo) {
+      await db.exec(`set request.jwt.claim.sub = '${pz.profile_id}'`);
+      await db.exec("set role authenticated");
+      try {
+        await q(
+          "select public.open_thread('Verifica delle scritture', 'Prima riga.', 'clinical')",
+        );
+      } finally {
+        await db.exec("reset role");
+      }
+      [filo] = await q(
+        "select id from public.message_threads where patient_id = $1 and is_closed = false limit 1",
+        [pz.id],
+      );
+    }
+
+    if (!filo) {
+      console.log("✘ il paziente non riesce ad aprire un filo: nulla da verificare");
+      uscita = 1;
+      filo = { id: null };
+    }
+
+    // Una riga scritta dalla clinica: è quella che il paziente non deve
+    // poter toccare. Se non ce n'è, la si fa nascere dal medico.
+    let [dallaClinica] = await q(
+      "select id, body from public.messages where thread_id = $1 and from_patient = false limit 1",
+      [filo.id],
+    );
+
+    if (!dallaClinica) {
+      const [medico] = await q(
+        `select pr.profile_id from public.care_team_members ctm
+           join public.professionals pr on pr.id = ctm.professional_id
+          where ctm.patient_id = $1 and ctm.ended_at is null
+          limit 1`,
+        [pz.id],
+      );
+      if (medico) {
+        await db.exec(`set request.jwt.claim.sub = '${medico.profile_id}'`);
+        await db.exec("set role authenticated");
+        try {
+          await q("select public.send_message($1, 'Riga della clinica.')", [filo.id]);
+        } finally {
+          await db.exec("reset role");
+        }
+        [dallaClinica] = await q(
+          "select id, body from public.messages where thread_id = $1 and from_patient = false limit 1",
+          [filo.id],
+        );
+      }
+    }
+
+    if (!dallaClinica) {
+      console.log("✘ nessun messaggio della clinica: il controllo girerebbe a vuoto");
+      uscita = 1;
+    } else {
+      await respinge(
+        "il paziente non riscrive il messaggio del medico",
+        pz.profile_id,
+        "update public.messages set body = 'Raddoppia la dose.' where id = $1 returning id",
+        [dallaClinica.id],
+      );
+
+      await respinge(
+        "il paziente non firma un messaggio come clinica",
+        pz.profile_id,
+        `insert into public.messages (thread_id, author_id, from_patient, body)
+         values ($1, $2, false, 'Te lo ha detto il tuo medico.') returning id`,
+        [filo.id, pz.profile_id],
+      );
+
+      await respinge(
+        "il paziente non sposta un filo clinico fra gli amministrativi",
+        pz.profile_id,
+        "update public.message_threads set category = 'administrative' where id = $1 returning id",
+        [filo.id],
+      );
+
+      await respinge(
+        "il paziente non chiude il filo per conto proprio",
+        pz.profile_id,
+        "select public.set_thread_closed($1, true)",
+        [filo.id],
+      );
+
+      // E il gesto che invece deve funzionare: segnare per letto.
+      await riesce(
+        "il paziente segna per letto ciò che ha aperto",
+        pz.profile_id,
+        "update public.messages set read_by_patient_at = now() where id = $1",
+        [dallaClinica.id],
+      );
+
+      /*
+       * Il messaggio del paziente arriva davvero a chi lo cura.
+       *
+       * È lo scenario che l'applicazione promette e che nessun test
+       * copriva: fino a poco fa `send_message` svegliava solo `admin` e
+       * `owner`, e il medico che segue quella persona non riceveva
+       * niente. Si controlla contando le notifiche del care team prima e
+       * dopo, perché è l'unico modo di distinguere «è arrivata» da «c'è
+       * una funzione che sembra mandarla».
+       */
+      const notificheCareTeam = async () =>
+        (
+          await q(
+            `select count(*)::int as n from public.notifications n
+              where n.category = 'messaggi'
+                and n.profile_id in (
+                  select pr.profile_id from public.care_team_members ctm
+                    join public.professionals pr on pr.id = ctm.professional_id
+                   where ctm.patient_id = $1 and ctm.ended_at is null
+                )`,
+            [pz.id],
+          )
+        )[0].n;
+
+      const prima = await notificheCareTeam();
+      await riesce(
+        "il paziente scrive nel proprio filo",
+        pz.profile_id,
+        "select public.send_message($1, 'Buongiorno, ho una domanda sugli esami.')",
+        [filo.id],
+      );
+      const dopo = await notificheCareTeam();
+
+      prove.push({
+        nome: "il messaggio del paziente avvisa il suo care team",
+        ok: dopo > prima,
+        esito: dopo > prima ? `${dopo - prima} avvisi` : "nessun avviso",
+      });
+
+      /*
+       * E il verso opposto, che è quello che si era rotto in silenzio.
+       *
+       * `from_patient` è `not null`, e per un professionista
+       * `my_patient_id()` è NULL: il confronto dava NULL invece di
+       * `false`, e l'insert veniva respinto dal vincolo. La clinica non
+       * poteva rispondere. Nessun test lo copriva perché i dati
+       * dimostrativi le righe della clinica le inserivano a mano,
+       * scavalcando la funzione.
+       */
+      const [medicoDelTeam] = await q(
+        `select pr.profile_id from public.care_team_members ctm
+           join public.professionals pr on pr.id = ctm.professional_id
+          where ctm.patient_id = $1 and ctm.ended_at is null
+          limit 1`,
+        [pz.id],
+      );
+
+      if (medicoDelTeam) {
+        const avvisiAlPaziente = async () =>
+          (
+            await q(
+              `select count(*)::int as n from public.notifications
+                where profile_id = $1 and category = 'messaggi'`,
+              [pz.profile_id],
+            )
+          )[0].n;
+
+        const primaAlPaziente = await avvisiAlPaziente();
+        await riesce(
+          "il medico risponde nel filo del proprio paziente",
+          medicoDelTeam.profile_id,
+          "select public.send_message($1, 'Gli esami sono nella norma, ne parliamo giovedì.')",
+          [filo.id],
+        );
+        const dopoAlPaziente = await avvisiAlPaziente();
+
+        prove.push({
+          nome: "la risposta del medico avvisa il paziente",
+          ok: dopoAlPaziente > primaAlPaziente,
+          esito: dopoAlPaziente > primaAlPaziente ? "avviso scritto" : "nessun avviso",
+        });
+
+        // La riga nasce attribuita alla clinica, non al paziente: è la
+        // colonna che il vincolo rifiutava.
+        const [ultima] = await q(
+          `select from_patient from public.messages
+            where thread_id = $1 order by created_at desc limit 1`,
+          [filo.id],
+        );
+        prove.push({
+          nome: "la riga del medico non risulta scritta dal paziente",
+          ok: ultima?.from_patient === false,
+          esito: String(ultima?.from_patient),
+        });
+      }
+
+      /*
+       * Un medico che non segue quella persona non scrive nel suo filo.
+       *
+       * `thread_visible` passa da `can_access_patient`, e per un
+       * professionista quello vuol dire care team attivo. Vale la pena
+       * provarlo dal vivo: è la promessa che separa due medici della
+       * stessa clinica.
+       */
+      const [{ id: estraneoId }] = await q(
+        "insert into auth.users (email) values ($1) returning id",
+        ["verifica.altro.medico@esempio.it"],
+      );
+      await q("update public.profiles set role = 'professional' where id = $1", [estraneoId]);
+      await q(
+        "insert into public.professionals (profile_id, discipline) values ($1, 'physician')",
+        [estraneoId],
+      );
+
+      await respinge(
+        "un medico fuori dal care team non scrive nel filo",
+        estraneoId,
+        "select public.send_message($1, 'Ciao, sono un altro medico.')",
+        [filo.id],
+      );
+
+      await respinge(
+        "e non ne legge nemmeno i messaggi",
+        estraneoId,
+        "select id from public.messages where thread_id = $1",
+        [filo.id],
+      );
+
+      /*
+       * L'allegato non può arrivare da un'altra cartella.
+       *
+       * `send_message` accetta un documento, e l'id lo sceglie il
+       * client: senza il controllo di appartenenza si potrebbe appendere
+       * a una conversazione il referto di un'altra persona.
+       */
+      const [altrui] = await q(
+        `select d.id from public.documents d where d.patient_id <> $1 limit 1`,
+        [pz.id],
+      );
+      if (altrui) {
+        await respinge(
+          "un documento di un altro paziente non si allega",
+          pz.profile_id,
+          "select public.send_message($1, 'Ecco il referto.', $2)",
+          [filo.id, altrui.id],
+        );
+      }
+    }
+
+    // ── Il resto delle colonne chiuse in questa migrazione ──
+    const [questionario] = await q(
+      "select id from public.patient_assessments where patient_id = $1 limit 1",
+      [pz.id],
+    );
+    if (questionario) {
+      await respinge(
+        "il paziente non si dichiara al 100% da solo",
+        pz.profile_id,
+        `update public.patient_assessments
+            set progress_pct = 100, status = 'completed'
+          where id = $1 returning id`,
+        [questionario.id],
+      );
+      await respinge(
+        "il paziente non cancella un questionario assegnato",
+        pz.profile_id,
+        "delete from public.patient_assessments where id = $1 returning id",
+        [questionario.id],
+      );
+    }
+
+    const [azione] = await q(
+      "select id from public.recommended_actions where patient_id = $1 limit 1",
+      [pz.id],
+    );
+    if (azione) {
+      await respinge(
+        "il paziente non riscrive l'azione che gli è stata prescritta",
+        pz.profile_id,
+        "update public.recommended_actions set title = 'Smetti la terapia' where id = $1 returning id",
+        [azione.id],
+      );
+      await riesce(
+        "il paziente segna fatta un'azione",
+        pz.profile_id,
+        "update public.recommended_actions set status = 'done', completed_at = now() where id = $1",
+        [azione.id],
+      );
+    }
+  }
+
+  for (const p of prove.filter((p) => p.ok)) console.log(`✔ ${p.nome}`);
+  for (const p of prove.filter((p) => !p.ok)) {
+    console.log(`✘ ${p.nome} — ${p.esito}`);
+    uscita = 1;
+  }
+}
+
+// ── Il recupero del Brain ───────────────────────────────────────────
+/*
+ * La domanda che vale l'intera funzionalità: **il Brain può tirare su
+ * il referto di un'altra persona?**
+ *
+ * `search_document_chunks` è `security invoker`, quindi la Row Level
+ * Security di `document_chunks` si applica dentro la query e il
+ * parametro `p_patient` restringe soltanto. È esattamente il genere di
+ * garanzia che si dà per assodata leggendo il SQL, e che va provata
+ * eseguendola: un `security definer` scritto per distrazione, un domani,
+ * trasformerebbe quel parametro nell'unico filtro esistente — cioè in
+ * un valore che arriva dal client.
+ *
+ * Si prova con sei sessioni diverse sullo stesso frammento.
+ */
+if (conSeed) {
+  console.log("\n── il Brain cerca solo dove può ──");
+
+  const prove = [];
+  const come = async (profilo, fn) => {
+    await db.exec(`set request.jwt.claim.sub = '${profilo}'`);
+    await db.exec("set role authenticated");
+    try {
+      return await fn();
+    } finally {
+      await db.exec("reset role");
+    }
+  };
+
+  const [proprietario] = await q(
+    `select p.id, p.profile_id from public.patients p
+      join public.documents d on d.patient_id = p.id
+      order by p.created_at limit 1`,
+  );
+
+  if (!proprietario) {
+    console.log("✘ nessun paziente con documenti: il recupero non è verificabile");
+    uscita = 1;
+  } else {
+    const [documento] = await q(
+      "select id from public.documents where patient_id = $1 limit 1",
+      [proprietario.id],
+    );
+
+    // Un'estrazione e un frammento con una parola che non compare
+    // altrove: così un risultato non può arrivare per caso.
+    const PAROLA = "tireoglobulina";
+    const [estrazione] = await q(
+      `insert into public.document_extractions (document_id, patient_id, extracted_text)
+       values ($1, $2, $3) returning id`,
+      [documento.id, proprietario.id, `Valore di ${PAROLA} nella norma.`],
+    );
+
+    await q(
+      `insert into public.document_chunks
+         (document_id, extraction_id, patient_id, ordinale, pagina, testo)
+       values ($1, $2, $3, 0, 2, $4)`,
+      [
+        documento.id,
+        estrazione.id,
+        proprietario.id,
+        `Esame della tiroide: valore di ${PAROLA} nella norma, nessun rilievo.`,
+      ],
+    );
+
+    const cerca = (profilo, patientId = null) =>
+      come(profilo, () =>
+        q("select chunk_id, pagina from public.search_document_chunks($1, $2, 10)", [
+          PAROLA,
+          patientId,
+        ]),
+      );
+
+    const verifica = (nome, ok, esito = "") => prove.push({ nome, ok, esito });
+
+    // ── Chi deve trovarlo ──
+    const suoi = await cerca(proprietario.profile_id);
+    verifica("il paziente trova il proprio referto", suoi.length === 1, `${suoi.length} risultati`);
+    verifica(
+      "e la citazione porta la pagina",
+      suoi[0]?.pagina === 2,
+      `pagina ${suoi[0]?.pagina}`,
+    );
+
+    const [medico] = await q(
+      `select pr.profile_id from public.care_team_members ctm
+         join public.professionals pr on pr.id = ctm.professional_id
+        where ctm.patient_id = $1 and ctm.ended_at is null limit 1`,
+      [proprietario.id],
+    );
+
+    if (medico) {
+      const delMedico = await cerca(medico.profile_id);
+      verifica(
+        "il medico del care team lo trova",
+        delMedico.length === 1,
+        `${delMedico.length} risultati`,
+      );
+    }
+
+    // ── Chi non deve trovarlo ──
+    const estraneo = async (email, ruolo, extra) => {
+      const [{ id }] = await q("insert into auth.users (email) values ($1) returning id", [email]);
+      await q("update public.profiles set role = $2 where id = $1", [id, ruolo]);
+      if (extra) await extra(id);
+      return id;
+    };
+
+    const altroPaziente = await estraneo(
+      "brain.altro.paziente@esempio.it",
+      "patient",
+      (id) => q("insert into public.patients (profile_id) values ($1)", [id]),
+    );
+    const altroMedico = await estraneo("brain.altro.medico@esempio.it", "professional", (id) =>
+      q("insert into public.professionals (profile_id, discipline) values ($1, 'physician')", [id]),
+    );
+    const marketing = await estraneo("brain.marketing@esempio.it", "marketing", null);
+
+    for (const [nome, profilo] of [
+      ["un altro paziente non lo trova", altroPaziente],
+      ["un medico fuori dal care team non lo trova", altroMedico],
+      ["il marketing non lo trova", marketing],
+    ]) {
+      let righe = [];
+      try {
+        righe = await cerca(profilo);
+      } catch {
+        // Permesso negato va benissimo: è comunque «non lo trova».
+      }
+      verifica(nome, righe.length === 0, `${righe.length} risultati`);
+    }
+
+    /*
+     * Il caso più importante: passare l'id di un'altra persona.
+     *
+     * È quello che succederebbe con un bug nell'applicazione — un
+     * `patientId` preso dall'URL invece che dalla sessione. Il parametro
+     * restringe, non concede: chi non ha titolo non vede niente
+     * comunque, e chi ce l'ha non vede più di prima.
+     */
+    let conIdAltrui = [];
+    try {
+      conIdAltrui = await cerca(altroPaziente, proprietario.id);
+    } catch {
+      // Anche qui, un rifiuto è l'esito giusto.
+    }
+    verifica(
+      "passare l'id di un altro paziente non apre niente",
+      conIdAltrui.length === 0,
+      `${conIdAltrui.length} risultati`,
+    );
+
+    // E il paziente giusto, con il proprio id, continua a trovarlo:
+    // altrimenti staremmo festeggiando una funzione che non funziona.
+    const conProprioId = await cerca(proprietario.profile_id, proprietario.id);
+    verifica(
+      "con il proprio id il paziente lo trova ancora",
+      conProprioId.length === 1,
+      `${conProprioId.length} risultati`,
+    );
+
+    // Una parola che non c'è non deve restituire niente: senza questo,
+    // «trova sempre tutto» passerebbe per un successo.
+    const nulla = await come(proprietario.profile_id, () =>
+      q("select chunk_id from public.search_document_chunks('paracadutismo', null, 10)"),
+    );
+    verifica("una parola che non c'è non restituisce niente", nulla.length === 0);
+  }
+
+  for (const p of prove.filter((p) => p.ok)) console.log(`✔ ${p.nome}`);
+  for (const p of prove.filter((p) => !p.ok)) {
+    console.log(`✘ ${p.nome}${p.esito ? ` — ${p.esito}` : ""}`);
+    uscita = 1;
+  }
 }
 
 // ── I controlli che contano ─────────────────────────────────────────

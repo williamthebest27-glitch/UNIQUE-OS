@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { apriFiloClinico, rispondiAlPaziente } from "@/lib/clinical/messaggi-actions";
 import { statoTestoIniziale } from "@/lib/clinical/state";
+import { ACCEPT_ATTRIBUTE } from "@/lib/documents/state";
 import { cx } from "@/components/ui/primitives";
 
 /**
@@ -150,6 +151,29 @@ export function Rispondi({
           placeholder="Rispondi al paziente…"
           className={cx(CAMPO, "resize-y")}
         />
+      </label>
+
+      {/*
+        L'allegato entra nella cartella del paziente, non in una cartella
+        della messaggistica: passa dalla stessa pipeline del caricamento,
+        quindi viene letto dal motore documentale e compare fra i
+        documenti. Lo si dice sotto al campo, perché è una conseguenza
+        che chi allega deve conoscere prima di allegare.
+      */}
+      <label className="mt-3 block">
+        <span className="block text-[11px] font-medium uppercase tracking-[0.08em] text-ink-500">
+          Allegato <span className="normal-case tracking-normal text-ink-300">facoltativo</span>
+        </span>
+        <input
+          type="file"
+          name="allegato"
+          accept={ACCEPT_ATTRIBUTE}
+          disabled={inCorso}
+          className="mt-1.5 block w-full text-sm text-ink-500 file:mr-3 file:min-h-11 file:rounded-lg file:border-0 file:bg-bone-100 file:px-4 file:py-2.5 file:text-sm file:font-medium file:text-ink-700 hover:file:bg-bone-200 disabled:opacity-60"
+        />
+        <span className="mt-1 block text-xs text-ink-400">
+          Finisce nella cartella del paziente e viene letto dal motore documentale.
+        </span>
       </label>
 
       <div className="mt-3 flex flex-wrap items-center gap-3">

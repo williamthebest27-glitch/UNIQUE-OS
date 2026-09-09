@@ -7,7 +7,7 @@ import { ScoreHero } from "@/components/patient/score-hero";
 import { Reveal, SplitText } from "@/components/motion/reveal";
 import { ProssimoPasso } from "@/components/patient/prossimo-passo";
 import { CreditsCard, NextVisitCard, ProgramCard } from "@/components/patient/cards";
-import { ActionsCard, DocumentsCard, HighlightsCard } from "@/components/patient/lists";
+import { ActionsCard, DocumentsCard, HighlightsCard, MessagesCard } from "@/components/patient/lists";
 import { ChevronIcon } from "@/components/ui/primitives";
 
 export const metadata: Metadata = { title: "Home" };
@@ -92,6 +92,15 @@ export default async function PatientHomePage() {
           <DocumentsCard documents={data.newDocuments} />
         </Reveal>
       </div>
+
+      {/*
+        I messaggi mancavano del tutto dalla home. Erano la sola cosa
+        che un paziente aspetta attivamente — la risposta del proprio
+        medico — e per vederli bisognava ricordarsi di aprire la sezione.
+      */}
+      <Reveal>
+        <MessagesCard fili={stato.conversazioni} />
+      </Reveal>
 
       {/* ── La prova che il percorso funziona ──────────────────── */}
       <Reveal>

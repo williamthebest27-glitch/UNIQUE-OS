@@ -180,6 +180,16 @@ export interface MessaggioInFilo {
   autore: string | null;
   creatoIl: string;
   lettoDalPaziente: boolean;
+  /**
+   * L'allegato, quando c'è.
+   *
+   * Il file non viaggia qui dentro: viaggia il suo id, e la pagina
+   * rimanda a `/api/documenti/<id>`, che firma un collegamento che dura
+   * cinque minuti. È la stessa porta dei referti in cartella — un
+   * allegato in chat resta un documento sanitario, e non merita una
+   * seconda strada con meno controlli.
+   */
+  allegato: { id: string; titolo: string; mime: string | null } | null;
 }
 
 export async function conversazioni(): Promise<FiloInElenco[]> {
@@ -253,7 +263,9 @@ export async function conversazione(
       .maybeSingle(),
     supabase
       .from("messages")
-      .select("id, body, from_patient, created_at, read_by_patient_at, author:profiles(full_name)")
+      .select(
+        "id, body, from_patient, created_at, read_by_patient_at, author:profiles(full_name), document:documents(id, title, mime_type)",
+      )
       .eq("thread_id", id)
       .order("created_at", { ascending: true })
       .limit(300),
@@ -275,6 +287,7 @@ export async function conversazione(
     created_at: string;
     read_by_patient_at: string | null;
     author: { full_name: string } | null;
+    document: { id: string; title: string; mime_type: string | null } | null;
   }[]).map((m) => ({
     id: m.id,
     testo: m.body,
@@ -282,6 +295,12 @@ export async function conversazione(
     autore: m.author?.full_name ?? null,
     creatoIl: m.created_at,
     lettoDalPaziente: m.read_by_patient_at !== null,
+    // Il join può tornare vuoto senza che sia un errore: il documento
+    // può essere stato cancellato dopo l'invio, e `document_id` è
+    // `on delete set null`.
+    allegato: m.document
+      ? { id: m.document.id, titolo: m.document.title, mime: m.document.mime_type }
+      : null,
   }));
 
   return {

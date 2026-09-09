@@ -1,6 +1,7 @@
 import "server-only";
 import { requireProfile } from "@/lib/auth";
 import { insertMeasurements } from "@/lib/brain/analyze";
+import { indicizzaEstrazione } from "@/lib/brain/ricerca-documenti";
 import {
   analizzaDocumentoStrutturato,
   type AnalisiDocumento,
@@ -407,6 +408,27 @@ async function salva(
 
   if (error) throw new Error(`Estrazione non salvata: ${error.message}`);
   const extractionId = (estrazioneRiga as { id: string }).id;
+
+  /*
+   * Il testo diventa cercabile.
+   *
+   * Fin qui `extracted_text` veniva salvato e non lo leggeva nessuno: il
+   * copilot sapeva rispondere sui *numeri* estratti in tabella e non
+   * aveva niente da dire su cosa ci fosse scritto. I frammenti chiudono
+   * quella distanza, e portano con sé la pagina — così una risposta può
+   * citare un punto invece di un file.
+   *
+   * Non si attende e non si rilancia: l'indice è un accessorio del
+   * documento, e un referto che non si riesce a indicizzare resta un
+   * referto valido in cartella.
+   */
+  await indicizzaEstrazione(
+    supabase,
+    extractionId,
+    documento.id,
+    documento.patient_id,
+    strutturato.testo_estratto,
+  );
 
   const comuni = {
     extraction_id: extractionId,

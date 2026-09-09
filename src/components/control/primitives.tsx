@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cx } from "@/components/ui/primitives";
+import { NavLink } from "@/components/shell/nav-link";
 
 /**
  * Elementi della control room.
@@ -9,19 +10,35 @@ import { cx } from "@/components/ui/primitives";
  * ballano a ogni aggiornamento.
  */
 
+/**
+ * Un indicatore.
+ *
+ * Con `href` diventa un collegamento, e questa è la differenza fra un
+ * cruscotto e un centro di comando: un numero che non porta da nessuna
+ * parte obbliga chi lo legge a ricordarsi in quale sezione vive il
+ * dettaglio, e a cercarselo nel menu. «Otto no-show» è una domanda, e la
+ * risposta sta in agenda.
+ *
+ * Restano senza collegamento i numeri che non hanno un dettaglio da
+ * mostrare — un rapporto calcolato, una percentuale di saturazione — e
+ * mandarli su una pagina che non parla di loro sarebbe peggio che
+ * lasciarli fermi.
+ */
 export function Kpi({
   label,
   value,
   hint,
   tone = "neutral",
+  href,
 }: {
   label: string;
   value: string;
   hint?: string;
   tone?: "neutral" | "good" | "warn";
+  href?: string;
 }) {
-  return (
-    <div className="px-5 py-4">
+  const contenuto = (
+    <>
       <p className="text-[11px] font-medium uppercase tracking-[0.09em] text-bone-50/45">
         {label}
       </p>
@@ -34,7 +51,24 @@ export function Kpi({
         {value}
       </p>
       {hint ? <p className="mt-1 text-xs text-bone-50/40">{hint}</p> : null}
-    </div>
+    </>
+  );
+
+  if (!href) return <div className="px-5 py-4">{contenuto}</div>;
+
+  return (
+    <NavLink
+      href={href}
+      className={cx(
+        "block px-5 py-4 transition-colors hover:bg-white/[0.06]",
+        // Il fuoco da tastiera si vede: su fondo scuro un anello di
+        // sistema è quasi invisibile, e questa è una griglia in cui si
+        // naviga a tabulazioni.
+        "focus-visible:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-brand-300/60",
+      )}
+    >
+      {contenuto}
+    </NavLink>
   );
 }
 

@@ -2,6 +2,7 @@ import type { PatientDashboardData } from "@/lib/domain/types";
 import { computeJourneyStage, type JourneyResult } from "@/lib/journey/stages";
 import { prossimiPassi, type ProssimiPassi, type StatoPaziente } from "@/lib/patient/prossimo-passo";
 import type { ContestoPaziente } from "@/lib/patient/assistente";
+import type { FiloInHome } from "@/components/patient/lists";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
@@ -42,6 +43,14 @@ export interface SituazionePaziente {
   questionari: QuestionarioInElenco[];
   questionariDaFare: QuestionarioInElenco[];
   messaggiNonLetti: number;
+  /**
+   * I fili con la clinica, per la card sulla home.
+   *
+   * Erano già letti qui per contare i non letti, e venivano buttati via:
+   * la home mostrava il numero da nessuna parte e la sezione Messaggi li
+   * rileggeva da capo. Restituirli non costa una query in più.
+   */
+  conversazioni: FiloInHome[];
   /** Il contesto che l'assistente può usare. Niente di più. */
   contestoAssistente: ContestoPaziente;
 }
@@ -141,6 +150,14 @@ export async function situazione(dati: PatientDashboardData): Promise<Situazione
     questionari: elencoQuestionari,
     questionariDaFare: daFare,
     messaggiNonLetti,
+    // Le tre più recenti: la home è un riassunto, non l'archivio.
+    conversazioni: fili.slice(0, 3).map((f) => ({
+      id: f.id,
+      oggetto: f.oggetto,
+      anteprima: f.anteprima,
+      ultimoMessaggioIl: f.ultimoMessaggioIl,
+      nonLetti: f.nonLetti,
+    })),
     contestoAssistente,
   };
 }

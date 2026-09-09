@@ -7,6 +7,7 @@ import { formatRelativeDays, formatShortDate } from "@/lib/format";
 import { NavLink } from "@/components/shell/nav-link";
 import { PageHeading } from "@/components/shell/page-heading";
 import { Niente, Riquadro } from "@/components/clinical/command-center";
+import { AggiornamentoLive } from "@/components/comunicazioni/realtime";
 import { Badge, Card, EmptyState, cx } from "@/components/ui/primitives";
 
 export const metadata: Metadata = { title: "Messaggi" };
@@ -64,6 +65,14 @@ export default async function MessaggiPage() {
       />
 
       <div className="mt-6 space-y-6">
+        {/*
+          La coda si riordina da sé quando un paziente scrive: senza
+          questo, «da leggere» restava a zero finché qualcuno non
+          ricaricava, ed è esattamente la schermata che un medico lascia
+          aperta in un angolo tutta la mattina.
+        */}
+        <AggiornamentoLive sorgente="paziente" profileId={profile.id} />
+
         <Riquadro
           titolo="Da leggere"
           conta={daLeggere.length}

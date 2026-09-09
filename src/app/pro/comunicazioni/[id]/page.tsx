@@ -127,7 +127,7 @@ export default async function ConversazionePage({
         <Indietro href="/pro/comunicazioni">Comunicazioni</Indietro>
       </div>
 
-      <AggiornamentoLive profileId={profile.id} conversationId={c.id} />
+      <AggiornamentoLive profileId={profile.id} filoId={c.id} />
 
       <div className="overflow-hidden rounded-card bg-white shadow-card ring-1 ring-bone-200/70">
         <IntestazioneConversazione c={c} />

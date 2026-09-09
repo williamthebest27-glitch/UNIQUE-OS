@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import {
   isSupabaseConfigured,
+  modalitaDimostrativaAmmessa,
   supabaseAnonKey,
   supabaseUrl,
 } from "@/lib/supabase/config";
@@ -92,10 +93,48 @@ export async function proxy(request: NextRequest) {
   intestazioniRichiesta.set("x-nonce", nonce);
   intestazioniRichiesta.set("Content-Security-Policy", csp);
 
-  // Modalità dimostrativa: nessun database, nessuna sessione da
-  // proteggere — ma le intestazioni servono lo stesso.
+  /*
+   * Senza configurazione ci sono due situazioni, e vanno distinte.
+   *
+   * In **sviluppo** è la modalità dimostrativa: nessun database, nessuna
+   * sessione da proteggere, si lavora sull'interfaccia. Le intestazioni
+   * servono lo stesso.
+   *
+   * In **produzione** è un guasto, e prima di questo blocco era un
+   * guasto che apriva la porta: il proxy lasciava passare chiunque su
+   * ogni percorso, e `getCurrentProfile()` rispondeva con il paziente di
+   * esempio. Una variabile d'ambiente non propagata a un deploy —
+   * l'errore di configurazione più comune che esista — trasformava
+   * l'area riservata in un sito pubblico, senza nessun segnale che
+   * qualcosa non andasse.
+   *
+   * Un 503 e non un rinvio all'accesso: la pagina d'accesso senza
+   * Supabase non può autenticare nessuno, e mandarcisi sarebbe un giro
+   * a vuoto che nasconde la causa.
+   */
   if (!isSupabaseConfigured()) {
-    return vestita(NextResponse.next({ request: { headers: intestazioniRichiesta } }));
+    if (modalitaDimostrativaAmmessa()) {
+      return vestita(NextResponse.next({ request: { headers: intestazioniRichiesta } }));
+    }
+
+    console.error(
+      "[proxy] NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY mancanti in produzione.",
+    );
+
+    return vestita(
+      new NextResponse(
+        "Unique OS non è configurato correttamente su questo ambiente. " +
+          "Nessun dato è accessibile finché la configurazione non è ripristinata.",
+        {
+          status: 503,
+          headers: {
+            "Content-Type": "text/plain; charset=utf-8",
+            "Cache-Control": "no-store",
+            "Retry-After": "120",
+          },
+        },
+      ),
+    );
   }
 
   let response = NextResponse.next({ request: { headers: intestazioniRichiesta } });

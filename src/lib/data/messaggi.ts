@@ -41,9 +41,18 @@ export interface MessaggioClinico {
   dalPaziente: boolean;
   autore: string | null;
   corpo: string;
-  documentId: string | null;
   quando: string;
   lettoDalPaziente: string | null;
+  /**
+   * L'allegato, quando c'è.
+   *
+   * `document_id` esisteva da sempre nello schema e non lo leggeva
+   * nessuno: un referto mandato in chat era invisibile da entrambe le
+   * parti. Si apre da `/api/documenti/<id>`, che firma un collegamento
+   * breve e lascia la riga nel registro degli accessi — la stessa porta
+   * dei documenti in cartella.
+   */
+  allegato: { id: string; titolo: string; mime: string | null } | null;
 }
 
 interface RigaFilo {
@@ -174,7 +183,7 @@ export async function getConversazione(
     supabase
       .from("messages")
       .select(
-        "id, from_patient, body, document_id, created_at, read_by_patient_at, read_by_staff_at, author:profiles(full_name)",
+        "id, from_patient, body, created_at, read_by_patient_at, read_by_staff_at, author:profiles(full_name), document:documents(id, title, mime_type)",
       )
       .eq("thread_id", threadId)
       .order("created_at", { ascending: true })
@@ -188,19 +197,21 @@ export async function getConversazione(
     id: string;
     from_patient: boolean;
     body: string;
-    document_id: string | null;
     created_at: string;
     read_by_patient_at: string | null;
     read_by_staff_at: string | null;
     author: { full_name: string } | null;
+    document: { id: string; title: string; mime_type: string | null } | null;
   }[]).map((m) => ({
     id: m.id,
     dalPaziente: m.from_patient,
     autore: m.author?.full_name ?? null,
     corpo: m.body,
-    documentId: m.document_id,
     quando: m.created_at,
     lettoDalPaziente: m.read_by_patient_at,
+    allegato: m.document
+      ? { id: m.document.id, titolo: m.document.title, mime: m.document.mime_type }
+      : null,
   }));
 
   const ultimo = messaggi.at(-1) ?? null;

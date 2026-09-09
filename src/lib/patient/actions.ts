@@ -9,6 +9,9 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { emitEvent } from "@/lib/events/emit";
 import { daFormData, leggiDomande, valida } from "@/lib/patient/questionari";
 import { mioPatientId, type TipoConsenso } from "@/lib/data/paziente-sezioni";
+import { getPatientDashboard } from "@/lib/data/patient";
+import { situazione } from "@/lib/data/percorso-paziente";
+import { cerca, fontiDistinte } from "@/lib/brain/ricerca-documenti";
 import { rispondi, type ContestoPaziente, type RispostaAssistente } from "@/lib/patient/assistente";
 
 /**
@@ -180,6 +183,44 @@ export async function apriConversazione(
   redirect(`/messaggi/${nuovoId}`);
 }
 
+/**
+ * L'allegato di un messaggio, se ce n'è uno.
+ *
+ * Non apre una seconda strada per i file: passa da `caricaFile`, la
+ * stessa che serve il caricamento in cartella. Vuol dire che un allegato
+ * eredita per intero i controlli che già esistono — il formato deciso
+ * dai byte e non dal nome, il limite di dimensione, il riconoscimento
+ * dei duplicati, il percorso di storage sotto la cartella del paziente,
+ * l'avviso al care team e la lettura del motore documentale.
+ *
+ * Un secondo percorso di upload sarebbe stato più corto da scrivere e
+ * avrebbe significato, il giorno dopo, un file sanitario salvato con
+ * metà di quei controlli.
+ *
+ * Restituisce `null` quando non c'è nessun file: è il caso normale.
+ * Lancia quando c'è e non è andato — meglio non spedire il messaggio che
+ * spedirlo senza il referto di cui parla.
+ */
+async function allegatoDi(
+  formData: FormData,
+  campi?: Record<string, string>,
+): Promise<string | null> {
+  const file = formData.get("allegato");
+  if (!(file instanceof File) || file.size === 0) return null;
+
+  const { caricaFile } = await import("@/lib/documents/caricamento");
+
+  const dati = new FormData();
+  dati.set("file", file);
+  for (const [chiave, valore] of Object.entries(campi ?? {})) dati.set(chiave, valore);
+
+  const esito = await caricaFile(dati);
+  if (esito.esito !== "ok" || !esito.documentId) {
+    throw new Error(esito.messaggio ?? "Allegato non caricato.");
+  }
+  return esito.documentId;
+}
+
 export async function inviaMessaggio(
   _prev: EsitoPaziente,
   formData: FormData,
@@ -192,14 +233,21 @@ export async function inviaMessaggio(
     if (corpo.length < 2) return errore("Scrivi il tuo messaggio.");
     if (!isSupabaseConfigured()) return ok("In modalità dimostrativa i messaggi non vengono inviati.");
 
+    const documentId = await allegatoDi(formData);
+
     const supabase = await createSupabaseServerClient();
-    const { error } = await supabase.rpc("send_message", { p_thread: threadId, p_body: corpo });
+    const { error } = await supabase.rpc("send_message", {
+      p_thread: threadId,
+      p_body: corpo,
+      p_document: documentId,
+    });
     if (error) throw new Error(error.message);
 
     revalidatePath(`/messaggi/${threadId}`);
     revalidatePath("/messaggi");
+    if (documentId) revalidatePath("/documenti");
     invalidaContatoriPaziente();
-    return ok("Messaggio inviato.");
+    return ok(documentId ? "Messaggio e allegato inviati." : "Messaggio inviato.");
   } catch (error) {
     return errore(messaggioLeggibile(error instanceof Error ? error.message : String(error)));
   }
@@ -349,8 +397,23 @@ export async function chiediAUnique(
   const domanda = testo(formData, "domanda");
   if (!domanda) return null;
 
-  const contesto = JSON.parse(testo(formData, "contesto") || "null") as ContestoPaziente | null;
-  if (!contesto) {
+  /*
+   * Il contesto si ricostruisce qui, non arriva dal modulo.
+   *
+   * Prima veniva serializzato in un campo nascosto e rispedito dal
+   * browser a ogni domanda. Non era una falla verso gli altri — sono i
+   * dati di chi sta scrivendo, e la Row Level Security non c'entra — ma
+   * era una bugia sull'architettura: il commento in cima alla pagina
+   * dice «il contesto lo compone il server», e il server si limitava a
+   * rileggere ciò che il client gli restituiva. Chiunque avesse aperto
+   * gli strumenti di sviluppo poteva far dire all'assistente che il
+   * proprio punteggio era novanta.
+   *
+   * Ricostruirlo costa due letture già memoizzate per richiesta, e in
+   * cambio la frase «risponde con i tuoi dati» diventa vera.
+   */
+  const dati = await getPatientDashboard();
+  if (!dati) {
     return {
       categoria: "non_so",
       testo: "Non riesco a leggere i tuoi dati in questo momento. Riprova fra poco.",
@@ -359,5 +422,53 @@ export async function chiediAUnique(
     };
   }
 
-  return rispondi(domanda, contesto);
+  const contesto: ContestoPaziente = (await situazione(dati)).contestoAssistente;
+  const risposta = rispondi(domanda, contesto);
+
+  /*
+   * Quando il motore non sa rispondere, si guarda nei propri documenti.
+   *
+   * È la parte che mancava all'assistente del paziente: sapeva parlare
+   * di punteggio, visite e crediti, e davanti a «cosa c'era scritto nel
+   * referto della tiroide» rispondeva con l'elenco di ciò che sa fare.
+   *
+   * Si cerca **solo nella propria cartella** — `mioPatientId()`, non un
+   * id che arriva da fuori — e la funzione di ricerca è `security
+   * invoker`: anche sbagliando quel parametro, il database non
+   * restituirebbe il documento di un'altra persona.
+   *
+   * Si riportano le parole del referto, non una spiegazione: il
+   * documento il paziente lo può già aprire per intero dalla sua
+   * sezione Documenti, quindi citarlo non gli mostra niente di nuovo —
+   * mentre *interpretarlo* sarebbe esattamente la riga che questo
+   * assistente non deve attraversare.
+   */
+  if (risposta.categoria === "non_so") {
+    const patientId = await mioPatientId();
+    const passaggi = patientId ? await cerca(domanda, patientId, 3) : [];
+
+    if (passaggi.length > 0) {
+      const corpo = passaggi
+        .map((p) => {
+          const dove = p.pagina ? `${p.titolo}, pagina ${p.pagina}` : p.titolo;
+          return `**${dove}**\n«${p.testo}»`;
+        })
+        .join("\n\n");
+
+      return {
+        categoria: "risultati",
+        testo:
+          `Non so rispondere da solo, ma nei tuoi documenti ho trovato ` +
+          `${passaggi.length === 1 ? "questo passaggio" : "questi passaggi"}. ` +
+          `Sono le parole del referto, così come sono scritte — per capire ` +
+          `cosa significano nel tuo caso, chiedi a chi ti segue.\n\n${corpo}`,
+        collegamenti: [{ href: "/documenti", etichetta: "I tuoi documenti" }],
+        fonti: fontiDistinte(passaggi).map((f) =>
+          f.pagina ? `${f.titolo} (pagina ${f.pagina})` : f.titolo,
+        ),
+      };
+    }
+  }
+
+  return risposta;
 }

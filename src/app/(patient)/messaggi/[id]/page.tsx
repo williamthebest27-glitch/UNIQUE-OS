@@ -3,6 +3,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { conversazione } from "@/lib/data/paziente-sezioni";
 import { inviaMessaggio, segnaConversazioneLetta } from "@/lib/patient/actions";
+import { getCurrentProfile } from "@/lib/auth";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { AggiornamentoLive } from "@/components/comunicazioni/realtime";
+import { Allegato } from "@/components/comunicazioni/allegato";
+import { ACCEPT_ATTRIBUTE } from "@/lib/documents/state";
 import { Modulo } from "@/components/patient/modulo";
 import { formatShortDate, formatTime } from "@/lib/format";
 import { Badge, Card, CardHeader, EmptyState, cx } from "@/components/ui/primitives";
@@ -33,7 +38,7 @@ const CATEGORIA: Record<string, string> = {
 
 export default async function ConversazionePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const dati = await conversazione(id);
+  const [dati, profile] = await Promise.all([conversazione(id), getCurrentProfile()]);
   if (!dati) notFound();
 
   const { filo, messaggi } = dati;
@@ -56,6 +61,15 @@ export default async function ConversazionePage({ params }: { params: Promise<{ 
         </div>
       </div>
 
+      {profile ? (
+        <AggiornamentoLive
+          sorgente="paziente"
+          profileId={profile.id}
+          filoId={id}
+          attivo={isSupabaseConfigured()}
+        />
+      ) : null}
+
       <Card>
         <div className="space-y-4 p-6">
           {messaggi.length === 0 ? (
@@ -74,6 +88,14 @@ export default async function ConversazionePage({ params }: { params: Promise<{ 
                     )}
                   >
                     <p className="whitespace-pre-wrap">{m.testo}</p>
+                    {m.allegato ? (
+                      <Allegato
+                        id={m.allegato.id}
+                        titolo={m.allegato.titolo}
+                        mime={m.allegato.mime}
+                        scuro={m.dalPaziente}
+                      />
+                    ) : null}
                   </div>
                   <p
                     className={cx(
@@ -109,6 +131,28 @@ export default async function ConversazionePage({ params }: { params: Promise<{ 
                 aria-label="La tua risposta"
                 className="w-full resize-y rounded-xl bg-bone-100 px-4 py-3 text-[15px] text-ink-900 placeholder:text-ink-300 focus:bg-white focus:outline-none focus:ring-1 focus:ring-brand-300"
               />
+
+              {/*
+                L'allegato finisce nei tuoi documenti, non in un angolo
+                della chat: è la stessa cartella, e lo diciamo — chi manda
+                una foto di un referto ha diritto di sapere dove va a
+                finire.
+              */}
+              <label className="mt-3 block">
+                <span className="block text-[13px] font-medium text-ink-700">
+                  Allega un referto <span className="font-normal text-ink-400">(facoltativo)</span>
+                </span>
+                <input
+                  type="file"
+                  name="allegato"
+                  accept={ACCEPT_ATTRIBUTE}
+                  className="mt-1.5 block w-full text-sm text-ink-500 file:mr-3 file:min-h-11 file:rounded-lg file:border-0 file:bg-bone-100 file:px-4 file:py-2.5 file:text-sm file:font-medium file:text-ink-700 hover:file:bg-bone-200"
+                />
+                <span className="mt-1 block text-xs text-ink-400">
+                  PDF o foto. Lo trovi anche fra i tuoi documenti, e lo vede il tuo
+                  medico.
+                </span>
+              </label>
             </Modulo>
           </div>
         )}

@@ -1,6 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { appUrl } from "./config.ts";
+import {
+  appUrl,
+  inDimostrazione,
+  isSupabaseConfigured,
+  modalitaDimostrativaAmmessa,
+} from "./config.ts";
 
 /**
  * L'origine dei link di accesso.
@@ -65,4 +70,46 @@ test("in locale resta localhost", () => {
 
 test("un valore già completo di protocollo non viene raddoppiato", () => {
   assert.equal(con({ VERCEL_URL: "https://deploy-abc.vercel.app" }), "https://deploy-abc.vercel.app");
+});
+
+/* ── La modalità dimostrativa non deve esistere in produzione ────── */
+
+/**
+ * Perché questi due test valgono più della riga che verificano.
+ *
+ * La modalità dimostrativa nasce come comodità di sviluppo e diventa un
+ * problema di sicurezza nel momento in cui raggiunge un ambiente
+ * pubblico: senza configurazione l'applicazione serviva un profilo
+ * paziente finto **a chiunque**, con il proxy che lasciava passare tutto.
+ * Il guasto non aveva sintomi — il sito funzionava — ed è il genere di
+ * cosa che si scopre da fuori.
+ *
+ * `NODE_ENV` è di sola lettura nei tipi di Node, ma resta una proprietà
+ * di un oggetto: si scrive con `Reflect.set` e si rimette com'era.
+ */
+function conAmbiente<T>(valore: string | undefined, fn: () => T): T {
+  const precedente = process.env.NODE_ENV;
+  Reflect.set(process.env, "NODE_ENV", valore);
+  try {
+    return fn();
+  } finally {
+    Reflect.set(process.env, "NODE_ENV", precedente);
+  }
+}
+
+test("in produzione la modalità dimostrativa non è ammessa", () => {
+  assert.equal(conAmbiente("production", modalitaDimostrativaAmmessa), false);
+});
+
+test("in sviluppo e nei test lo è", () => {
+  assert.equal(conAmbiente("development", modalitaDimostrativaAmmessa), true);
+  assert.equal(conAmbiente("test", modalitaDimostrativaAmmessa), true);
+});
+
+test("senza chiavi e in produzione non si finisce in dimostrazione", () => {
+  // Le chiavi sono lette all'import del modulo e qui sono vuote: è
+  // esattamente lo scenario del deploy senza variabili d'ambiente.
+  assert.equal(isSupabaseConfigured(), false);
+  assert.equal(conAmbiente("production", inDimostrazione), false);
+  assert.equal(conAmbiente("development", inDimostrazione), true);
 });

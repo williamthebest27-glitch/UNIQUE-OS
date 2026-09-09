@@ -30,6 +30,34 @@ async function requireStaff() {
   return profile;
 }
 
+/**
+ * L'allegato di una risposta, quando c'è.
+ *
+ * Import dinamico e non in testa al file: `caricamento.ts` tira dentro
+ * il motore documentale — pdfjs, il riconoscimento ottico, i lettori di
+ * Word ed Excel — e una pagina che manda un messaggio di testo non deve
+ * pagarne il caricamento.
+ */
+async function allegatoDi(
+  formData: FormData,
+  campi: Record<string, string>,
+): Promise<string | null> {
+  const file = formData.get("allegato");
+  if (!(file instanceof File) || file.size === 0) return null;
+
+  const { caricaFile } = await import("@/lib/documents/caricamento");
+
+  const dati = new FormData();
+  dati.set("file", file);
+  for (const [chiave, valore] of Object.entries(campi)) dati.set(chiave, valore);
+
+  const esito = await caricaFile(dati);
+  if (esito.esito !== "ok" || !esito.documentId) {
+    throw new Error(esito.messaggio ?? "Allegato non caricato.");
+  }
+  return esito.documentId;
+}
+
 /* ── Aprire ───────────────────────────────────────────────────────── */
 
 export async function apriFiloClinico(
@@ -96,9 +124,23 @@ export async function rispondiAlPaziente(
     await requireStaff();
     const supabase = await createSupabaseServerClient();
 
+    /*
+     * L'allegato passa da `caricaFile`, la stessa funzione del
+     * caricamento in cartella: un referto mandato in chat resta un
+     * documento sanitario, e finisce nella cartella del paziente con
+     * tutti i controlli di sempre invece che in un angolo della
+     * messaggistica.
+     *
+     * `patientId` serve lì dentro perché chi non è paziente deve dire su
+     * chi sta caricando, e la Row Level Security verifica che ne abbia
+     * titolo: l'id che arriva dal modulo non viene creduto.
+     */
+    const documentId = await allegatoDi(formData, { patientId });
+
     const { error } = await supabase.rpc("send_message", {
       p_thread: threadId,
       p_body: corpo,
+      p_document: documentId,
     });
 
     if (error) throw new Error(error.message);
@@ -166,11 +208,30 @@ export async function chiudiFilo(formData: FormData): Promise<void> {
   const riapri = formData.get("riapri") === "true";
   if (!threadId) return;
 
+  /*
+   * Una funzione e non un update.
+   *
+   * `message_threads` non è più scrivibile da `authenticated`: le
+   * colonne di un filo — `category` sopra tutte — decidono chi lo legge,
+   * e lasciarle aperte significava che il paziente poteva spostare una
+   * conversazione clinica sotto gli occhi della reception. Chiudere resta
+   * possibile, ma passa da `set_thread_closed`, che verifica il titolo
+   * clinico invece di `can_access_patient` — quello al paziente dice
+   * sempre sì.
+   */
   const supabase = await createSupabaseServerClient();
-  await supabase
-    .from("message_threads")
-    .update({ is_closed: !riapri })
-    .eq("id", threadId);
+  const { error } = await supabase.rpc("set_thread_closed", {
+    p_thread: threadId,
+    p_closed: !riapri,
+  });
+
+  if (error) {
+    // Nessuna eccezione: è un gesto secondario in fondo alla pagina, e
+    // una pagina grigia al posto di una conversazione sarebbe peggio del
+    // filo rimasto aperto.
+    console.error("[messaggi] chiusura non riuscita:", error.message);
+    return;
+  }
 
   invalidaMessaggiClinici(patientId || null);
 }

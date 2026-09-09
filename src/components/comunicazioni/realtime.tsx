@@ -40,15 +40,46 @@ const ATTESA_REFRESH = 400;
 /** Quando il canale è caduto: lento, perché è una rete e non un motore. */
 const RIPIEGO_MS = 30_000;
 
+/**
+ * Le due messaggistiche, che sono due tabelle e non una.
+ *
+ * `conversation_messages` è ciò che si dicono i colleghi;
+ * `messages` è il filo con il paziente. Restano separate nel database
+ * per una ragione di permessi — un consulto sul paziente non lo legge il
+ * paziente — e qui si riflette la stessa separazione, invece di un
+ * canale solo che ascolta tutto e filtra dopo.
+ *
+ * Le categorie servono all'avviso a comparsa: dire «è arrivato un
+ * messaggio» mentre si sta guardando un'altra pagina ha senso, dirlo per
+ * ogni riga di ogni registro no.
+ */
+const SORGENTI = {
+  interne: {
+    tabella: "conversation_messages",
+    colonna: "conversation_id",
+    categorie: ["comunicazioni", "consulti"],
+  },
+  paziente: {
+    tabella: "messages",
+    colonna: "thread_id",
+    categorie: ["messaggi"],
+  },
+} as const;
+
+export type Sorgente = keyof typeof SORGENTI;
+
 export function AggiornamentoLive({
-  /** Quando c'è, ascolta solo questa conversazione. Altrimenti tutte. */
-  conversationId,
+  /** Quale messaggistica ascoltare: fra colleghi, o con il paziente. */
+  sorgente = "interne",
+  /** Quando c'è, ascolta solo questo filo. Altrimenti tutti. */
+  filoId,
   /** Il profilo di chi guarda: serve a filtrare le proprie notifiche. */
   profileId,
   /** Falso in modalità dimostrativa: senza database non c'è niente da ascoltare. */
   attivo = true,
 }: {
-  conversationId?: string | null;
+  sorgente?: Sorgente;
+  filoId?: string | null;
   profileId: string;
   attivo?: boolean;
 }) {
@@ -63,6 +94,7 @@ export function AggiornamentoLive({
   useEffect(() => {
     if (!attivo) return;
 
+    const { tabella, colonna, categorie } = SORGENTI[sorgente];
     const supabase = createSupabaseBrowserClient();
 
     const aggiorna = () => {
@@ -70,8 +102,11 @@ export function AggiornamentoLive({
       timer.current = setTimeout(() => router.refresh(), ATTESA_REFRESH);
     };
 
+    // Il nome del canale porta la sorgente: due schede aperte sulle due
+    // messaggistiche non devono finire sullo stesso canale e ricevere
+    // ciascuna gli eventi dell'altra.
     const ch = supabase.channel(
-      conversationId ? `comms:${conversationId}` : `comms:${profileId}`,
+      `${sorgente}:${filoId ?? profileId}`,
     );
 
     ch.on(
@@ -79,8 +114,8 @@ export function AggiornamentoLive({
       {
         event: "INSERT",
         schema: "public",
-        table: "conversation_messages",
-        ...(conversationId ? { filter: `conversation_id=eq.${conversationId}` } : {}),
+        table: tabella,
+        ...(filoId ? { filter: `${colonna}=eq.${filoId}` } : {}),
       },
       aggiorna,
     );
@@ -108,7 +143,8 @@ export function AggiornamentoLive({
         // notifica informativa sarebbe una tendina che sbatte.
         if (
           riga?.title &&
-          (riga.category === "comunicazioni" || riga.category === "consulti") &&
+          riga.category !== undefined &&
+          (categorie as readonly string[]).includes(riga.category) &&
           riga.severity !== "info"
         ) {
           setAvviso(riga.title);
@@ -137,7 +173,7 @@ export function AggiornamentoLive({
       void supabase.removeChannel(ch);
       canale.current = null;
     };
-  }, [attivo, conversationId, profileId, router]);
+  }, [attivo, sorgente, filoId, profileId, router]);
 
   // La rete di sicurezza, accesa solo mentre il canale è giù.
   useEffect(() => {

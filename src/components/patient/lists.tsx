@@ -1,6 +1,6 @@
+import Link from "next/link";
 import type {
   ActionSource,
-  AppNotification,
   DocumentKind,
   PatientDocument,
   ProgressHighlight,
@@ -37,45 +37,57 @@ function ActionRow({ action }: { action: RecommendedAction }) {
   const isDone = action.status === "done";
 
   return (
-    <li className="group relative flex gap-4 px-6 py-4 transition-colors hover:bg-bone-50">
-      {/* La priorità è un filo verticale, non un badge: informa senza
-          competere con il titolo. */}
-      <span
-        className={cx("mt-1.5 w-0.5 shrink-0 rounded-full", PRIORITY_TONE[action.priority])}
-        aria-hidden="true"
-      />
+    <li>
+      {/*
+        Anche questa riga prometteva un'apertura che non c'era: freccia,
+        fondo che si schiarisce, freccia che scorre. Le azioni non hanno
+        una pagina propria — le apre e le chiude la clinica, non il
+        paziente — ma vivono tutte in Piano, raggruppate per pilastro, ed
+        è lì che si va a vederle per intero.
+      */}
+      <Link
+        href="/piano"
+        className="group relative flex gap-4 px-6 py-4 transition-colors hover:bg-bone-50"
+      >
+        {/* La priorità è un filo verticale, non un badge: informa senza
+            competere con il titolo. */}
+        <span
+          className={cx("mt-1.5 w-0.5 shrink-0 rounded-full", PRIORITY_TONE[action.priority])}
+          aria-hidden="true"
+        />
 
-      <div className="min-w-0 flex-1">
-        <div className="flex items-start justify-between gap-3">
-          <h3
-            className={cx(
-              "text-[15px] font-medium leading-snug",
-              isDone ? "text-ink-400 line-through" : "text-ink-900",
-            )}
-          >
-            {action.title}
-          </h3>
-          <ChevronIcon className="mt-0.5 h-4 w-4 shrink-0 text-ink-300 transition-transform group-hover:translate-x-0.5" />
-        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <h3
+              className={cx(
+                "text-[15px] font-medium leading-snug",
+                isDone ? "text-ink-400 line-through" : "text-ink-900",
+              )}
+            >
+              {action.title}
+            </h3>
+            <ChevronIcon className="mt-0.5 h-4 w-4 shrink-0 text-ink-300 transition-transform group-hover:translate-x-0.5" />
+          </div>
 
-        {action.description ? (
-          <p className="mt-1 text-sm leading-relaxed text-ink-500">
-            {action.description}
-          </p>
-        ) : null}
-
-        <div className="mt-2.5 flex flex-wrap items-center gap-2">
-          <Badge tone={action.source === "brain" ? "brand" : "neutral"}>
-            {SOURCE_LABEL[action.source]}
-          </Badge>
-          {action.status === "in_progress" ? <Badge tone="brand">In corso</Badge> : null}
-          {action.dueOn ? (
-            <span className="text-xs text-ink-400">
-              entro il {formatShortDate(action.dueOn)} · {formatRelativeDays(action.dueOn)}
-            </span>
+          {action.description ? (
+            <p className="mt-1 text-sm leading-relaxed text-ink-500">
+              {action.description}
+            </p>
           ) : null}
+
+          <div className="mt-2.5 flex flex-wrap items-center gap-2">
+            <Badge tone={action.source === "brain" ? "brand" : "neutral"}>
+              {SOURCE_LABEL[action.source]}
+            </Badge>
+            {action.status === "in_progress" ? <Badge tone="brand">In corso</Badge> : null}
+            {action.dueOn ? (
+              <span className="text-xs text-ink-400">
+                entro il {formatShortDate(action.dueOn)} · {formatRelativeDays(action.dueOn)}
+              </span>
+            ) : null}
+          </div>
         </div>
-      </div>
+      </Link>
     </li>
   );
 }
@@ -130,34 +142,45 @@ export function DocumentsCard({ documents }: { documents: PatientDocument[] }) {
       ) : (
         <ul className="mt-2 divide-y divide-bone-200/80 pb-2">
           {documents.map((doc) => (
-            <li
-              key={doc.id}
-              className="group flex items-start gap-3.5 px-6 py-4 transition-colors hover:bg-bone-50"
-            >
-              <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-bone-100 text-ink-500">
-                <DocumentIcon className="h-4.5 w-4.5" />
-              </span>
+            <li key={doc.id}>
+              {/*
+                La riga è un collegamento, e fino a poco fa non lo era.
+                Aveva la freccia, il fondo che si schiarisce al passaggio
+                e la freccia che scorre di due pixel: tutte le promesse
+                di un elemento che si apre, e sotto non c'era niente. Un
+                paziente che tocca il proprio referto e non vede
+                succedere niente conclude — ragionevolmente — che
+                l'applicazione è rotta.
+              */}
+              <Link
+                href={`/documenti/${doc.id}`}
+                className="group flex items-start gap-3.5 px-6 py-4 transition-colors hover:bg-bone-50"
+              >
+                <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-bone-100 text-ink-500">
+                  <DocumentIcon className="h-4.5 w-4.5" />
+                </span>
 
-              <div className="min-w-0 flex-1">
-                <div className="flex items-start gap-2">
-                  <h3 className="text-[15px] font-medium leading-snug text-ink-900">
-                    {doc.title}
-                  </h3>
-                  {doc.isNewForPatient ? (
-                    <span
-                      className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-500"
-                      aria-label="Non ancora aperto"
-                    />
-                  ) : null}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start gap-2">
+                    <h3 className="text-[15px] font-medium leading-snug text-ink-900">
+                      {doc.title}
+                    </h3>
+                    {doc.isNewForPatient ? (
+                      <span
+                        className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-500"
+                        aria-label="Non ancora aperto"
+                      />
+                    ) : null}
+                  </div>
+                  <p className="mt-1 text-xs text-ink-400">
+                    {KIND_LABEL[doc.kind]}
+                    {doc.issuedOn ? ` · ${formatShortDate(doc.issuedOn)}` : ""}
+                    {doc.sizeBytes ? ` · ${formatFileSize(doc.sizeBytes)}` : ""}
+                  </p>
                 </div>
-                <p className="mt-1 text-xs text-ink-400">
-                  {KIND_LABEL[doc.kind]}
-                  {doc.issuedOn ? ` · ${formatShortDate(doc.issuedOn)}` : ""}
-                  {doc.sizeBytes ? ` · ${formatFileSize(doc.sizeBytes)}` : ""}
-                </p>
-              </div>
 
-              <ChevronIcon className="mt-2 h-4 w-4 shrink-0 text-ink-300 transition-transform group-hover:translate-x-0.5" />
+                <ChevronIcon className="mt-2 h-4 w-4 shrink-0 text-ink-300 transition-transform group-hover:translate-x-0.5" />
+              </Link>
             </li>
           ))}
         </ul>
@@ -166,50 +189,77 @@ export function DocumentsCard({ documents }: { documents: PatientDocument[] }) {
   );
 }
 
-/* ── Messaggi e notifiche ─────────────────────────────────────────── */
+/* ── Messaggi ─────────────────────────────────────────────────────── */
 
-export function NotificationsCard({
-  notifications,
-}: {
-  notifications: AppNotification[];
-}) {
-  const unread = notifications.filter((n) => n.readAt === null).length;
+/**
+ * Le conversazioni con la clinica, sulla home.
+ *
+ * Sostituisce una `NotificationsCard` che era stata scritta, mai usata
+ * da nessuna pagina, e intitolata «Messaggi» pur mostrando notifiche —
+ * che sono un'altra cosa e hanno già la loro sezione. Le sue righe, per
+ * giunta, non portavano da nessuna parte.
+ *
+ * Questa mostra i fili veri e ognuno si apre. La risposta del proprio
+ * medico è ciò che un paziente torna a controllare più spesso: non
+ * averla sulla home significava obbligarlo a cercarla nel menu ogni
+ * volta.
+ */
+export interface FiloInHome {
+  id: string;
+  oggetto: string;
+  anteprima: string | null;
+  ultimoMessaggioIl: string;
+  nonLetti: number;
+}
+
+export function MessagesCard({ fili }: { fili: FiloInHome[] }) {
+  const daLeggere = fili.reduce((s, f) => s + f.nonLetti, 0);
 
   return (
     <Card>
       <CardHeader
         title="Messaggi"
-        action={unread > 0 ? <Badge tone="brand">{unread} da leggere</Badge> : undefined}
+        action={daLeggere > 0 ? <Badge tone="brand">{daLeggere} da leggere</Badge> : undefined}
       />
-      {notifications.length === 0 ? (
-        <EmptyState>Nessun messaggio. Ti scriveremo qui.</EmptyState>
+      {fili.length === 0 ? (
+        <EmptyState>
+          Nessuna conversazione. Puoi scrivere alla clinica dalla sezione Messaggi.
+        </EmptyState>
       ) : (
         <ul className="mt-2 divide-y divide-bone-200/80 pb-2">
-          {notifications.map((note) => (
-            <li
-              key={note.id}
-              className="flex gap-3 px-6 py-4 transition-colors hover:bg-bone-50"
-            >
-              <span
-                className={cx(
-                  "mt-2 h-1.5 w-1.5 shrink-0 rounded-full",
-                  note.readAt === null ? "bg-brand-500" : "bg-bone-300",
-                )}
-                aria-hidden="true"
-              />
-              <div className="min-w-0">
-                <h3 className="text-[15px] font-medium leading-snug text-ink-900">
-                  {note.title}
-                </h3>
-                {note.body ? (
-                  <p className="mt-1 text-sm leading-relaxed text-ink-500">
-                    {note.body}
+          {fili.map((filo) => (
+            <li key={filo.id}>
+              <Link
+                href={`/messaggi/${filo.id}`}
+                className="group flex items-start gap-3 px-6 py-4 transition-colors hover:bg-bone-50"
+              >
+                <span
+                  className={cx(
+                    "mt-2 h-1.5 w-1.5 shrink-0 rounded-full",
+                    filo.nonLetti > 0 ? "bg-brand-500" : "bg-bone-300",
+                  )}
+                  aria-hidden="true"
+                />
+                <div className="min-w-0 flex-1">
+                  <h3
+                    className={cx(
+                      "text-[15px] leading-snug text-ink-900",
+                      filo.nonLetti > 0 ? "font-semibold" : "font-medium",
+                    )}
+                  >
+                    {filo.oggetto}
+                  </h3>
+                  {filo.anteprima ? (
+                    <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-ink-500">
+                      {filo.anteprima}
+                    </p>
+                  ) : null}
+                  <p className="mt-1.5 text-xs text-ink-400 first-letter:uppercase">
+                    {formatRelativeDays(filo.ultimoMessaggioIl)}
                   </p>
-                ) : null}
-                <p className="mt-1.5 text-xs text-ink-400 first-letter:uppercase">
-                  {formatRelativeDays(note.createdAt)}
-                </p>
-              </div>
+                </div>
+                <ChevronIcon className="mt-1.5 h-4 w-4 shrink-0 text-ink-300 transition-transform group-hover:translate-x-0.5" />
+              </Link>
             </li>
           ))}
         </ul>

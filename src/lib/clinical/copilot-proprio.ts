@@ -1,6 +1,7 @@
 import "server-only";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatDayMonth } from "@/lib/format";
+import { cerca, fontiDistinte } from "@/lib/brain/ricerca-documenti";
 import {
   componiAiutoCartella,
   componiConfronto,
@@ -36,10 +37,58 @@ export async function rispondiSullaCartella(
 ): Promise<RispostaCartella & { intento: string | null }> {
   const intento = riconosciDomandaCartella(domanda);
 
+  /*
+   * Quando la grammatica non riconosce la domanda, prima di arrendersi
+   * si cerca nei referti.
+   *
+   * Era il punto morto del copilot: «cosa scriveva il radiologo ad
+   * agosto» non corrisponde a nessun intento, e la risposta era «non ho
+   * capito» — mentre quel testo era in cartella, letto e salvato,
+   * semplicemente non lo cercava nessuno. Il motore proprietario sa
+   * rispondere sui **numeri**; l'indice dei frammenti gli dà accesso
+   * alle **parole**.
+   *
+   * Non riassume e non interpreta: riporta i passaggi trovati, con il
+   * documento e la pagina. È deliberato — riassumere senza un modello
+   * significherebbe inventare una sintesi, e una sintesi inventata di
+   * un referto è la cosa più pericolosa che questo file potrebbe
+   * produrre. Qui si dice «lo dice questo referto, a pagina quattro,
+   * con queste parole», e la lettura resta a chi ha titolo per farla.
+   */
   if (!intento) {
+    const passaggi = await cerca(domanda, patientId, 5);
+
+    if (passaggi.length > 0) {
+      const corpo = passaggi
+        .map((p) => {
+          const dove = [
+            p.titolo,
+            p.documentoIl ? `del ${formatDayMonth(p.documentoIl)}` : null,
+            p.pagina ? `pagina ${p.pagina}` : null,
+          ]
+            .filter(Boolean)
+            .join(", ");
+          return `**${dove}**\n«${p.testo}»`;
+        })
+        .join("\n\n");
+
+      return {
+        testo:
+          `Non è una domanda che so calcolare, ma nei referti in cartella ` +
+          `ho trovato ${passaggi.length === 1 ? "questo passaggio" : `questi ${passaggi.length} passaggi`}. ` +
+          `Sono citazioni testuali, non una sintesi:\n\n${corpo}`,
+        fonti: fontiDistinte(passaggi).map((f) => ({
+          kind: "documento",
+          label: f.pagina ? `${f.titolo} (pagina ${f.pagina})` : f.titolo,
+          date: f.documentoIl,
+        })),
+        intento: "ricerca_documenti",
+      };
+    }
+
     const aiuto = componiAiutoCartella();
     return {
-      testo: `Non ho capito la domanda.\n\n${aiuto.testo}`,
+      testo: `Non ho capito la domanda, e nei referti in cartella non ho trovato niente di pertinente.\n\n${aiuto.testo}`,
       fonti: [],
       intento: null,
     };

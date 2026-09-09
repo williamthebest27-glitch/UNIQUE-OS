@@ -39,7 +39,18 @@ with stato as (
     (13, '20260904120000_marketing.sql',                      to_regclass('public.campaigns')          is not null),
     (14, '20260904130000_brain_approvals_tasks.sql',          to_regclass('public.brain_proposals')    is not null),
     (15, '20260904140000_gestionale.sql',                     to_regclass('public.receipt_counters')   is not null),
-    (16, '20260904150000_esperienza_paziente.sql',            to_regclass('public.patient_assessments') is not null)
+    (16, '20260904150000_esperienza_paziente.sql',            to_regclass('public.patient_assessments') is not null),
+    (17, '20260904160000_command_center_clinico.sql',         to_regclass('public.signal_dismissals')  is not null),
+    (18, '20260905100000_document_intelligence.sql',          to_regclass('public.document_extractions') is not null),
+    (19, '20260907100000_comunicazioni_interne.sql',          to_regclass('public.conversations')      is not null),
+    (20, '20260907110000_timeline_completa.sql',              to_regclass('public.patient_timeline')   is not null),
+    (21, '20260907120000_terapie.sql',                        to_regclass('public.prescriptions')      is not null),
+    (22, '20260907130000_laboratorio.sql',                    to_regclass('public.lab_orders')         is not null),
+    (23, '20260907140000_audit_e_sicurezza.sql',              to_regproc('public.verify_audit_chain')  is not null),
+    (24, '20260907150000_consensi_al_banco.sql',              to_regproc('public.record_consent')      is not null),
+    (25, '20260907160000_comando.sql',                        to_regproc('public.command_center')      is not null),
+    (26, '20260907170000_registro_autenticazione.sql',        to_regproc('public.record_auth_event')   is not null),
+    (27, '20260909100000_comunicazioni_paziente.sql',         to_regproc('public.set_thread_closed')   is not null)
   ) as t(numero, file, applicata)
 )
 select

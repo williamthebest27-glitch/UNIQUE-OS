@@ -5,6 +5,8 @@ import { getBriefMattutino } from "@/lib/data/morning";
 import { homePathForRole, requireProfile } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { MorningBrief } from "@/components/control/morning-brief";
+import { getStatoSistema } from "@/lib/data/stato-sistema";
+import { PannelloStatoSistema } from "@/components/control/stato-sistema";
 import { formatEuro, formatPercent } from "@/lib/format";
 import { Kpi, KpiStrip, Panel, Riga, Vuoto } from "@/components/control/primitives";
 
@@ -30,7 +32,11 @@ export default async function ControlPage() {
     redirect(homePathForRole(profile.role));
   }
 
-  const [dati, brief] = await Promise.all([getControlCenter(), getBriefMattutino()]);
+  const [dati, brief, sistema] = await Promise.all([
+    getControlCenter(),
+    getBriefMattutino(),
+    getStatoSistema(),
+  ]);
 
   if (!dati) {
     return (
@@ -54,22 +60,46 @@ export default async function ControlPage() {
       <section>
         <h1 className="font-display text-[28px] leading-tight text-bone-50">Oggi</h1>
         <div className="mt-4">
+          {/*
+            Ogni numero che ha un dettaglio porta al dettaglio. Un
+            cruscotto dice come va; un centro di comando fa arrivare dove
+            si interviene, e la distanza fra i due è un collegamento.
+          */}
           <KpiStrip>
-            <Kpi label="Pazienti" value={String(oggi.pazienti)} />
-            <Kpi label="Fatturato" value={formatEuro(oggi.fatturatoCents)} />
-            <Kpi label="Nuovi lead" value={String(oggi.nuoviLead)} />
-            <Kpi label="Prenotazioni" value={String(oggi.prenotazioni)} />
+            <Kpi label="Pazienti" value={String(oggi.pazienti)} href="/control/pazienti" />
+            <Kpi
+              label="Fatturato"
+              value={formatEuro(oggi.fatturatoCents)}
+              href="/control/incassi"
+            />
+            <Kpi label="Nuovi lead" value={String(oggi.nuoviLead)} href="/control/crm" />
+            <Kpi
+              label="Prenotazioni"
+              value={String(oggi.prenotazioni)}
+              href="/control/agenda"
+            />
             <Kpi
               label="Conversion rate"
               value={formatPercent(oggi.conversionRate)}
               hint="Lead convertiti oggi"
+              href="/control/crm"
             />
-            <Kpi label="Membership attive" value={String(oggi.membershipAttive)} tone="good" />
-            <Kpi label="Crediti utilizzati" value={String(oggi.creditiUtilizzati)} />
+            <Kpi
+              label="Membership attive"
+              value={String(oggi.membershipAttive)}
+              tone="good"
+              href="/control/professionisti"
+            />
+            <Kpi
+              label="Crediti utilizzati"
+              value={String(oggi.creditiUtilizzati)}
+              href="/control/economia"
+            />
             <Kpi
               label="No-show"
               value={String(oggi.noShow)}
               tone={oggi.noShow > 0 ? "warn" : "neutral"}
+              href="/control/agenda"
             />
           </KpiStrip>
         </div>
@@ -83,22 +113,34 @@ export default async function ControlPage() {
 
         <div className="mt-4 space-y-px">
           <KpiStrip>
-            <Kpi label="Fatturato" value={formatEuro(mese.fatturatoCents)} hint="Incassato" />
-            <Kpi label="MRR membership" value={formatEuro(mese.mrrCents)} hint="Ricorrente mensile" />
-            <Kpi label="Nuovi membri" value={String(mese.nuoviMembri)} tone="good" />
+            <Kpi
+              label="Fatturato"
+              value={formatEuro(mese.fatturatoCents)}
+              hint="Incassato"
+              href="/control/incassi"
+            />
+            <Kpi
+              label="MRR membership"
+              value={formatEuro(mese.mrrCents)}
+              hint="Ricorrente mensile"
+              href="/control/economia"
+            />
+            <Kpi label="Nuovi membri" value={String(mese.nuoviMembri)} tone="good" href="/control/crm" />
             <Kpi
               label="Churn"
               value={String(mese.churn)}
               tone={mese.churn > 0 ? "warn" : "neutral"}
+              href="/control/crm"
             />
           </KpiStrip>
 
           <div className="h-px" />
 
           <KpiStrip>
-            <Kpi label="Lead" value={String(mese.lead)} />
-            <Kpi label="Conversion rate" value={formatPercent(mese.conversionRate)} />
-            <Kpi label="Visite erogate" value={String(mese.visite)} />
+            <Kpi label="Lead" value={String(mese.lead)} href="/control/crm" />
+            <Kpi label="Conversion rate" value={formatPercent(mese.conversionRate)} href="/control/crm" />
+            <Kpi label="Visite erogate" value={String(mese.visite)} href="/control/agenda" />
+            {/* La retention è un rapporto: non ha una riga da aprire. */}
             <Kpi label="Retention" value={formatPercent(mese.retention)} />
           </KpiStrip>
 
@@ -110,11 +152,13 @@ export default async function ControlPage() {
               value={formatEuro(mese.totaliEconomici.uniqueMarginCents)}
               hint={`${formatPercent(mese.totaliEconomici.marginRatio)} del lordo`}
               tone="good"
+              href="/control/economia"
             />
             <Kpi
               label="Compensi da liquidare"
               value={formatEuro(compensi.totaleDaPagareCents)}
               hint={`${compensi.righe.length} professionisti`}
+              href="/control/economia"
             />
             <Kpi
               label="Valore per paziente"
@@ -135,6 +179,7 @@ export default async function ControlPage() {
                   : "Orari non configurati"
               }
               tone={capacita.collo && capacita.collo.saturazione > 0.85 ? "warn" : "neutral"}
+              href="/control/capacita"
             />
           </KpiStrip>
         </div>
@@ -178,6 +223,14 @@ export default async function ControlPage() {
           )}
         </Panel>
       </div>
+
+      {/*
+        In fondo e non in cima: si apre questa pagina per sapere come va
+        l'azienda, non per fare manutenzione. Ma la riga in testa al
+        pannello dice subito se c'è qualcosa da guardare, e in quel caso
+        si scorre.
+      */}
+      {sistema ? <PannelloStatoSistema stato={sistema} /> : null}
     </div>
   );
 }

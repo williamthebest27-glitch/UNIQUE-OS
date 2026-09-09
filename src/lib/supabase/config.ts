@@ -17,6 +17,39 @@ export function isSupabaseConfigured(): boolean {
 }
 
 /**
+ * La modalità dimostrativa non esiste in produzione.
+ *
+ * Senza questa funzione l'assenza delle variabili d'ambiente era un
+ * **guasto silenzioso e aperto**: `getCurrentProfile()` restituiva il
+ * paziente finto, il proxy lasciava passare tutti, e chiunque aprisse il
+ * sito si trovava dentro l'area riservata nei panni di una persona. Non
+ * è uno scenario di laboratorio — una variabile non propagata a un
+ * deploy è il modo più comune in cui una configurazione si perde, e il
+ * sintomo era un'applicazione che sembrava funzionare benissimo.
+ *
+ * Fuori da `development` la mancanza di configurazione torna a essere
+ * quello che è: un errore, che si vede.
+ *
+ * Il controllo è su `NODE_ENV` e non su un'altra variabile di proposito.
+ * `NODE_ENV` lo imposta il runtime, non chi configura: non si può
+ * dimenticare, e non si può sbagliare a scrivere.
+ */
+export function modalitaDimostrativaAmmessa(): boolean {
+  return process.env.NODE_ENV !== "production";
+}
+
+/**
+ * Vero quando si può servire il paziente di esempio.
+ *
+ * È la sola porta da cui i dati finti entrano nell'applicazione. Dove si
+ * legge `isSupabaseConfigured()` per decidere fra database e dati
+ * dimostrativi, quello che si vuole davvero sapere è questo.
+ */
+export function inDimostrazione(): boolean {
+  return !isSupabaseConfigured() && modalitaDimostrativaAmmessa();
+}
+
+/**
  * Origine pubblica dell’applicazione, per i link inviati via email.
  *
  * Usata solo lato server, nell’azione che manda il collegamento di

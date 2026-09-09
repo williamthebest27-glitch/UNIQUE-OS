@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import { chiediAUnique } from "@/lib/patient/actions";
-import { DOMANDE_ESEMPIO, type ContestoPaziente, type RispostaAssistente } from "@/lib/patient/assistente";
+import { DOMANDE_ESEMPIO, type RispostaAssistente } from "@/lib/patient/assistente";
 import { Card, cx } from "@/components/ui/primitives";
 
 /**
@@ -24,7 +24,15 @@ interface Battuta {
   risposta?: RispostaAssistente;
 }
 
-export function AssistenteChat({ contesto }: { contesto: ContestoPaziente }) {
+/**
+ * Il contesto non passa più di qui.
+ *
+ * Fino a poco fa questo componente serializzava tutti i dati del
+ * paziente in un campo nascosto e li rispediva al server a ogni domanda.
+ * Adesso il server se li ricostruisce da sé: il browser manda solo la
+ * domanda, che è l'unica cosa che il browser sa e il server no.
+ */
+export function AssistenteChat() {
   const [storia, setStoria] = useState<Battuta[]>([]);
   const [risposta, agisci, inCorso] = useActionState(chiediAUnique, null);
   const ultimaVista = useRef<RispostaAssistente | null>(null);
@@ -81,7 +89,6 @@ export function AssistenteChat({ contesto }: { contesto: ContestoPaziente }) {
                     onClick={() => {
                       const dati = new FormData();
                       dati.set("domanda", domanda);
-                      dati.set("contesto", JSON.stringify(contesto));
                       chiedi(dati);
                     }}
                     className="rounded-full bg-bone-100 px-3.5 py-2 text-[13px] text-ink-700 transition-colors hover:bg-bone-200"
@@ -146,7 +153,6 @@ export function AssistenteChat({ contesto }: { contesto: ContestoPaziente }) {
       </div>
 
       <form action={chiedi} className="flex gap-2 border-t border-bone-200 p-4 sm:p-5">
-        <input type="hidden" name="contesto" value={JSON.stringify(contesto)} />
         <input
           ref={campo}
           name="domanda"

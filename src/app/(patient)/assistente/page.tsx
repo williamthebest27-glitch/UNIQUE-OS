@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { requirePatientDashboard } from "@/lib/data/patient";
-import { situazione } from "@/lib/data/percorso-paziente";
 import { SchedaInAttesa } from "@/components/patient/scheda-in-attesa";
 import { PageHeading } from "@/components/shell/page-heading";
 import { AssistenteChat } from "@/components/patient/assistente-chat";
@@ -26,13 +25,11 @@ export default async function AssistentePage() {
   const data = await requirePatientDashboard();
   if (!data) return <SchedaInAttesa />;
 
-  const stato = await situazione(data);
-
   return (
     <div className="space-y-6">
       <PageHeading title={SEZIONE.titolo} subtitle={SEZIONE.sottotitolo} />
 
-      <AssistenteChat contesto={stato.contestoAssistente} />
+      <AssistenteChat />
 
       <p className="max-w-2xl text-[13px] leading-relaxed text-ink-400">
         Le domande e le risposte non vengono conservate: chiudendo la pagina la
