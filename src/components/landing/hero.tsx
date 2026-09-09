@@ -7,8 +7,10 @@ import { CampoVivo } from "@/components/landing/campo";
 import { CorpoDiPunti } from "@/components/landing/corpo";
 import { Comando, Freccia, Titolo } from "@/components/landing/primitive";
 import { useRegia } from "@/components/landing/regia";
+import { compositore, sorgente } from "@/lib/landing/attraversamento";
 import { arco, campo, legami } from "@/lib/landing/geometria";
 import { RITMO_TELEFONO, useScena } from "@/lib/landing/scena";
+import { aTatto, profilo } from "@/lib/landing/tatto";
 import { cx } from "@/components/ui/primitives";
 
 /**
@@ -30,8 +32,20 @@ import { cx } from "@/components/ui/primitives";
  * Poi si scorre, e la scena non svanisce: **la si attraversa**. Il campo
  * si apre, il marchio cresce e passa oltre l'obiettivo, il titolo si
  * ritira verso l'alto. Non è una dissolvenza, è una camera che entra nel
- * sistema — ed è il motivo per cui la sezione è fissata: senza il pin,
- * lo scorrimento porterebbe *via* dalla scena invece che *dentro*.
+ * sistema — ed è il motivo per cui con la rotellina la sezione è fissata:
+ * senza il pin, lo scorrimento porterebbe *via* dalla scena invece che
+ * *dentro*.
+ *
+ * **Sotto il dito la stessa scena ha un altro meccanismo.** Non perché
+ * debba essere più povera — le battute, gli intervalli e le curve sono
+ * gli stessi, uno per uno — ma perché lì il pin sobbalza (la barra degli
+ * indirizzi cambia l'altezza del viewport mentre si scorre) e lo `scrub`
+ * si sente: quel mezzo secondo d'inerzia che sulla rotellina dà peso,
+ * sotto un pollice è la scena che arranca. Al loro posto una funzione
+ * pura della posizione di scorrimento — `lib/landing/attraversamento.ts`
+ * — che non ha stato da tenere allineato e quindi non può restare
+ * indietro. Le due strade si scelgono una volta sola, in `aTatto()`, e
+ * non si incontrano mai.
  *
  * **L'accensione comincia a sipario alzato.** Sulla landing il sipario
  * d'avvio c'è — è il primo indirizzo che si scrive, e per quasi tutti è
@@ -69,6 +83,16 @@ const MISURE = [
 const LARGHEZZA = 1440;
 const ALTEZZA = 860;
 
+/*
+ * Sotto questi pixel non si sta scorrendo.
+ *
+ * Il rimbalzo elastico di iOS manda `scrollY` a uno o due da solo, e un
+ * dito appoggiato sullo schermo mentre la scena si accende non è una
+ * richiesta di andare avanti. Sopra la soglia sì, e allora l'accensione
+ * si chiude di colpo e la scena passa al dito.
+ */
+const SOGLIA = 6;
+
 export function HeroSystem({
   entra,
   scopri,
@@ -98,8 +122,113 @@ export function HeroSystem({
 
   const rete = useMemo(() => legami(nodi, 230, 3), [nodi]);
 
-  const rif = useScena<HTMLDivElement>(({ gsap, radice, ridotta }) => {
+  const rif = useScena<HTMLDivElement>(({ gsap, radice }) => {
+    /* Con che cosa si scorre, non quanto è largo lo schermo: vedi
+       `lib/landing/tatto.ts`. Da qui in giù ci sono due strade, e non si
+       incontrano mai — la rotellina tiene esattamente la scena che aveva,
+       il dito ne prende una costruita per lui. */
+    const tatto = aTatto();
     const q = gsap.utils.selector(radice);
+
+    /* ── L'attraversamento, con la rotellina ────────────────────── */
+    /*
+     * La sezione si fissa, la scena si scorre con lo `scrub`, e il
+     * ritardo dello scrub coincide con quello che Lenis dà già alla
+     * pagina — è da lì che il movimento prende peso. Sotto il dito quello
+     * stesso ritardo diventa una scena che arranca, ed è il motivo per
+     * cui più sotto c'è un'altra strada.
+     *
+     * **Si costruisce prima dell'accensione, e non è un dettaglio
+     * d'ordine.**
+     *
+     * Uno `scrub` non ha valori di partenza propri: se li legge dal DOM
+     * la prima volta che disegna, e da lì in poi quelli restano — a ogni
+     * rimisura ScrollTrigger fa `revert()` e li riscrive uguali, quindi
+     * una lettura sbagliata non si corregge più da sola.
+     *
+     * Costruito *dopo* l'accensione, leggeva il marchio a opacità zero,
+     * il sottotitolo venti pixel più in basso e il campo spento: è lì che
+     * l'accensione tiene i suoi elementi mentre aspetta di partire.
+     * Quello diventava lo stato di riposo della scena, e tornando in cima
+     * dopo aver scorso — o dopo una rimisura qualsiasi, che arriva da
+     * sola quando i caratteri sono pronti — marchio, sottotitolo e i due
+     * comandi della pagina sparivano per sempre.
+     *
+     * Qui sopra il DOM è ancora quello che ha mandato il server: lo stato
+     * di riposo, che su questa pagina è anche lo stato finale. È l'unico
+     * istante in cui la lettura è quella giusta, e una lettura giusta
+     * resta giusta — il `revert` di ogni rimisura la riscrive uguale. */
+    if (!tatto) {
+      const uscita = gsap.timeline({
+        scrollTrigger: {
+          trigger: radice,
+          start: "top top",
+          end: "+=105%",
+          scrub: 0.7,
+          pin: true,
+          pinSpacing: true,
+          anticipatePin: 1,
+          invalidateOnRefresh: true,
+        },
+        defaults: { ease: "none" },
+      });
+
+      uscita
+        // La camera entra: il campo si apre verso di noi e passa oltre.
+        .to(q("[data-rete]"), { scale: 1.55, opacity: 0, y: -40 }, 0)
+        .to(q("[data-campo]"), { scale: 1.3, opacity: 0 }, 0)
+        /* La figura si avvicina più piano di tutto il resto: è il corpo
+           che si attraversa per ultimo, e per un istante resta solo.
+
+           E non svanisce: viene *consumato*. Il piano di luce sale da
+           terra e gli toglie le gambe, poi il cuore si apre e lo mangia
+           dall'interno verso fuori; quel che resta si spegne un attimo
+           prima che il bianco chiuda la scena, così l'ultima cosa che si
+           attraversa è il petto. Sono due trasformazioni e un'opacità —
+           niente maschere da ridisegnare mentre la sezione è fissata. */
+        .to(q("[data-figura]"), { scale: 1.22, yPercent: -6, duration: 1.05 }, 0)
+        .to(
+          q("[data-suolo]"),
+          { yPercent: -82, duration: 0.62, ease: "power1.in" },
+          0,
+        )
+        .fromTo(
+          q("[data-cuore]"),
+          { scale: 0 },
+          { scale: 4.2, duration: 0.72, ease: "power1.in" },
+          0.22,
+        )
+        .to(q("[data-figura]"), { opacity: 0, duration: 0.33 }, 0.62)
+        // Il marchio cresce fino a superare l'obiettivo, e si dissolve
+        // nell'istante in cui lo attraversiamo.
+        .to(q("[data-marchio]"), { scale: 3.4, opacity: 0, y: -30 }, 0)
+        .to(q("[data-parola-os]"), { opacity: 0, y: -30 }, 0)
+        // Il titolo si ritira verso l'alto e si stringe: non sparisce,
+        // arretra — è quello che fa un oggetto quando lo si oltrepassa.
+        .to(q("[data-titolo]"), { y: "-42%", scale: 0.82, opacity: 0 }, 0.05)
+        .to(q("[data-sotto]"), { y: -70, opacity: 0 }, 0)
+        .to(q("[data-comandi]"), { y: -50, opacity: 0 }, 0)
+        .to(q("[data-stato]"), { y: 40, opacity: 0 }, 0)
+        // Il vuoto si chiude sopra la scena: è la porta fra l'accensione
+        // e la prima sezione, e le dà un bordo netto invece di una
+        // sfumatura.
+        .fromTo(q("[data-buio]"), { opacity: 0 }, { opacity: 1 }, 0.55);
+
+      /* E la lettura si prende **adesso**, sincrona.
+       *
+       * Creare il trigger non basta: ScrollTrigger rimanda la prima
+       * misura al tick successivo, e per allora l'accensione qui sotto
+       * ha già spento il marchio e abbassato il sottotitolo. Sarebbero
+       * quelli i valori registrati, e da lì in poi resterebbero: il
+       * `revert` di ogni rimisura li riscrive uguali, quindi una lettura
+       * sbagliata non si corregge più da sola.
+       *
+       * Un `refresh()` esplicito la prende in questa riga, mentre il DOM
+       * è ancora quello che ha mandato il server — lo stato di riposo,
+       * che su questa pagina è anche lo stato finale. Da qui in avanti
+       * ogni rimisura riparte da una lettura giusta e resta giusta. */
+      uscita.scrollTrigger?.refresh();
+    }
 
     /* ── L'accensione ───────────────────────────────────────────── */
     const avvio = gsap.timeline({
@@ -159,89 +288,72 @@ export function HeroSystem({
         q("[data-stato] > *"),
         { opacity: 0, y: 12, duration: 0.9, stagger: 0.08 },
         2.4,
-      )
-      .from(q("[data-campo]"), { opacity: 0, duration: 2.4, ease: "power1.inOut" }, 0.9);
+      );
 
-    /* ── L'attraversamento ──────────────────────────────────────── */
-    /* Su telefono la sezione non si fissa: i browser mobili cambiano
-       l'altezza del viewport mentre la barra degli indirizzi entra ed
-       esce, e una sezione fissata in quel momento sobbalza. Lì la scena
-       si allontana scorrendo, senza pin — stessa regia, meno pretese.
-
-       **Si costruisce, non si dichiara.** Sul telefono l'attraversamento
-       nasce più tardi dell'accensione — vedi «Il via» qui sotto — e
-       nascere più tardi significa nascere fuori dal `gsap.context` di
-       `useScena`, che conosce solo ciò che è stato creato durante la sua
-       chiamata: da lì in poi lo smontaggio è a carico nostro. */
-    let uscita: ReturnType<typeof gsap.timeline> | null = null;
-
-    const attraversamento = () => {
-      if (uscita) return;
-
-      uscita = gsap.timeline({
-        scrollTrigger: {
-          trigger: radice,
-          start: "top top",
-          end: ridotta ? "bottom top" : "+=105%",
-          scrub: 0.7,
-          pin: !ridotta,
-          pinSpacing: !ridotta,
-          anticipatePin: 1,
-          invalidateOnRefresh: true,
-        },
-        defaults: { ease: "none" },
-      });
-
-      uscita
-        // La camera entra: il campo si apre verso di noi e passa oltre.
-        .to(q("[data-rete]"), { scale: 1.55, opacity: 0, y: -40 }, 0)
-        .to(q("[data-campo]"), { scale: 1.3, opacity: 0 }, 0)
-        /* La figura si avvicina più piano di tutto il resto: è il corpo
-           che si attraversa per ultimo, e per un istante resta solo.
-
-           E non svanisce: viene *consumato*. Il piano di luce sale da
-           terra e gli toglie le gambe, poi il cuore si apre e lo mangia
-           dall'interno verso fuori; quel che resta si spegne un attimo
-           prima che il bianco chiuda la scena, così l'ultima cosa che si
-           attraversa è il petto. Sono due trasformazioni e un'opacità —
-           niente maschere da ridisegnare mentre la sezione è fissata. */
-        .to(q("[data-figura]"), { scale: 1.22, yPercent: -6, duration: 1.05 }, 0)
-        .to(
-          q("[data-suolo]"),
-          { yPercent: -82, duration: 0.62, ease: "power1.in" },
-          0,
-        )
-        .fromTo(
-          q("[data-cuore]"),
-          { scale: 0 },
-          { scale: 4.2, duration: 0.72, ease: "power1.in" },
-          0.22,
-        )
-        .to(q("[data-figura]"), { opacity: 0, duration: 0.33 }, 0.62)
-        // Il marchio cresce fino a superare l'obiettivo, e si dissolve
-        // nell'istante in cui lo attraversiamo.
-        .to(q("[data-marchio]"), { scale: 3.4, opacity: 0, y: -30 }, 0)
-        .to(q("[data-parola-os]"), { opacity: 0, y: -30 }, 0)
-        // Il titolo si ritira verso l'alto e si stringe: non sparisce,
-        // arretra — è quello che fa un oggetto quando lo si oltrepassa.
-        .to(q("[data-titolo]"), { y: "-42%", scale: 0.82, opacity: 0 }, 0.05)
-        .to(q("[data-sotto]"), { y: -70, opacity: 0 }, 0)
-        .to(q("[data-comandi]"), { y: -50, opacity: 0 }, 0)
-        .to(q("[data-stato]"), { y: 40, opacity: 0 }, 0)
-        // Il vuoto si chiude sopra la scena: è la porta fra l'accensione
-        // e la prima sezione, e le dà un bordo netto invece di una
-        // sfumatura.
-        .fromTo(q("[data-buio]"), { opacity: 0 }, { opacity: 1 }, 0.55);
-    };
-
-    /* ── Il via ─────────────────────────────────────────────────── */
-    /* Su schermo largo l'accensione parte al montaggio e non aspetta
-       nessuno: quando si scorre è finita da un pezzo, e l'attraversamento
-       può nascere subito insieme a lei. */
-    if (!ridotta) {
-      attraversamento();
-      return;
+    /* Il campo vivo entra solo dove esiste: sul dito lo shader non si
+       accende — vedi `landing/campo.tsx` — e animare l'opacità di un
+       riquadro vuoto per due secondi e mezzo è lavoro che non si vede. */
+    if (!tatto) {
+      avvio.from(
+        q("[data-campo]"),
+        { opacity: 0, duration: 2.4, ease: "power1.inOut" },
+        0.9,
+      );
     }
+
+    /* Sul dito il titolo è una battuta di questa timeline e non una scena
+       per conto suo.
+
+       Sono le stesse parole con lo stesso ritardo — 1.35, la posizione che
+       `Titolo` riceve come proprietà — ma dette da qui: due timeline
+       appese entrambe al sipario, ciascuna con il suo `timeScale` e il suo
+       ascoltatore di scorrimento, sono due pipeline che raccontano una
+       cosa sola e possono sfasarsi fra loro. Su schermo largo il titolo
+       resta padrone di sé: là la salita è legata allo scorrimento, non
+       all'accensione. Vedi `landing/primitive.tsx`. */
+    if (tatto) {
+      avvio.from(
+        q("[data-parola]"),
+        {
+          yPercent: 118,
+          opacity: 0,
+          // Una rotazione minima sull'asse X dà alla parola un peso che
+          // la sola traslazione non ha: sale, non scivola.
+          rotateX: -32,
+          duration: 1.15,
+          stagger: 0.055,
+        },
+        1.35,
+      );
+    }
+
+    /* Con la rotellina la scena è finita: l'attraversamento è già in
+       piedi, costruito qui sopra a scena ferma. */
+    if (!tatto) return;
+
+    /* ── L'attraversamento, con il dito ─────────────────────────── */
+    /*
+     * Stessa scena, meccanismo diverso: il fotogramma è una funzione
+     * della posizione di scorrimento, ricalcolata a ogni tick sulla
+     * posizione di *adesso*. Le battute, gli intervalli e le curve sono
+     * gli stessi numeri di sopra — vedi `lib/landing/attraversamento.ts`,
+     * dove sono scritti uno per uno — ma non c'è più una testina da
+     * tenere allineata a un bersaglio, e quindi non c'è niente che possa
+     * restare indietro rispetto al dito o perdere il passo con il resto.
+     *
+     * Qui la sezione non si fissa, e non è un ripiego: i browser mobili
+     * cambiano l'altezza del viewport mentre la barra degli indirizzi
+     * entra ed esce, e una sezione fissata in quel momento sobbalza.
+     * L'attraversamento dura esattamente un'altezza di hero, così l'ultimo
+     * fotogramma — il buio pieno — cade sul pixel in cui la sezione esce
+     * di campo e comincia quella dopo.
+     */
+
+    /* Il riquadro del campo è vuoto: quel che gli resta addosso è un
+       `filter`, un `mix-blend-mode` e una maschera, cioè tre strati di
+       composizione che il browser deve tenere in conto a ogni fotogramma
+       per non disegnare niente. Sparisce. */
+    gsap.set(q("[data-campo]"), { display: "none" });
 
     /* `pause(0)` e non `paused: true` alla costruzione: il fotogramma
        iniziale va disegnato *adesso*, sincrono. Affidarlo
@@ -258,62 +370,89 @@ export function HeroSystem({
        svelti. */
     avvio.timeScale(RITMO_TELEFONO);
 
+    const scena = compositore(radice, profilo());
+
+    let attraversando = false;
+    let ultimo = -1;
+    let inMoto = false;
+    let smettiSipario: () => void = () => {};
+
     /*
-     * **L'attraversamento nasce quando l'accensione è finita, mai prima.**
+     * Il passaggio di consegne, e succede una volta sola.
      *
      * Le due scene scrivono sulle stesse proprietà degli stessi elementi
-     * — il marchio, il sottotitolo, i comandi, il campo — una animandoli
-     * in ingresso, l'altra portandoli via con lo scorrimento. Su schermo
-     * largo non si incontrano mai, perché l'ingresso è già finito prima
-     * che ci sia qualcosa da scorrere.
-     *
-     * Sul telefono si incontravano sempre. L'accensione resta ferma sotto
-     * al sipario con marchio, sottotitolo e comandi a opacità zero; un
-     * dito che sfiora lo schermo in quei secondi — e li sfiora, perché
-     * non si vede muovere niente — fa registrare allo scrub *quello* come
-     * stato di riposo. Da lì in poi tornare in cima non riportava indietro
-     * nulla: il marchio restava invisibile, il sottotitolo pure, e i due
-     * pulsanti della pagina sparivano per sempre. Non era un'animazione
-     * lenta, era la pagina rotta.
-     *
-     * Costruire l'uscita alla fine dell'accensione toglie di mezzo la
-     * corsa: quando lo scrub legge i valori di partenza, la scena è al
-     * suo stato finale — che è anche il suo stato di riposo.
+     * — il marchio, il sottotitolo, i comandi, il titolo — una animandoli
+     * in ingresso, l'altra portandoli via con lo scorrimento. Non devono
+     * mai toccarli nello stesso fotogramma: l'accensione si chiude
+     * *prima*, e da lì in poi la scena ha un padrone solo.
      */
-    function via() {
-      smettiScorrimento();
-      attraversamento();
-    }
+    const consegna = () => {
+      if (attraversando) return;
+      attraversando = true;
+      smettiSipario();
+      avvio.progress(1).kill();
 
-    /* E chi scorre prima della fine ha detto che vuole andare avanti:
-       l'accensione si chiude di colpo e l'attraversamento comincia da lì.
-       Meglio una battuta saltata che due scene che si contendono lo
-       stesso elemento fotogramma per fotogramma. */
-    const alPrimoScorrimento = () => {
-      // Il rimbalzo elastico di iOS manda `scrollY` a uno o due da solo:
-      // non è una richiesta di andare avanti.
-      if (scrollY < 3) return;
-      // `progress` non richiama `onComplete`: il via si dà a mano.
-      avvio.progress(1);
-      via();
+      /* Due residui dell'accensione che a scena finita si pagherebbero a
+         ogni fotogramma: il `filter` del marchio — che a `blur(0px)` non
+         si vede, ma un passaggio di filtro lo pretende lo stesso — e le
+         trasformazioni inline rimaste addosso ai punti, ai legami e alle
+         misure, che sono centocinquanta e se le porta dietro l'SVG
+         mentre viene scalato. */
+      gsap.set(q("[data-marchio]"), { clearProps: "filter" });
+      gsap.set(
+        q(
+          "[data-nodo],[data-legame],[data-misura],[data-parola-os] > span,[data-stato] > *",
+        ),
+        { clearProps: "all" },
+      );
     };
 
-    const smettiScorrimento = () =>
-      removeEventListener("scroll", alPrimoScorrimento);
+    /*
+     * Il fotogramma.
+     *
+     * Tre uscite anticipate prima di toccare il DOM: chi non ha ancora
+     * scorso davvero, chi è fermo nello stesso punto del tick precedente,
+     * e — dentro al compositore — ogni singola proprietà il cui valore
+     * non è cambiato. Fermi sulla pagina si scrive zero.
+     */
+    function fotogramma(p: number, scarto: number) {
+      if (!attraversando) {
+        if (scarto <= SOGLIA) return;
+        // Chi scorre ha detto che vuole andare avanti: meglio una battuta
+        // saltata che due scene che si contendono lo stesso elemento.
+        consegna();
+      }
 
-    addEventListener("scroll", alPrimoScorrimento, { passive: true });
-    avvio.eventCallback("onComplete", via);
+      if (p === ultimo) return;
+      ultimo = p;
 
-    const smettiSipario = aSiparioAperto(() => avvio.play());
+      /* `will-change` solo mentre si attraversa. Prometterlo sempre
+         vorrebbe dire tenere undici piani di composizione in memoria per
+         tutta la vita della pagina, che su un telefono è il modo più
+         elegante di perdere la fluidità che si sta cercando. */
+      const acceso = p > 0 && p < 1;
+      if (acceso !== inMoto) {
+        inMoto = acceso;
+        radice.classList.toggle("os-hero-viva", acceso);
+      }
 
+      scena.disegna(p);
+    }
+
+    avvio.eventCallback("onComplete", consegna);
+    smettiSipario = aSiparioAperto(() => avvio.play());
+
+    const vista = sorgente(radice, fotogramma);
+
+    /* Nato fuori dal `gsap.context` — il ticker, l'ascoltatore di resize
+       e le proprietà scritte a mano non passano da lui — quindi muore
+       qui, per intero. */
     return () => {
       smettiSipario();
-      smettiScorrimento();
-      // Nata fuori dal contesto, muore fuori dal contesto: `revert()`
-      // rimette anche le proprietà scritte inline, come farebbe il
-      // `gsap.context` per tutto il resto.
-      uscita?.scrollTrigger?.kill();
-      uscita?.revert();
+      vista.spegni();
+      avvio.kill();
+      scena.libera();
+      radice.classList.remove("os-hero-viva");
     };
   });
 

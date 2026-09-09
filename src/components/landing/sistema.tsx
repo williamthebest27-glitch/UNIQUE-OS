@@ -137,6 +137,17 @@ export function SystemVisualization() {
      * resta in campo finché la sezione non si sblocca, o si finirebbe
      * di scorrere su una colonna vuota.
      */
+    /* L'ultimo valore scritto per ogni battuta.
+     *
+     * `onUpdate` arriva a ogni fotogramma finché lo scrub insegue il
+     * dito, ma quattro battute su tre schermate di scorrimento cambiano
+     * di rado: per la maggior parte dei fotogrammi il valore da scrivere
+     * è quello che c'è già. Riscriverlo uguale è comunque una
+     * scrittura — il browser non lo sa finché non gliel'ha chiesta — e
+     * qui si paga mentre la sezione è fissata e il filmato viene
+     * scorso, cioè nel punto più caro della pagina. */
+    const scritte = passi.map(() => ({ velo: "", moto: "" }));
+
     function battute(t: number) {
       for (let i = 0; i < quante; i++) {
         const dentro = t * quante - i;
@@ -146,10 +157,24 @@ export function SystemVisualization() {
         const su = i === 0 ? 1 : chiudi(dentro / 0.2);
         const giu = i === quante - 1 ? 1 : chiudi((1 - dentro) / 0.2);
         const p = passi[i];
-        p.style.opacity = String(Math.min(su, giu));
+        const ultima = scritte[i];
+
+        const velo = Math.min(su, giu).toFixed(3);
+        if (velo !== ultima.velo) {
+          p.style.opacity = velo;
+          ultima.velo = velo;
+        }
+
         /* Entrando sale da sotto, uscendo continua a salire: la battuta
-           attraversa il campo, non fa avanti e indietro. */
-        p.style.transform = `translateY(${(1 - su) * 30 - (1 - giu) * 30}px)`;
+           attraversa il campo, non fa avanti e indietro.
+
+           `translate3d` e non `translateY`: la battuta resta sul suo
+           piano di composizione invece di essere ridisegnata. */
+        const moto = `translate3d(0,${((1 - su) * 30 - (1 - giu) * 30).toFixed(2)}px,0)`;
+        if (moto !== ultima.moto) {
+          p.style.transform = moto;
+          ultima.moto = moto;
+        }
       }
     }
 

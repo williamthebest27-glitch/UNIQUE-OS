@@ -11,7 +11,12 @@ import {
   type ReactNode,
 } from "react";
 import { inMovimento } from "@/lib/landing/capacita";
-import { avviaScorrimento, rimisura, type Scorrimento } from "@/lib/landing/scena";
+import {
+  allaRimisura,
+  avviaScorrimento,
+  rimisura,
+  type Scorrimento,
+} from "@/lib/landing/scena";
 import { startEngine } from "@/lib/motion/engine";
 
 /**
@@ -93,25 +98,52 @@ export function Regia({ children }: { children: ReactNode }) {
     const nodo = barra.current;
     if (!nodo || !inMovimento()) return;
 
+    /* L'altezza scorribile si misura di rado, non a ogni fotogramma.
+     *
+     * `scrollHeight` è una misura, e chiederla obbliga il browser a
+     * finire il calcolo dell'impaginazione prima di rispondere. Chiesta
+     * dentro al fotogramma di scorrimento — cioè mentre le sezioni
+     * fissate stanno scrivendo le loro trasformazioni — diventa un
+     * ricalcolo forzato a ogni fotogramma, su tutta la pagina, per un
+     * numero che intanto non è cambiato: il documento si allunga quando
+     * cambia l'impaginazione, non quando si scorre.
+     *
+     * Quindi si tiene in cache e si rilegge dove l'impaginazione cambia
+     * davvero: a ogni rimisura delle scene — vedi `landing/scena.ts` — e
+     * a ogni `resize`, che sul telefono comprende la barra degli
+     * indirizzi che entra ed esce e con lei l'altezza del viewport. */
+    let altezza = 1;
+
+    const rileggi = () => {
+      altezza = Math.max(1, document.documentElement.scrollHeight - innerHeight);
+    };
+
     let raf = 0;
-    const misura = () => {
+    const disegna = () => {
       raf = 0;
-      const altezza = document.documentElement.scrollHeight - innerHeight;
-      const p = altezza > 0 ? Math.min(1, Math.max(0, scrollY / altezza)) : 0;
+      const p = Math.min(1, Math.max(0, scrollY / altezza));
       nodo.style.setProperty("--avanzamento", p.toFixed(4));
     };
     const suScroll = () => {
-      if (!raf) raf = requestAnimationFrame(misura);
+      if (!raf) raf = requestAnimationFrame(disegna);
+    };
+    const suResize = () => {
+      rileggi();
+      suScroll();
     };
 
-    misura();
+    rileggi();
+    disegna();
+
+    const smettiRimisura = allaRimisura(suResize);
     addEventListener("scroll", suScroll, { passive: true });
-    addEventListener("resize", suScroll, { passive: true });
+    addEventListener("resize", suResize, { passive: true });
 
     return () => {
       cancelAnimationFrame(raf);
+      smettiRimisura();
       removeEventListener("scroll", suScroll);
-      removeEventListener("resize", suScroll);
+      removeEventListener("resize", suResize);
     };
   }, []);
 

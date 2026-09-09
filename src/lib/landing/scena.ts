@@ -19,7 +19,7 @@ import { inMovimento, livello } from "@/lib/landing/capacita";
  * gli passa l'aggiornamento a ogni tick del ticker di GSAP — quindi
  * sulla landing la rotellina la governa lui e il motore di casa resta
  * acceso solo per ciò che sa fare meglio: il ciclo rAF a cui è appesa la
- * Signature e la velocità pubblicata in `--velN`.
+ * Signature, con la velocità che le serve.
  *
  * **Lo stato di riposo è quello finale.** Nessuna sezione parte
  * nascosta dal CSS: se GSAP non arrivasse — rete che cade, browser
@@ -244,6 +244,23 @@ export function avviaScorrimento(): Scorrimento {
  * non alla comparsa della barra degli indirizzi su iOS, che cambia solo
  * l'altezza e rimisurerebbe a ogni scroll.
  */
+/**
+ * Avvisa quando le scene si sono rimisurate.
+ *
+ * Serve a chi tiene in cache una misura della pagina — l'altezza
+ * scorribile, per esempio — e non vuole rileggerla a ogni fotogramma:
+ * l'altezza del documento cambia solo quando cambia l'impaginazione, e
+ * ogni cambio d'impaginazione che conta passa di qui, perché è anche il
+ * momento in cui ScrollTrigger rimisura le sue sezioni fissate.
+ */
+export function allaRimisura(fn: () => void): () => void {
+  if (typeof window === "undefined" || !inMovimento()) return () => {};
+
+  registra();
+  ScrollTrigger.addEventListener("refresh", fn);
+  return () => ScrollTrigger.removeEventListener("refresh", fn);
+}
+
 export function rimisura(): () => void {
   if (typeof window === "undefined" || !inMovimento()) return () => {};
 

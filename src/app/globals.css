@@ -473,12 +473,6 @@
     opacity: 0.6;
   }
 
-  /* Leggera inclinazione con la velocità di scroll, sulle card. */
-  .skew-vel {
-    transform: skewY(calc(var(--velN, 0) * 0.6deg));
-    transition: transform 0.2s ease-out;
-  }
-
   /* ── Score ring (ripiego) ─────────────────────────────────────── */
   @keyframes score-draw {
     from { stroke-dashoffset: var(--ring-circumference); }
@@ -1218,6 +1212,40 @@
   .os-traccia {
     stroke-dasharray: var(--lung, 1000);
     stroke-dashoffset: 0;
+  }
+
+  /* ── L'hero mentre la si attraversa col dito ────────────────────
+     La classe la mette e la toglie il motore dell'hero — vedi
+     `lib/landing/attraversamento.ts` — e solo per il tempo in cui la
+     scena si sta muovendo davvero, cioè fra il primo pixel di
+     scorrimento e l'ultimo. Sono gli undici elementi che quel motore
+     anima, non uno di più: `will-change` è una prenotazione di memoria
+     video, e prenotarla per sempre su un telefono costa la stessa
+     fluidità che si sta cercando di comprare.
+
+     Sul percorso desktop la classe non viene mai scritta: là la scena la
+     governa ScrollTrigger, che si promuove gli elementi da sé. */
+
+  .os-hero-viva [data-rete],
+  .os-hero-viva [data-figura],
+  .os-hero-viva [data-marchio],
+  .os-hero-viva [data-parola-os],
+  .os-hero-viva [data-titolo],
+  .os-hero-viva [data-sotto],
+  .os-hero-viva [data-comandi],
+  .os-hero-viva [data-stato] {
+    will-change: transform, opacity;
+  }
+
+  /* Le due gomme bianche dentro al corpo si muovono soltanto: la loro
+     opacità non la tocca nessuno. */
+  .os-hero-viva [data-suolo],
+  .os-hero-viva [data-cuore] {
+    will-change: transform;
+  }
+
+  .os-hero-viva [data-buio] {
+    will-change: opacity;
   }
 
   /* ── La barra di avanzamento della lettura ─────────────────────── */

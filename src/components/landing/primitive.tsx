@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { aSiparioAperto } from "@/components/brand/sipario";
 import { cx } from "@/components/ui/primitives";
 import { inMovimento } from "@/lib/landing/capacita";
-import { RITMO_TELEFONO, useScena } from "@/lib/landing/scena";
+import { useScena } from "@/lib/landing/scena";
+import { aTatto } from "@/lib/landing/tatto";
 
 /**
  * Il vocabolario della landing.
@@ -74,9 +74,11 @@ export function Etichetta({
  * rottura di riga è parte della composizione, non un caso.
  *
  * Un titolo che nasce già in campo — ce n'è uno solo, quello dell'hero —
- * ha un trigger che scatta prima ancora che si sia scorso, e sul telefono
- * lo scatto cade sotto al sipario d'avvio. `attendiSipario` gli dice di
- * aspettare la scena scoperta, come fa l'accensione attorno a lui.
+ * ha un trigger che scatta prima ancora che si sia scorso, e sotto il
+ * dito lo scatto cade sotto al sipario d'avvio. `attendiSipario` dice
+ * che su quel percorso il titolo non si anima da sé: le sue parole sono
+ * una battuta dell'accensione, e le dice l'hero, insieme a tutto il
+ * resto della scena. Una timeline sola, un solo aggancio al sipario.
  *
  * Con `zoom` il titolo prende anche la spinta di camera: entra a tre
  * quarti della sua misura e ci arriva mentre la pagina scorre. È legata
@@ -95,12 +97,12 @@ export function Titolo({
   className?: string;
   tag?: "h1" | "h2" | "h3" | "p";
   ritardo?: number;
-  /** Solo per il titolo dell'hero: sale quando il sipario si alza. */
+  /** Solo per il titolo dell'hero: sul dito lo fa salire l'accensione. */
   attendiSipario?: boolean;
   /** Il titolo entra piccolo e cresce mentre la pagina prosegue. */
   zoom?: boolean;
 }) {
-  const rif = useScena<HTMLElement>(({ gsap, radice, ridotta }) => {
+  const rif = useScena<HTMLElement>(({ gsap, radice }) => {
     /* La spinta di camera.
      *
      * Il titolo entra a tre quarti e arriva a grandezza naturale quando
@@ -137,11 +139,21 @@ export function Titolo({
     const parole = radice.querySelectorAll<HTMLElement>("[data-parola]");
     if (parole.length === 0) return;
 
-    // Su schermo largo il titolo dell'hero sale come sempre: lì il
-    // desktop resta esattamente com'era.
-    const aspetta = attendiSipario && ridotta;
+    /* Il titolo dell'hero, sotto il dito, non si anima da sé.
+     *
+     * Le sue parole sono una battuta dell'accensione che gli sta attorno,
+     * e la dice l'hero — vedi `landing/hero.tsx`. Due timeline appese
+     * entrambe al sipario, ciascuna con il suo `timeScale`, il suo rinvio
+     * e il suo ascoltatore di scorrimento, sono due pipeline che
+     * raccontano una cosa sola: basta che una salti la battuta e l'altra
+     * no, e il titolo sale sopra una scena che sta già uscendo di campo.
+     *
+     * Per ogni altro titolo della pagina, e per l'hero su schermo largo,
+     * qui non cambia niente: la salita è legata allo scorrimento, e lo
+     * scorrimento arriva sempre dopo l'ingresso. */
+    if (attendiSipario && aTatto()) return;
 
-    const salita = gsap.from(parole, {
+    gsap.from(parole, {
       yPercent: 118,
       opacity: 0,
       // Una rotazione minima sull'asse X dà alla parola un peso che la
@@ -150,67 +162,9 @@ export function Titolo({
       duration: 1.15,
       ease: "expo.out",
       stagger: 0.055,
-      delay: aspetta ? 0 : ritardo,
-      paused: aspetta,
-      // Chi aspetta il sipario è già in campo: un trigger di scorrimento
-      // scatterebbe subito, e il `play` lo rimetterebbe in corsa da capo.
-      scrollTrigger: aspetta
-        ? undefined
-        : {
-            trigger: radice,
-            start: "top 86%",
-            once: true,
-          },
+      delay: ritardo,
+      scrollTrigger: { trigger: radice, start: "top 86%", once: true },
     });
-
-    if (!aspetta) return;
-
-    // Sotto al sipario il titolo è già giù, e lo si disegna adesso:
-    // aspettare il primo tick vorrebbe dire rischiare di mostrarlo su,
-    // farlo sparire e riportarlo su un istante dopo.
-    salita.pause(0);
-
-    // Il titolo è una battuta dell'accensione che gli sta attorno, e
-    // quella sul telefono va più svelta: al passo di prima resterebbe
-    // indietro da sola, sopra una scena già montata.
-    salita.timeScale(RITMO_TELEFONO);
-
-    /* Il ritardo non è un'attesa ma una posizione nella coreografia — il
-       titolo sale dopo il marchio — e va conservato. Un `play()` nudo lo
-       brucerebbe: la partenza nel tempo globale è passata da un pezzo, e
-       il titolo salirebbe insieme al marchio invece che dietro di lui.
-       Accorciato nella stessa proporzione di tutto il resto, resta la
-       stessa posizione nella coreografia.
-
-       Il rinvio nasce fuori dal contesto GSAP — la richiamata arriva
-       dopo — quindi il revert non lo conosce e va spento a mano. */
-    let rinvio: ReturnType<typeof gsap.delayedCall> | null = null;
-    const smetti = aSiparioAperto(() => {
-      rinvio = gsap.delayedCall(ritardo / RITMO_TELEFONO, () => salita.play());
-    });
-
-    /* E come l'accensione attorno — vedi `landing/hero.tsx` — chi scorre
-       prima che il titolo sia salito ha detto che vuole andare avanti: le
-       parole si mettono su di colpo invece di arrivare dentro una scena
-       che sta già uscendo di campo, cioè invisibili. */
-    const alPrimoScorrimento = () => {
-      if (scrollY < 3) return;
-      smettiScorrimento();
-      rinvio?.kill();
-      salita.progress(1);
-    };
-
-    function smettiScorrimento() {
-      removeEventListener("scroll", alPrimoScorrimento);
-    }
-
-    addEventListener("scroll", alPrimoScorrimento, { passive: true });
-
-    return () => {
-      smetti();
-      smettiScorrimento();
-      rinvio?.kill();
-    };
   });
 
   const righe = testo.split("\n");

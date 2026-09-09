@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { conWebGL } from "@/lib/landing/capacita";
+import { aTatto } from "@/lib/landing/tatto";
 
 /**
  * Il campo vivo dietro l'hero.
@@ -24,6 +25,17 @@ import { conWebGL } from "@/lib/landing/capacita";
  * Arriva solo dove non costa: `next/dynamic` senza SSR — un canvas non
  * ha nulla da rendere sul server — e solo al livello pieno. Su telefono
  * al suo posto resta l'alone, che è già la sua luce.
+ *
+ * **E nemmeno sulle tavolette.** `conWebGL()` risponde a una domanda di
+ * muscoli, e un iPad ne ha: passerebbe. Ma la domanda qui è un'altra —
+ * uno shader a schermo intero, rovesciato da un `filter`, moltiplicato
+ * sulla carta e mascherato, che viene scalato e dissolto mentre il dito
+ * scorre la scena. Sono quattro strati di composizione ridisegnati a
+ * ogni fotogramma dietro a tutto il resto dell'hero: esattamente ciò che
+ * `capacita.ts` vuole togliere di mezzo dove la pagina la muove un
+ * pollice, e che la sua soglia di larghezza — tarata sui telefoni — non
+ * arrivava a coprire. `aTatto()` sì: vedi `lib/landing/tatto.ts`. Al suo
+ * posto resta l'alone, come sul telefono.
  */
 
 const Signature = dynamic(
@@ -41,7 +53,7 @@ export function CampoVivo({ className }: { className?: string }) {
   // La decisione si prende dopo il montaggio: `conWebGL()` legge
   // `matchMedia` e `navigator`, che sul server non esistono, e deciderlo
   // in fase di render darebbe due alberi diversi.
-  useEffect(() => setAcceso(conWebGL()), []);
+  useEffect(() => setAcceso(conWebGL() && !aTatto()), []);
 
   if (!acceso) return null;
 

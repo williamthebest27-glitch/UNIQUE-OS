@@ -80,12 +80,17 @@ export function startEngine(): Engine {
     const raw = scrollY - prevY;
     prevY = scrollY;
     velocity = lerp(velocity, raw, 0.16);
-    // Pubblicata come variabile CSS: anche il foglio di stile può reagire.
-    document.documentElement.style.setProperty(
-      "--velN",
-      clamp(velocity / 55, -1, 1).toFixed(4),
-    );
 
+    /* La velocità si consegna a chi l'ha chiesta — la Signature — e
+       basta.
+     *
+     * Prima veniva anche scritta come `--velN` sulla radice del
+     * documento, a ogni fotogramma. Una proprietà personalizzata scritta
+     * su `:root` è una promessa a tutto il foglio di stile: il browser
+     * deve controllare chi la eredita ogni volta che cambia, ed era il
+     * conto più caro della pagina proprio mentre si scorre. Il conto era
+     * anche a vuoto: l'unica regola che la leggeva — `.skew-vel` — non è
+     * mai stata messa su nessun elemento. */
     for (const fn of ticks) fn(time, velocity);
     raf = requestAnimationFrame(loop);
   };
